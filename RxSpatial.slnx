@@ -11,4 +11,7 @@
     <Project Path="src/RUMTree/RUMTree.csproj" />
     <Project Path="src/RxSpatial/RxSpatial.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RxSpatial.Tests/RxSpatial.Tests.csproj" />
+  </Folder>
 </Solution>
