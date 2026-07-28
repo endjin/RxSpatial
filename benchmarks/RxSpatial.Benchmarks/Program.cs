@@ -1,10 +1,9 @@
 using BenchmarkDotNet.Running;
 
-namespace RxSpatial.Benchmarks
+namespace RxSpatial.Benchmarks;
+
+internal class Program
 {
-    internal class Program
-    {
-        private static void Main(string[] args)
-            => BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
-    }
+    private static void Main(string[] args)
+        => BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 }

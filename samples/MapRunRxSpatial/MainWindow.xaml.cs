@@ -24,7 +24,6 @@ namespace MapRunRxSpatial
     /// </summary>
     public partial class MainWindow : Window
     {
-        SimulationFromText simFromTxt;
         PolygonMgr polygonMgr;
         MovingObjMgr movingObjMgr;
         public MainWindow()
@@ -41,12 +40,6 @@ namespace MapRunRxSpatial
             //myMap.Children.Add(new UIElement()); in iRoad code mainwindow.xaml
             //scalar bar
 
-        }
-
-        private void Sim_Click(object sender, RoutedEventArgs e)
-        {
-            Console.WriteLine("console");
-            simFromTxt.procTraffic();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)

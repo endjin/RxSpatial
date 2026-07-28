@@ -16,8 +16,5 @@ namespace MapRunRxSpatial
         public static int VehicleNumber = 1;
         public static double ObsvDist = 0;
         public static STATE subscribeState = STATE.INTERSCT;
-        public void updateParam(){
-
-        }
     }
 }

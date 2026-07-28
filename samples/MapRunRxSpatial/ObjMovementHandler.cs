@@ -18,7 +18,6 @@ namespace MapRunRxSpatial
     {
         protected Pushpin pushpin;
         protected PolygonMgr polygonMgr;
-        protected Polygon polygon;
         public Object id;
         public int lineId=-1;
         public Map baseMap;
@@ -48,8 +47,6 @@ namespace MapRunRxSpatial
         {
             Location loc2 = this.pushpin.Location;
             SqlGeography loc1 = rxGeoObj.loc;
-            if (polygon != null && polygon.polyline != null)
-                baseMap.Children.Remove(polygon.polyline);
             lineId = polygonMgr.updateLine(lineId, new Location(loc1.Lat.Value, loc1.Long.Value),
                  new Location(loc2.Latitude, loc2.Longitude), isDash, strokeThickness);
            // if (polygon!=null)
