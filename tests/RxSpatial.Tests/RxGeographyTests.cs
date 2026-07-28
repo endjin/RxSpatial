@@ -23,6 +23,7 @@ public class RxGeographyTests
     {
         ConfigurationManager.AppSettings["isVisualized"] = "true";
         ConfigurationManager.AppSettings["preferredDataStruct"] = "list";
+        ConfigurationManager.AppSettings["RxSpatialQueueLimit"] = "64";
         ConfigurationManager.AppSettings["HashMapGridNum"] = "10,10";
         ConfigurationManager.AppSettings["HashMapCoverageRegion"] = "46,-124,49,-120";
         ConfigurationManager.AppSettings["RUMTreeGCInspectionInterval"] = "5";
@@ -114,6 +115,18 @@ public class RxGeographyTests
         distances.Count.ShouldBe(2);
         distances[0].ShouldBeGreaterThan(0);
         distances[^1].ShouldBe(0);
+    }
+
+    [TestMethod]
+    public void BufferedMode_ThrowsOverloadException_WhenQueueLimitExceeded()
+    {
+        ConfigurationManager.AppSettings["isVisualized"] = "false";
+        ConfigurationManager.AppSettings["RxSpatialQueueLimit"] = "0";
+
+        RxGeography vehicle = new();
+
+        Should.Throw<RxSpatialOverLoadException>(
+            () => vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326)));
     }
 
     [TestMethod]
