@@ -66,6 +66,11 @@ namespace RxSpatial
                 // Not running Windows 8 or higher.
                 IsAvailable = false;
             }
+            catch (DllNotFoundException)
+            {
+                // Not running on Windows at all.
+                IsAvailable = false;
+            }
         }
     }
 }

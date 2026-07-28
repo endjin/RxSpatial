@@ -1,3 +1,0 @@
-54.9710739087301
-Total time_elapse 39891.6192ms
-Total time_elapse 36882.8572ms

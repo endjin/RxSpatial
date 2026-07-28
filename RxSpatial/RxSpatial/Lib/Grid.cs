@@ -51,9 +51,9 @@ namespace RxSpatial.Lib
 
         public void subscribeRxRx(T observer, RxGeography G)
         {
-            UpdateLocation(G.loc, observer);  
-            LocationObsvr<T> LocationObsvr = new LocationObsvr<T>(this, observer);
-            IDisposable unsubscriber = G.Subscribe(LocationObsvr); 
+            UpdateLocation(G.loc, observer);
+            LocationObsvr locationObsvr = new LocationObsvr(this, observer);
+            IDisposable unsubscriber = G.Subscribe(locationObsvr);
         }
 
         public void subscribeRx(T observer, SqlGeography loc)
@@ -62,7 +62,7 @@ namespace RxSpatial.Lib
         }
 
         //Modify the location of actual observer in rtree/rumtree
-        private class LocationObsvr<T> : IObserver<SqlGeography>
+        private class LocationObsvr : IObserver<SqlGeography>
         {
             Grid<T> grid;
             T item; //corresponding obsvr which is actually stored in R/RUM tree

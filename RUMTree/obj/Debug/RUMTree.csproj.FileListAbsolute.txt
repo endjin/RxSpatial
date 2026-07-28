@@ -1,9 +1,0 @@
-C:\Users\willi_000\Downloads\RUMTree\Rtree\Backup\bin\Debug\RUMTree.dll
-C:\Users\willi_000\Downloads\RUMTree\Rtree\Backup\bin\Debug\RUMTree.pdb
-C:\Users\willi_000\Downloads\RUMTree\Rtree\Backup\obj\Debug\RUMTree.dll
-C:\Users\willi_000\Downloads\RUMTree\Rtree\Backup\obj\Debug\RUMTree.pdb
-C:\RxSpatial\RUMTree\bin\Debug\RUMTree.dll
-C:\RxSpatial\RUMTree\bin\Debug\RUMTree.pdb
-C:\RxSpatial\RUMTree\obj\Debug\RUMTree.csprojResolveAssemblyReference.cache
-C:\RxSpatial\RUMTree\obj\Debug\RUMTree.dll
-C:\RxSpatial\RUMTree\obj\Debug\RUMTree.pdb

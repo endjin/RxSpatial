@@ -1,209 +1,37 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{54E08CE7-7C3D-4B5C-A743-5B73F29C9B6F}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
     <RootNamespace>MapRunRxSpatial</RootNamespace>
     <AssemblyName>MapRunRxSpatial</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
-    <SccProjectName>SAK</SccProjectName>
-    <SccLocalPath>SAK</SccLocalPath>
-    <SccAuxPath>SAK</SccAuxPath>
-    <SccProvider>SAK</SccProvider>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <!-- Microsoft.Maps.MapControl.WPF is a .NET Framework assembly consumed via
+         AssetTargetFallback; NU1701 is expected and accepted. -->
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="Microsoft.Maps.MapControl.WPF">
-      <HintPath>..\..\..\Program Files (x86)\Microsoft XDE\8.1\Microsoft.Maps.MapControl.WPF.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Types, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Program Files (x86)\Microsoft SQL Server\110\SDK\Assemblies\Microsoft.SqlServer.Types.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
+    <!-- Unused prototypes kept as reference source only; they were also excluded
+         from compilation in the original 2016 project. -->
+    <Compile Remove="MovingObj.cs" />
+    <Compile Remove="IntersctObserver.cs" />
+    <Compile Remove="Observer.cs" />
   </ItemGroup>
+
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Compile Include="DistanceObserver.cs" />
-    <Compile Include="GeoObserver.cs" />
-    <Compile Include="IntersectionObserver.cs" />
-    <Compile Include="IntersectObserver.cs" />
-    <Compile Include="MovingObject.cs" />
-    <Compile Include="InitTestParams.cs" />
-    <Compile Include="MovingObjMgr.cs" />
-    <Compile Include="ObjMovementObserver.cs" />
-    <Compile Include="ObjMovementHandler.cs" />
-    <Compile Include="Parameters.cs" />
-    <Compile Include="ParamMgr.cs" />
-    <Compile Include="PolygonMgr.cs" />
-    <Compile Include="RxRxDistance.cs" />
-    <Compile Include="RxRxIntersectionObserver.cs" />
-    <Compile Include="SimulationFromText.cs" />
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
+    <PackageReference Include="Microsoft.Maps.MapControl.WPF" Version="1.0.1" />
+    <PackageReference Include="Microsoft.SqlServer.Types" Version="170.1000.7" />
+    <!-- System.Configuration.ConfigurationManager comes from the WindowsDesktop
+         shared framework on net10.0-windows. -->
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <AppDesigner Include="Properties\" />
+    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj" />
   </ItemGroup>
+
   <ItemGroup>
-    <None Include="App.config" />
+    <None Update="trafficData\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj">
-      <Project>{0790f78c-e665-4f1f-9516-5e1c7f584d6b}</Project>
-      <Name>RxSpatial</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\trafficData.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\polygons.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\subscribeSettings.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\loadTestParams.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\5.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\1.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\2.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\3.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\4.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\6.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\7.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\8.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\9.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\10.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\0.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\11.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\12.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\13.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\14.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\15.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\16.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\17.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\18.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="trafficData\19.txt" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

@@ -1,105 +1,39 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0790F78C-E665-4F1F-9516-5E1C7F584D6B}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>RxSpatial</RootNamespace>
     <AssemblyName>RxSpatial</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <SccProjectName>SAK</SccProjectName>
-    <SccLocalPath>SAK</SccLocalPath>
-    <SccAuxPath>SAK</SccAuxPath>
-    <SccProvider>SAK</SccProvider>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="log4net">
-      <HintPath>..\..\..\Users\willi_000\Downloads\Rtree\Backup\bin\Debug\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Types, Version=10.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <Private>True</Private>
-      <HintPath>..\packages\HashFoo.SqlServer.SpatialTypes.10.0.0.0\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
-    </Reference>
-    <Reference Include="PresentationFramework" />
-    <Reference Include="RTree">
-      <HintPath>..\..\..\Users\willi_000\Downloads\Rtree\Backup\bin\Debug\RTree.dll</HintPath>
-    </Reference>
-    <Reference Include="RUMTree">
-      <HintPath>..\..\..\Users\willi_000\Downloads\RUMTree\Rtree\Backup\bin\Debug\RUMTree.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Reactive.Core">
-      <HintPath>..\packages\Rx-Core.2.2.5\lib\net45\System.Reactive.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reactive.Interfaces">
-      <HintPath>..\packages\Rx-Interfaces.2.2.5\lib\net45\System.Reactive.Interfaces.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reactive.Linq">
-      <HintPath>..\packages\Rx-Linq.2.2.5\lib\net45\System.Reactive.Linq.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reactive.PlatformServices">
-      <HintPath>..\packages\Rx-PlatformServices.2.2.5\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+    <!-- Alternative backend prototypes kept as reference source only; they were
+         also excluded from compilation in the original 2016 project. -->
+    <Compile Remove="RxGeography_.cs" />
+    <Compile Remove="RxGeographyGrid.cs" />
+    <Compile Remove="RxGeographyRTree.cs" />
+    <Compile Remove="RxGeographyRUMTree.cs" />
+    <Compile Remove="RxGeographySqlSpatial.cs" />
+    <Compile Remove="RxGeographyTree.cs" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Lib\GeoList.cs" />
-    <Compile Include="Lib\IContainer.cs" />
-    <Compile Include="RxGeography.cs" />
-    <Compile Include="Util\AppConfig.cs" />
-    <Compile Include="Util\AvgCalc.cs" />
-    <Compile Include="Lib\Grid.cs" />
-    <Compile Include="Push.cs" />
-    <Compile Include="RxGeoDistObserver.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RxGeoIntersectionObserver.cs" />
-    <Compile Include="RxGeoIntersectObserver.cs" />
-    <Compile Include="RxGeoObserver.cs" />
-    <Compile Include="RxRxGeoDistObserver.cs" />
-    <Compile Include="RxRxGeoIntersectionObserver.cs" />
-    <Compile Include="RxRxGeoIntersectObserver.cs" />
-    <Compile Include="RxRxGeoObserver.cs" />
-    <Compile Include="Lib\Tree.cs" />
-    <Compile Include="RxSpatialOverLoadException.cs" />
-    <Compile Include="Unsubscriber.cs" />
+    <PackageReference Include="Microsoft.SqlServer.Types" Version="170.1000.7" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.10" />
+    <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
+
   <ItemGroup>
-    <None Include="packages.config" />
+    <ProjectReference Include="..\..\RTree\RTree.csproj" />
+    <ProjectReference Include="..\..\RUMTree\RUMTree.csproj" />
   </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
+  <ItemGroup>
+    <!-- SqlServerSpatial native library and the high-resolution clock P/Invoke
+         make this assembly Windows-only at runtime. -->
+    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
+      <_Parameter1>windows</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

@@ -19,7 +19,7 @@ namespace RxSpatial.Lib
     {
         public Tree(RxGeographyDataStruct treeType)
         {
-            _tree = new Entity<T>(treeType);
+            _tree = new Entity(treeType);
         }
         public string dump()
         {
@@ -27,9 +27,9 @@ namespace RxSpatial.Lib
         }
         public void subscribeRxRx(T observer, RxGeography G)
         {
-            _tree.UpdateLocation(G.loc, observer);  
-            LocationObsvr<T> LocationObsvr = new LocationObsvr<T>(_tree, observer);
-            IDisposable unsubscriber= G.Subscribe(LocationObsvr);    
+            _tree.UpdateLocation(G.loc, observer);
+            LocationObsvr locationObsvr = new LocationObsvr(_tree, observer);
+            IDisposable unsubscriber= G.Subscribe(locationObsvr);
         }
 
         public void subscribeRx(T observer, SqlGeography loc)
@@ -53,14 +53,14 @@ namespace RxSpatial.Lib
         }
 
         private List<IObserver<SqlGeography>> observersForLocation = new List<IObserver<SqlGeography>>();
-        private Entity<T> _tree;
+        private Entity _tree;
 
         //Modify the location of actual observer in rtree/rumtree
-        private class LocationObsvr<T> : IObserver<SqlGeography>
+        private class LocationObsvr : IObserver<SqlGeography>
         {
-            Entity<T> tree;
+            Entity tree;
             T item; //corresponding obsvr which is actually stored in R/RUM tree
-            public LocationObsvr(Entity<T> tree, T item)
+            public LocationObsvr(Entity tree, T item)
             {
                 this.tree = tree;
                 this.item = item;
@@ -78,7 +78,7 @@ namespace RxSpatial.Lib
             }
         }
 
-        private class Entity<T>
+        private class Entity
         {
             private RTree<T> rtree = null;
             RUMTree<T> rumTree = null;

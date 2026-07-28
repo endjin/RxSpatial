@@ -1,3 +1,0 @@
-﻿ObserverNumber: 10
-VehicleNumber: 5
-UpdateTimeInterval: 10

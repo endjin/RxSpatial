@@ -114,7 +114,7 @@ namespace MapRunRxSpatial
 
            baseMap.Children.Remove(this.pushpin);
 
-           if (newLoc != null && newLoc.Lat.Value != null && newLoc.Long.Value!=null)
+           if (newLoc != null)
            {
                this.pushpin.Location =
                     new Location(newLoc.Lat.Value, newLoc.Long.Value);

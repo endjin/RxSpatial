@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/RxSpatial/">
+    <Project Path="RxSpatial/MapRunRxSpatial/MapRunRxSpatial.csproj" />
+    <Project Path="RxSpatial/RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj" />
+    <Project Path="RxSpatial/RxSpatial.Examples/RxSpatial.Examples.csproj" />
+    <Project Path="RxSpatial/RxSpatial/RxSpatial.csproj" />
+  </Folder>
+  <Project Path="RTree/RTree.csproj" />
+  <Project Path="RUMTree/RUMTree.csproj" />
+</Solution>

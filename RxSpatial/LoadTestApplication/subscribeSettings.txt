@@ -1,4 +1,0 @@
-﻿mall2 30 Intersection
-mall1 29 Intersect
-mall1 41 Dist
-mall1 25 Intersection

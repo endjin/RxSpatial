@@ -1,0 +1,36 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+publish/
+artifacts/
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vspscc
+*.vssscc
+
+# Benchmark results
+BenchmarkDotNet.Artifacts/
+
+# Test / coverage results
+TestResults/
+*.trx
+*.coverage
+coverage*.json
+coverage*.xml
+
+# OS cruft
+Thumbs.db
+.DS_Store
+.endjin/

@@ -86,7 +86,7 @@ namespace MapRunRxSpatial
                         longitude = Convert.ToDouble(strs[4]);
                         location = SqlGeography.Point(latitude, longitude, 4326);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         continue;
                     }
