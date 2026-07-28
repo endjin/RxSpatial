@@ -1,10 +1,14 @@
 <Solution>
-  <Folder Name="/RxSpatial/">
-    <Project Path="RxSpatial/MapRunRxSpatial/MapRunRxSpatial.csproj" />
-    <Project Path="RxSpatial/RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj" />
-    <Project Path="RxSpatial/RxSpatial.Examples/RxSpatial.Examples.csproj" />
-    <Project Path="RxSpatial/RxSpatial/RxSpatial.csproj" />
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj" />
   </Folder>
-  <Project Path="RTree/RTree.csproj" />
-  <Project Path="RUMTree/RUMTree.csproj" />
+  <Folder Name="/samples/">
+    <Project Path="samples/MapRunRxSpatial/MapRunRxSpatial.csproj" />
+    <Project Path="samples/RxSpatial.Examples/RxSpatial.Examples.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/RTree/RTree.csproj" />
+    <Project Path="src/RUMTree/RUMTree.csproj" />
+    <Project Path="src/RxSpatial/RxSpatial.csproj" />
+  </Folder>
 </Solution>

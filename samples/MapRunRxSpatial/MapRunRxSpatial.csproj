@@ -12,14 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Unused prototypes kept as reference source only; they were also excluded
-         from compilation in the original 2016 project. -->
-    <Compile Remove="MovingObj.cs" />
-    <Compile Remove="IntersctObserver.cs" />
-    <Compile Remove="Observer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Maps.MapControl.WPF" Version="1.0.1" />
     <PackageReference Include="Microsoft.SqlServer.Types" Version="170.1000.7" />
     <!-- System.Configuration.ConfigurationManager comes from the WindowsDesktop
@@ -27,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj" />
+    <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
   </ItemGroup>
 
   <ItemGroup>

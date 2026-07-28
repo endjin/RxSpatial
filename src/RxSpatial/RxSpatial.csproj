@@ -7,25 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Alternative backend prototypes kept as reference source only; they were
-         also excluded from compilation in the original 2016 project. -->
-    <Compile Remove="RxGeography_.cs" />
-    <Compile Remove="RxGeographyGrid.cs" />
-    <Compile Remove="RxGeographyRTree.cs" />
-    <Compile Remove="RxGeographyRUMTree.cs" />
-    <Compile Remove="RxGeographySqlSpatial.cs" />
-    <Compile Remove="RxGeographyTree.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.SqlServer.Types" Version="170.1000.7" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.10" />
     <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\RTree\RTree.csproj" />
-    <ProjectReference Include="..\..\RUMTree\RUMTree.csproj" />
+    <ProjectReference Include="..\RTree\RTree.csproj" />
+    <ProjectReference Include="..\RUMTree\RUMTree.csproj" />
   </ItemGroup>
 
   <ItemGroup>
