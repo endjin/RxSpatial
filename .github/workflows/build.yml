@@ -1,0 +1,26 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build RxSpatial.slnx --configuration Release
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build
+
+      - name: Run examples smoke test
+        run: dotnet run --project samples/RxSpatial.Examples --configuration Release --no-build
