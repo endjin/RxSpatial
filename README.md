@@ -44,6 +44,18 @@ dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*"
 
 `SpatialBackendBenchmarks` measures the cost of pushing one location update through `RxGeography` per index backend — the list backend scales linearly with the observer count while the grid and tree backends prune by zone. `TreeIndexBenchmarks` compares the R-tree (the per-category baseline) against the RUM-tree for bulk insertion, the frequent-update workload the RUM-tree was designed for, and intersection queries.
 
+### Running the map demo
+
+```shell
+dotnet run --project samples/MapRunRxSpatial
+```
+
+Nothing moves until you press **Start** — and the defaults (1 vehicle at speed 1) produce a single slow marker near the top edge of the map, so:
+
+1. Drag **Vehicle Number** up (20 shows the whole fleet) and **Vehicle Speed** up (e.g. 25).
+2. Press **Start** — numbered vehicles drive their recorded trajectories across the Seattle area.
+3. Press **Add Area**, then click two corners on the map — vehicles entering the orange geofence turn red via `RxIntersect` continuous queries (the *Dist* tab colours by `RxDistance` bands instead, and the *RxRxDist* tabs track pairs of moving objects against each other).
+
 ## Using RxSpatial with System.Reactive v7
 
 `RxGeography` implements `IObserver<SqlGeography>` / `IObservable<SqlGeography>`, so it composes directly with Rx.NET. The library also ships `RxGeographyObservable` — C# 14 extension members that expose the continuous query API as ordinary observable sequences:
