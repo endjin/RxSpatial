@@ -15,8 +15,12 @@ namespace RxSpatial.Benchmarks;
 [MemoryDiagnoser]
 public class SpatialBackendBenchmarks
 {
-    [Params("list", "hashmap", "RTREE", "RUMTREE")]
-    public string Backend = null!;
+    [Params(
+        RxGeographyDataStruct.List,
+        RxGeographyDataStruct.HashMap,
+        RxGeographyDataStruct.RTree,
+        RxGeographyDataStruct.RumTree)]
+    public RxGeographyDataStruct Backend;
 
     [Params(100, 1000)]
     public int Observers;
@@ -29,15 +33,14 @@ public class SpatialBackendBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        // RxSpatial is configured through AppSettings; mutate them in-memory before the
-        // RxGeography (and with it the backend index) is constructed.
-        ConfigurationManager.AppSettings["isVisualized"] = "true";
-        ConfigurationManager.AppSettings["preferredDataStruct"] = Backend;
-        ConfigurationManager.AppSettings["HashMapGridNum"] = "10,10";
-        ConfigurationManager.AppSettings["HashMapCoverageRegion"] = "46,-124,49,-120";
+        // The vendored RUM-tree's lazy garbage cleaner still reads legacy AppSettings.
         ConfigurationManager.AppSettings["RUMTreeGCInspectionInterval"] = "5";
 
-        vehicle = new RxGeography();
+        vehicle = new RxGeography(new RxSpatialOptions
+        {
+            PreferredDataStruct = Backend,
+            IsVisualized = true,
+        });
 
         // Stationary observation zones spread over the coverage region, like the polygon
         // grid the original load test subscribed against.

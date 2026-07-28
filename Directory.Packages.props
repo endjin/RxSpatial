@@ -7,6 +7,10 @@
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="log4net" Version="3.3.2" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Maps.MapControl.WPF" Version="1.0.1" />
     <PackageVersion Include="Microsoft.SqlServer.Types" Version="170.1000.7" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />

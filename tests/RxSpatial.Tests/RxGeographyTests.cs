@@ -1,5 +1,5 @@
-using System.Configuration;
 using System.Reactive.Linq;
+using Microsoft.Extensions.Configuration;
 using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -7,9 +7,10 @@ using Shouldly;
 namespace RxSpatial.Tests;
 
 /// <summary>
-/// Behavioural tests for <see cref="RxGeography"/> and its Rx.NET v7 bridge. RxSpatial reads
-/// its configuration from the process-global AppSettings, so these tests rely on MSTest's
-/// default sequential execution — do not add <c>[assembly: Parallelize]</c>.
+/// Behavioural tests for <see cref="RxGeography"/> and its Rx.NET v7 bridge. Settings are
+/// passed explicitly as <see cref="RxSpatialOptions"/>; only the vendored RUM-tree garbage
+/// cleaner still reads process-global AppSettings, so the suite stays on MSTest's default
+/// sequential execution.
 /// </summary>
 [TestClass]
 public class RxGeographyTests
@@ -20,19 +21,12 @@ public class RxGeographyTests
 
     [TestInitialize]
     public void Initialize()
-    {
-        ConfigurationManager.AppSettings["isVisualized"] = "true";
-        ConfigurationManager.AppSettings["preferredDataStruct"] = "list";
-        ConfigurationManager.AppSettings["RxSpatialQueueLimit"] = "64";
-        ConfigurationManager.AppSettings["HashMapGridNum"] = "10,10";
-        ConfigurationManager.AppSettings["HashMapCoverageRegion"] = "46,-124,49,-120";
-        ConfigurationManager.AppSettings["RUMTreeGCInspectionInterval"] = "5";
-    }
+        => System.Configuration.ConfigurationManager.AppSettings["RUMTreeGCInspectionInterval"] = "5";
 
     [TestMethod]
     public void DistanceStream_DecreasesToZero_WhileApproachingFence()
     {
-        RxGeography vehicle = new();
+        RxGeography vehicle = new(VisualizedOptions());
         List<double> distances = [];
         using IDisposable subscription = vehicle.DistanceTo(Fence)
                                                 .Select(d => (double)d)
@@ -49,7 +43,7 @@ public class RxGeographyTests
     [TestMethod]
     public void IntersectionStream_FlipsFalseToTrue_WhenEnteringFence()
     {
-        RxGeography vehicle = new();
+        RxGeography vehicle = new(VisualizedOptions());
         List<bool> events = [];
         using IDisposable subscription = vehicle.Intersects(Fence)
                                                 .DistinctUntilChanged()
@@ -64,7 +58,7 @@ public class RxGeographyTests
     [TestMethod]
     public void Locations_ForwardsEveryUpdate_InVisualizedMode()
     {
-        RxGeography vehicle = new();
+        RxGeography vehicle = new(VisualizedOptions());
         List<SqlGeography> positions = [];
         using IDisposable subscription = vehicle.Locations.Subscribe(positions.Add);
 
@@ -75,15 +69,14 @@ public class RxGeographyTests
     }
 
     [TestMethod]
-    [DataRow("list", 2)]
-    [DataRow("hashmap", 1)]
-    [DataRow("RTREE", 1)]
-    [DataRow("RUMTREE", 1)]
-    public void SpatialBackends_PruneUpdatesOutsideTheObserverZone(string backend, int expectedEvents)
+    [DataRow(RxGeographyDataStruct.List, 2)]
+    [DataRow(RxGeographyDataStruct.HashMap, 1)]
+    [DataRow(RxGeographyDataStruct.RTree, 1)]
+    [DataRow(RxGeographyDataStruct.RumTree, 1)]
+    public void SpatialBackends_PruneUpdatesOutsideTheObserverZone(
+        RxGeographyDataStruct backend, int expectedEvents)
     {
-        ConfigurationManager.AppSettings["preferredDataStruct"] = backend;
-
-        RxGeography vehicle = new();
+        RxGeography vehicle = new(VisualizedOptions(backend));
         List<bool> events = [];
         using IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
 
@@ -100,8 +93,8 @@ public class RxGeographyTests
     [TestMethod]
     public void RxRxDistanceStream_TracksTwoMovingObjects()
     {
-        RxGeography a = new();
-        RxGeography b = new();
+        RxGeography a = new(VisualizedOptions());
+        RxGeography b = new(VisualizedOptions());
         b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326));
 
         List<double> distances = [];
@@ -120,10 +113,7 @@ public class RxGeographyTests
     [TestMethod]
     public void BufferedMode_ThrowsOverloadException_WhenQueueLimitExceeded()
     {
-        ConfigurationManager.AppSettings["isVisualized"] = "false";
-        ConfigurationManager.AppSettings["RxSpatialQueueLimit"] = "0";
-
-        RxGeography vehicle = new();
+        RxGeography vehicle = new(new RxSpatialOptions { IsVisualized = false, QueueLimit = 0 });
 
         Should.Throw<RxSpatialOverLoadException>(
             () => vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326)));
@@ -132,7 +122,7 @@ public class RxGeographyTests
     [TestMethod]
     public void Unsubscribe_StopsNotifications()
     {
-        RxGeography vehicle = new();
+        RxGeography vehicle = new(VisualizedOptions());
         List<bool> events = [];
         IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
 
@@ -142,6 +132,41 @@ public class RxGeographyTests
 
         events.Count.ShouldBe(1);
     }
+
+    [TestMethod]
+    public void RxSpatialOptions_BindFromConfigurationSection()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                // Historic (differently-cased) setting values bind case-insensitively.
+                ["RxSpatial:PreferredDataStruct"] = "RUMTREE",
+                ["RxSpatial:QueueLimit"] = "7",
+                ["RxSpatial:IsVisualized"] = "true",
+                ["RxSpatial:Grid:LatitudeCells"] = "20",
+                ["RxSpatial:Grid:CoverageRegion:LowerLeftLatitude"] = "45.5",
+            })
+            .Build();
+
+        RxSpatialOptions options =
+            configuration.GetSection(RxSpatialOptions.SectionName).Get<RxSpatialOptions>()!;
+
+        options.PreferredDataStruct.ShouldBe(RxGeographyDataStruct.RumTree);
+        options.QueueLimit.ShouldBe(7);
+        options.IsVisualized.ShouldBeTrue();
+        options.Grid.LatitudeCells.ShouldBe(20);
+        options.Grid.LongitudeCells.ShouldBe(10);
+        options.Grid.CoverageRegion.LowerLeftLatitude.ShouldBe(45.5);
+    }
+
+    private static RxSpatialOptions VisualizedOptions(
+        RxGeographyDataStruct backend = RxGeographyDataStruct.List)
+        => new()
+        {
+            PreferredDataStruct = backend,
+            IsVisualized = true,
+            QueueLimit = 64,
+        };
 
     private static IEnumerable<SqlGeography> Route()
     {

@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.Extensions.Configuration;
+using RxSpatial;
 
 namespace MapRunRxSpatial
 {
@@ -13,5 +10,17 @@ namespace MapRunRxSpatial
     /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true)
+                .Build();
+
+            RxSpatialOptions.Default =
+                configuration.GetSection(RxSpatialOptions.SectionName).Get<RxSpatialOptions>() ?? new RxSpatialOptions();
+
+            base.OnStartup(e);
+        }
     }
 }

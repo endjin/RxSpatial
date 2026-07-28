@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SqlServer.Types" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" />
     <PackageReference Include="System.Reactive" />
   </ItemGroup>
 

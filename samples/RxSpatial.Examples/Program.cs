@@ -1,5 +1,5 @@
-using System.Configuration;
 using System.Reactive.Linq;
+using Microsoft.Extensions.Configuration;
 using Microsoft.SqlServer.Types;
 
 namespace RxSpatial.Examples;
@@ -8,7 +8,9 @@ namespace RxSpatial.Examples;
 /// Demonstrates — and smoke-tests — RxSpatial composed with System.Reactive v7 on .NET 10:
 /// an Rx sequence feeds position updates into an <see cref="RxGeography"/> (which is an
 /// <c>IObserver&lt;SqlGeography&gt;</c>), and the spatio-temporal query streams coming back
-/// out are consumed through ordinary Rx operators.
+/// out are consumed through ordinary Rx operators. Configuration comes from
+/// Microsoft.Extensions.Configuration (appsettings.json + RXSPATIAL_-prefixed environment
+/// variables) bound to <see cref="RxSpatialOptions"/>.
 /// </summary>
 internal class Program
 {
@@ -20,16 +22,26 @@ internal class Program
 
     private static async Task<int> Main()
     {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddEnvironmentVariables(prefix: "RXSPATIAL_")
+            .Build();
+
+        RxSpatialOptions.Default =
+            configuration.GetSection(RxSpatialOptions.SectionName).Get<RxSpatialOptions>() ?? new();
+
         Console.WriteLine($"RxSpatial on .NET {Environment.Version}");
         Console.WriteLine($"System.Reactive {typeof(Observable).Assembly.GetName().Version}");
         Console.WriteLine($"Microsoft.SqlServer.Types {typeof(SqlGeography).Assembly.GetName().Version}");
+        Console.WriteLine($"Configured backend: {RxSpatialOptions.Default.PreferredDataStruct}");
         Console.WriteLine();
 
         await DistanceStreamAsync();
-        SpatialFiltering("list", expectedEvents: 2);
-        SpatialFiltering("hashmap", expectedEvents: 1);
-        SpatialFiltering("RTREE", expectedEvents: 1);
-        SpatialFiltering("RUMTREE", expectedEvents: 1);
+        SpatialFiltering(RxGeographyDataStruct.List, expectedEvents: 2);
+        SpatialFiltering(RxGeographyDataStruct.HashMap, expectedEvents: 1);
+        SpatialFiltering(RxGeographyDataStruct.RTree, expectedEvents: 1);
+        SpatialFiltering(RxGeographyDataStruct.RumTree, expectedEvents: 1);
 
         Console.WriteLine();
         Console.WriteLine(failures == 0 ? "All scenarios passed." : $"{failures} scenario(s) FAILED.");
@@ -37,13 +49,13 @@ internal class Program
     }
 
     /// <summary>
-    /// A vehicle approaches the geofence. Its position feed is an Rx Interval sequence and
-    /// the continuous distance / intersection queries are composed with Rx operators.
+    /// A vehicle approaches the geofence. The vehicle is configured from bound configuration
+    /// (<see cref="RxSpatialOptions.Default"/>), its position feed is an Rx Interval sequence,
+    /// and the continuous distance / intersection queries are composed with Rx operators.
     /// </summary>
     private static async Task DistanceStreamAsync()
     {
-        Console.WriteLine("-- Continuous distance query ('list' backend, Rx Interval position feed) --");
-        ConfigurationManager.AppSettings["preferredDataStruct"] = "list";
+        Console.WriteLine("-- Continuous distance query (configured backend, Rx Interval position feed) --");
 
         RxGeography vehicle = new();
         List<SqlGeography> route =
@@ -84,16 +96,20 @@ internal class Program
     }
 
     /// <summary>
-    /// The same intersection query on every index backend. The grid and tree backends prune
-    /// updates outside the observer's zone, so the vehicle's first, far-away ping produces
-    /// no notification at all — only the plain list backend evaluates every update.
+    /// The same intersection query on every index backend, selected through typed
+    /// <see cref="RxSpatialOptions"/>. The grid and tree backends prune updates outside the
+    /// observer's zone, so the vehicle's first, far-away ping produces no notification at
+    /// all — only the plain list backend evaluates every update.
     /// </summary>
-    private static void SpatialFiltering(string backend, int expectedEvents)
+    private static void SpatialFiltering(RxGeographyDataStruct backend, int expectedEvents)
     {
         Console.WriteLine($"-- Intersection query, '{backend}' backend --");
-        ConfigurationManager.AppSettings["preferredDataStruct"] = backend;
 
-        RxGeography vehicle = new();
+        RxGeography vehicle = new(new RxSpatialOptions
+        {
+            PreferredDataStruct = backend,
+            IsVisualized = true,
+        });
         List<bool> events = [];
         using IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
 

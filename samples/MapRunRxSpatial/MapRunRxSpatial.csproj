@@ -14,10 +14,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Maps.MapControl.WPF" />
     <PackageReference Include="Microsoft.SqlServer.Types" />
-    <!-- System.Configuration.ConfigurationManager comes from the WindowsDesktop
-         shared framework on net10.0-windows. -->
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="trafficData\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

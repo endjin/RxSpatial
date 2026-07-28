@@ -1,7 +1,5 @@
-using System.Globalization;
 using System.Text;
 using Microsoft.SqlServer.Types;
-using RxSpatial.Util;
 
 namespace RxSpatial.Lib;
 
@@ -15,34 +13,23 @@ internal class Grid<T> : IContainer<T>
 {
     private readonly Dictionary<T, int> itemGridMap = new();
     private readonly GeoList<T>[,] grid;
-    private readonly int latNum = 10;
-    private readonly int longNum = 10;
-    private readonly double lat1 = 46;    // coverage region lower-left latitude
-    private readonly double long1 = -124; // coverage region lower-left longitude
-    private readonly double lat2 = 49;    // coverage region upper-right latitude
-    private readonly double long2 = -120; // coverage region upper-right longitude
+    private readonly int latNum;
+    private readonly int longNum;
+    private readonly double lat1;  // coverage region lower-left latitude
+    private readonly double long1; // coverage region lower-left longitude
+    private readonly double lat2;  // coverage region upper-right latitude
+    private readonly double long2; // coverage region upper-right longitude
     private readonly double latStep;
     private readonly double longStep;
 
-    public Grid()
+    public Grid(GridOptions options)
     {
-        string? gridNumSetting = Config.GetAppConfig("HashMapGridNum");
-        if (gridNumSetting is not null)
-        {
-            string[] gridNum = gridNumSetting.Split(',');
-            latNum = int.Parse(gridNum[0].Trim(), CultureInfo.InvariantCulture);
-            longNum = int.Parse(gridNum[1].Trim(), CultureInfo.InvariantCulture);
-        }
-
-        string? coverageSetting = Config.GetAppConfig("HashMapCoverageRegion");
-        if (coverageSetting is not null)
-        {
-            string[] rect = coverageSetting.Split(',');
-            lat1 = double.Parse(rect[0].Trim(), CultureInfo.InvariantCulture);
-            long1 = double.Parse(rect[1].Trim(), CultureInfo.InvariantCulture);
-            lat2 = double.Parse(rect[2].Trim(), CultureInfo.InvariantCulture);
-            long2 = double.Parse(rect[3].Trim(), CultureInfo.InvariantCulture);
-        }
+        latNum = options.LatitudeCells;
+        longNum = options.LongitudeCells;
+        lat1 = options.CoverageRegion.LowerLeftLatitude;
+        long1 = options.CoverageRegion.LowerLeftLongitude;
+        lat2 = options.CoverageRegion.UpperRightLatitude;
+        long2 = options.CoverageRegion.UpperRightLongitude;
 
         grid = new GeoList<T>[latNum, longNum];
         latStep = (lat2 - lat1) / latNum;

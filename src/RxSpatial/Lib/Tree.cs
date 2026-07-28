@@ -57,48 +57,48 @@ internal class Tree<T> : IContainer<T>
         public Entity(RxGeographyDataStruct datastruct)
         {
             this.datastruct = datastruct;
-            if (datastruct == RxGeographyDataStruct.rtree)
+            if (datastruct == RxGeographyDataStruct.RTree)
                 rtree = new RTree.RTree<T>();
-            if (datastruct == RxGeographyDataStruct.rumtree)
+            if (datastruct == RxGeographyDataStruct.RumTree)
                 rumTree = new RUMTree.RUMTree<T>();
         }
 
         public bool Remove(T item)
         {
-            if (datastruct == RxGeographyDataStruct.rumtree && itemRectMapRUMtree.Remove(item, out RUMTree.Rectangle? oldRumRect))
+            if (datastruct == RxGeographyDataStruct.RumTree && itemRectMapRUMtree.Remove(item, out RUMTree.Rectangle? oldRumRect))
                 return rumTree!.Delete(oldRumRect, item);
 
-            if (datastruct == RxGeographyDataStruct.rtree && itemRectMapRtree.Remove(item, out RTree.Rectangle? oldRect))
+            if (datastruct == RxGeographyDataStruct.RTree && itemRectMapRtree.Remove(item, out RTree.Rectangle? oldRect))
                 return rtree!.Delete(oldRect, item);
 
             return true;
         }
 
         public bool Contains(T item)
-            => datastruct == RxGeographyDataStruct.rumtree
+            => datastruct == RxGeographyDataStruct.RumTree
                 ? itemRectMapRUMtree.ContainsKey(item)
                 : itemRectMapRtree.ContainsKey(item);
 
         public void UpdateLocation(SqlGeography newloc, T item)
         {
             (SqlGeometry lowerLeft, SqlGeometry upperRight) = EnvelopeCorners(newloc);
-            if (datastruct == RxGeographyDataStruct.rtree)
+            if (datastruct == RxGeographyDataStruct.RTree)
                 UpdateLocationRtree(item, lowerLeft, upperRight);
-            if (datastruct == RxGeographyDataStruct.rumtree)
+            if (datastruct == RxGeographyDataStruct.RumTree)
                 UpdateLocationRUMtree(item, lowerLeft, upperRight);
         }
 
         public List<T>? getIntersect(SqlGeography loc)
         {
             (SqlGeometry lowerLeft, SqlGeometry upperRight) = EnvelopeCorners(loc);
-            if (datastruct == RxGeographyDataStruct.rumtree)
+            if (datastruct == RxGeographyDataStruct.RumTree)
             {
                 RUMTree.Rectangle rect = new(
                     lowerLeft.STX.Value, lowerLeft.STY.Value, upperRight.STX.Value, upperRight.STY.Value);
                 return rumTree!.Intersects(rect);
             }
 
-            if (datastruct == RxGeographyDataStruct.rtree)
+            if (datastruct == RxGeographyDataStruct.RTree)
             {
                 RTree.Rectangle rect = new(
                     lowerLeft.STX.Value, lowerLeft.STY.Value, upperRight.STX.Value, upperRight.STY.Value);
@@ -111,8 +111,8 @@ internal class Tree<T> : IContainer<T>
         public string? dumpNode()
             => datastruct switch
             {
-                RxGeographyDataStruct.rumtree => rumTree!.Count.ToString(),
-                RxGeographyDataStruct.rtree => rtree!.Count.ToString(),
+                RxGeographyDataStruct.RumTree => rumTree!.Count.ToString(),
+                RxGeographyDataStruct.RTree => rtree!.Count.ToString(),
                 _ => null,
             };
 

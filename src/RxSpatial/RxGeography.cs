@@ -1,5 +1,4 @@
 using System.Data.SqlTypes;
-using System.Globalization;
 using Microsoft.SqlServer.Types;
 using RxSpatial.Lib;
 using RxSpatial.Util;
@@ -25,12 +24,19 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
     private Thread? notifyThread;
     private bool lockTaken;
 
+    /// <summary>Creates a moving object configured by <see cref="RxSpatialOptions.Default"/>.</summary>
     public RxGeography()
+        : this(RxSpatialOptions.Default)
     {
-        string? queueLimit = Config.GetAppConfig("RxSpatialQueueLimit");
-        bufferLimit = queueLimit is null ? 1 : int.Parse(queueLimit, CultureInfo.InvariantCulture);
-        isVisualized = "true".Equals(Config.GetAppConfig("isVisualized"), StringComparison.Ordinal);
-        container = CreateContainer();
+    }
+
+    /// <summary>Creates a moving object with explicit settings.</summary>
+    public RxGeography(RxSpatialOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        bufferLimit = options.QueueLimit;
+        isVisualized = options.IsVisualized;
+        container = CreateContainer(options);
     }
 
     /// <summary>The last location pushed to this moving object, or null before the first push.</summary>
@@ -126,12 +132,12 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
         return new Unsubscriber<SqlGeography>(container, observer);
     }
 
-    private static IContainer<IObserver<SqlGeography>> CreateContainer()
-        => Config.GetAppConfig("preferredDataStruct")?.ToUpperInvariant() switch
+    private static IContainer<IObserver<SqlGeography>> CreateContainer(RxSpatialOptions options)
+        => options.PreferredDataStruct switch
         {
-            "HASHMAP" => new Grid<IObserver<SqlGeography>>(),
-            "RTREE" => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.rtree),
-            "RUMTREE" => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.rumtree),
+            RxGeographyDataStruct.HashMap => new Grid<IObserver<SqlGeography>>(options.Grid),
+            RxGeographyDataStruct.RTree => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.RTree),
+            RxGeographyDataStruct.RumTree => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.RumTree),
             _ => new GeoList<IObserver<SqlGeography>>(),
         };
 

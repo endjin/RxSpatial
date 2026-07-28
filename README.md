@@ -71,15 +71,55 @@ Continuous queries between two moving objects (`RxRx*` in the papers) are availa
 
 ## Configuration
 
-The library reads its settings from the host application's `App.config` (or via in-memory `ConfigurationManager.AppSettings` mutation, as the tests and benchmarks do):
+Settings are typed (`RxSpatialOptions`) and can be passed straight to the constructor:
 
-| Key | Meaning | Default |
+```csharp
+var vehicle = new RxGeography(new RxSpatialOptions
+{
+    PreferredDataStruct = RxGeographyDataStruct.RTree,
+    IsVisualized = true,
+});
+```
+
+or bound from any Microsoft.Extensions.Configuration source via the `RxSpatial` section — the parameterless `RxGeography()` constructor uses the ambient `RxSpatialOptions.Default`, typically set once at start-up:
+
+```csharp
+IConfiguration configuration = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddEnvironmentVariables(prefix: "RXSPATIAL_")
+    .Build();
+
+RxSpatialOptions.Default =
+    configuration.GetSection(RxSpatialOptions.SectionName).Get<RxSpatialOptions>() ?? new();
+```
+
+```json
+{
+  "RxSpatial": {
+    "PreferredDataStruct": "RTree",
+    "QueueLimit": 3,
+    "IsVisualized": true,
+    "Grid": {
+      "LatitudeCells": 10,
+      "LongitudeCells": 10,
+      "CoverageRegion": {
+        "LowerLeftLatitude": 46, "LowerLeftLongitude": -124,
+        "UpperRightLatitude": 49, "UpperRightLongitude": -120
+      }
+    }
+  }
+}
+```
+
+| Option | Meaning | Default |
 | --- | --- | --- |
-| `preferredDataStruct` | Spatial index for observers: `list`, `hashmap` (grid), `RTREE`, or `RUMTREE`. | `list` |
-| `RxSpatialQueueLimit` | Location-push buffer size before `RxSpatialOverLoadException` is thrown (buffered mode). | `1` |
-| `isVisualized` | `true` processes pushes synchronously and forwards raw locations to direct subscribers (used by the WPF demo, the examples and the benchmarks); `false` is the buffered throughput mode. | `false` |
-| `HashMapGridNum` / `HashMapCoverageRegion` | Grid backend dimensions and coverage rectangle (`lat1,long1,lat2,long2`). | `10,10` / `46,-124,49,-120` |
-| `RUMTreeGCInspectionInterval` | RUM-tree garbage-cleaning token interval. | `10` |
+| `PreferredDataStruct` | Spatial index for observers: `List`, `HashMap` (grid), `RTree`, or `RumTree`. Historic setting values (`RTREE`, `hashmap`, ...) bind case-insensitively. | `List` |
+| `QueueLimit` | Location-push buffer size before `RxSpatialOverLoadException` is thrown (buffered mode). | `1` |
+| `IsVisualized` | `true` processes pushes synchronously and forwards raw locations to direct subscribers (used by the WPF demo, the examples and the benchmarks); `false` is the buffered throughput mode. | `false` |
+| `Grid` | Grid backend dimensions and coverage rectangle. | `10×10` over `46,-124 .. 49,-120` |
+
+One legacy exception: the vendored RUM-tree's lazy garbage cleaner still reads the `RUMTreeGCInspectionInterval` key from classic `App.config` appSettings (default `10`), because those LGPL sources are intentionally untouched.
 
 ## Modernisation notes (2026)
 
@@ -89,6 +129,7 @@ The codebase was originally built in 2014-2016 against .NET Framework 4.0/4.5 an
 - **System.Reactive 7.0.0.** Rx upgraded from the 2.2.5 `Rx-*` package family; the `RxGeographyObservable` C# 14 extension members make the library's streams first-class Rx sequences (see above).
 - **Microsoft.SqlServer.Types 170.1000.7.** The SQL Server 2025 generation of the official package supports modern .NET (netstandard2.0 + native win-x64/x86/arm64 runtimes), so the `SqlGeography` public API of the library is preserved exactly. Windows remains a runtime requirement.
 - **Tests and benchmarks.** The original `LoadTestApplication` and `memoryTestApplication` consoles (and the 2016 experiment outputs they had written into their source folders) were replaced by the `RxSpatial.Benchmarks` BenchmarkDotNet suite; behavioural coverage lives in `tests/RxSpatial.Tests` (MSTest.Sdk). The originals remain in the git history.
+- **Modern configuration.** The legacy `System.Configuration.ConfigurationManager` appSettings were replaced by typed `RxSpatialOptions` with constructor injection plus an ambient default bound from Microsoft.Extensions.Configuration (see Configuration above); the samples now use `appsettings.json` instead of `App.config`. The core library itself has no configuration package dependency at all.
 - **Core library refactor.** File-scoped namespaces, nullable annotations that preserve the original null-flow, dead code removed, and a handful of verified bug fixes: the grid backend's non-square-grid maths (`longStep` and the cell-key stride), the grid's dead point-handling branch (`SqlString`-vs-`string` comparison that could never be true), and tree-backend unsubscription (`Remove`/`Contains` previously consulted the wrong index map, so disposing a subscription never detached observers from an R-tree backend).
 - **Vendored tree ports untouched.** `src/RTree` and `src/RUMTree` are LGPL 2.1 vendored source kept byte-identical apart from project files; their historic compiler warnings remain visible and are exempt from warnings-as-errors.
 - **Bing Maps WPF control.** `samples/MapRunRxSpatial` consumes `Microsoft.Maps.MapControl.WPF` 1.0.1 from NuGet (a .NET Framework assembly running under .NET via `AssetTargetFallback`; the app launches and runs). Bing Maps for Enterprise was retired in June 2025, so the embedded map credentials may no longer serve tiles; the control and the demo logic remain functional.
