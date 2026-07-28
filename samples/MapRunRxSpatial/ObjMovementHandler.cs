@@ -1,151 +1,92 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-using Microsoft.Maps.MapControl.WPF;
 using Microsoft.SqlServer.Types;
-using System.Data.SqlTypes;
-using System.Windows;
-using System.Windows.Media;
 
 using RxSpatial;
 
 namespace MapRunRxSpatial
 {
-    class ObjMovementHandler 
+    class ObjMovementHandler
     {
-        protected Pushpin pushpin;
         protected PolygonMgr polygonMgr;
         public Object id;
         public int lineId=-1;
-        public Map baseMap;
-        public ObjMovementHandler(Object id, Map baseMap, PolygonMgr polygonMgr)
+        public MapLibreMap baseMap;
+        private readonly string markerId;
+        private string currentColor = "blue";
+        private GeoPoint position;
+        private bool visible;
+
+        public ObjMovementHandler(Object id, MapLibreMap baseMap, PolygonMgr polygonMgr)
         {
             this.baseMap = baseMap;
             this.id = id;
-            this.pushpin = new Pushpin();
-            this.pushpin.Content = id;
-            this.pushpin.Background = Brushes.Blue;
+            this.markerId = "obj-" + id;
             this.polygonMgr = polygonMgr;
-        }
-
-    
-
-        public void updatePushpinId(Object id)
-        {
-          //  baseMap.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Normal,
-    //new Action(delegate()
-    //{
-        this.pushpin.Content = id;
-    //}));
-            
         }
 
         public void updateLine(RxGeography rxGeoObj, bool isDash, int strokeThickness)
         {
-            Location loc2 = this.pushpin.Location;
+            GeoPoint loc2 = this.position;
             SqlGeography loc1 = rxGeoObj.loc;
-            lineId = polygonMgr.updateLine(lineId, new Location(loc1.Lat.Value, loc1.Long.Value),
-                 new Location(loc2.Latitude, loc2.Longitude), isDash, strokeThickness);
-           // if (polygon!=null)
-             //   baseMap.Children.Add(polygon.polyline);
+            lineId = polygonMgr.updateLine(lineId, new GeoPoint(loc1.Lat.Value, loc1.Long.Value),
+                 loc2, isDash, strokeThickness);
         }
 
-
-        public void updatePushpinColor(Brush color)
+        /// <summary>
+        /// Applies a colour with the original demo's precedence ladder: red beats orange beats
+        /// green; gray always wins; blue (and other colours) only reset through move().
+        /// </summary>
+        public void updatePushpinColor(string color)
         {
-         //   baseMap.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Normal,
-    //new Action(delegate()
-      //      {
-            if (color == Brushes.Gray)
+            switch (color)
             {
-                this.pushpin.Background = color;
+                case "gray":
+                case "red":
+                    setColor(color);
+                    break;
+                case "orange":
+                    if (currentColor != "red")
+                        setColor(color);
+                    break;
+                case "greenyellow":
+                    if (currentColor != "red" && currentColor != "orange")
+                        setColor(color);
+                    break;
+                case "green":
+                    if (currentColor != "red" && currentColor != "orange" && currentColor != "greenyellow")
+                        setColor(color);
+                    break;
             }
-            else if(color == Brushes.Red){
-                this.pushpin.Background = color;
-                return;
-            }
-            else if(color == Brushes.Orange){
-                if(this.pushpin.Background == Brushes.Red){
-                    return;
-                }else{
-                    this.pushpin.Background = color;
-                    return;
-                } 
-            }
-            else if (color == Brushes.GreenYellow)
-            {
-                if ((this.pushpin.Background == Brushes.Red)
-                    || (this.pushpin.Background == Brushes.Orange))
-                {
-                    return;
-                }
-                else
-                {
-                    this.pushpin.Background = color;
-                    return;
-                }
-            }
-            else if (color == Brushes.Green)
-            {
-                if ((this.pushpin.Background == Brushes.Red)
-                    || (this.pushpin.Background == Brushes.Orange)
-                    || (this.pushpin.Background == Brushes.GreenYellow))
-                {
-                    return;
-                }
-                else
-                {
-                    this.pushpin.Background = color;
-                    return;
-                }
-            }
+        }
+
+        private void setColor(string color)
+        {
+            currentColor = color;
+            if (visible)
+                baseMap.SetMarkerColor(markerId, color);
         }
 
         public void move(SqlGeography newLoc)
         {
-       //     baseMap.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Normal,
-    //new Action(delegate(){
-
-           baseMap.Children.Remove(this.pushpin);
-
            if (newLoc != null)
            {
-               this.pushpin.Location =
-                    new Location(newLoc.Lat.Value, newLoc.Long.Value);
-               baseMap.Children.Add(this.pushpin);
-               this.pushpin.Background = Brushes.Blue;
+               position = new GeoPoint(newLoc.Lat.Value, newLoc.Long.Value);
+               currentColor = "blue";
+               visible = true;
+               baseMap.SetMarker(markerId, id.ToString(), position.Latitude, position.Longitude, currentColor);
            }
-         /*  if (polygon != null && polygon.polyline != null)
-               baseMap.Children.Remove(polygon.polyline);
-           polygon = new PolygonMgr(baseMap).genPolygon(new Location(newLoc.Lat.Value + 0.01, newLoc.Long.Value + 0.01),
-                new Location(newLoc.Lat.Value - 0.01, newLoc.Long.Value - 0.01));
-           baseMap.Children.Add(polygon.polyline);*/
-      //  }));
-
-            //baseMap.Children.Remove(this.pushpin);
-          //this.pushpin.Location = new Location(newLoc.Lat.Value, newLoc.Long.Value);
-            //baseMap.Children.Add(this.pushpin);
+           else
+           {
+               visible = false;
+               baseMap.RemoveMarker(markerId);
+           }
         }
 
         public void del()
         {
-            // baseMap.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Normal,
-            //new Action(delegate()
-            //{
-            baseMap.Children.Remove(this.pushpin);
-
-            //if (polygon != null &&polygon.polyline != null)
-            //  baseMap.Children.Remove(polygon.polyline);
-            //}));
-            //}
+            visible = false;
+            baseMap.RemoveMarker(markerId);
         }
-        ~ObjMovementHandler()
-        {
-           // baseMap.Children.Remove(this.pushpin);
-        }
-
     }
 }

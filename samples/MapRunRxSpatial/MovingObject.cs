@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Maps.MapControl.WPF;
 using Microsoft.SqlServer.Types;
 using System.Data.SqlTypes;
 
@@ -23,12 +22,12 @@ namespace MapRunRxSpatial
         Dictionary<string, IDisposable> observerIDisposableDict = new Dictionary<string, IDisposable>();
 
         private ObjMovementObserver objMovementObserver; //receive location feed to trigger visualized movement in objMovementHandler
-         Map _baseMap; 
+         MapLibreMap _baseMap; 
         RxGeography currLoc;
         public RxGeography loc 
         { get { return this.currLoc; } }
 
-        public MovingObject(int id, Map baseMap, PolygonMgr polygonMgr)
+        public MovingObject(int id, MapLibreMap baseMap, PolygonMgr polygonMgr)
         {
             _baseMap = baseMap;
             this.id = id;

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SqlTypes;
-using System.Windows.Media;
 using System.Windows;
 namespace MapRunRxSpatial
 {
@@ -20,17 +19,17 @@ namespace MapRunRxSpatial
            // MessageBox.Show("dist");
             //MessageBox.Show(distance.ToString());
             if (distance.Value > ParamMgr.ObsvDist)
-                _objMovementHandler.updatePushpinColor(Brushes.Blue);
+                _objMovementHandler.updatePushpinColor("blue");
             else
             {
                 if (distance.Value == 0)
-                    _objMovementHandler.updatePushpinColor(Brushes.Red);
+                    _objMovementHandler.updatePushpinColor("red");
                 else if (distance.Value < ParamMgr.ObsvDist*4/7) 
-                    _objMovementHandler.updatePushpinColor(Brushes.Orange);
+                    _objMovementHandler.updatePushpinColor("orange");
                // else if (distance.Value < ParamMgr.ObsvDist*1/3)
-                 //   _objMovementHandler.updatePushpinColor(Brushes.GreenYellow);
+                 //   _objMovementHandler.updatePushpinColor("greenyellow");
                 else if (distance.Value < ParamMgr.ObsvDist)
-                    _objMovementHandler.updatePushpinColor(Brushes.Green);
+                    _objMovementHandler.updatePushpinColor("green");
 
             }
         }

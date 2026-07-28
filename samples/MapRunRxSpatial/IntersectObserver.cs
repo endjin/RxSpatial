@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Media;
 
 namespace MapRunRxSpatial
 {
@@ -20,9 +19,9 @@ namespace MapRunRxSpatial
              * if we have different polygons, 
              * the color will be overridden by the color of the most recently added polygon*/
             if(b==false)
-                _objMovementHandler.updatePushpinColor(Brushes.Blue);
+                _objMovementHandler.updatePushpinColor("blue");
             else
-                _objMovementHandler.updatePushpinColor(Brushes.Red);
+                _objMovementHandler.updatePushpinColor("red");
         }
         public virtual void OnCompleted()
         {

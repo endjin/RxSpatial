@@ -14,9 +14,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-using Microsoft.Maps.MapControl.WPF;
-using Microsoft.Maps.MapControl.WPF.Design;
-
 namespace MapRunRxSpatial
 {
     /// <summary>
@@ -24,58 +21,50 @@ namespace MapRunRxSpatial
     /// </summary>
     public partial class MainWindow : Window
     {
+        MapLibreMap myMap;
         PolygonMgr polygonMgr;
         MovingObjMgr movingObjMgr;
         public MainWindow()
         {
             InitializeComponent();
-            myMap.MouseLeftButtonUp += new MouseButtonEventHandler(Map_MouseLeftButtonUp);
-            myMap.MouseMove += new MouseEventHandler(Map_MouseMove);
-            //myMap.MouseLeftButtonDown += new MouseButtonEventHandler(Map_MouseLeftButtonDown);
-            //SubscribeParams.init();
-            //LoadParams.init();
+            myMap = new MapLibreMap(mapView);
+            myMap.MapClick += Map_Click;
+            myMap.MapMouseMove += Map_MouseMove;
             polygonMgr = new PolygonMgr(myMap);
-            //simFromTxt = new SimulationFromText(myMap);
             movingObjMgr = new MovingObjMgr(myMap, polygonMgr);
-            //myMap.Children.Add(new UIElement()); in iRoad code mainwindow.xaml
-            //scalar bar
-
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            await myMap.InitializeAsync();
         }
         private void AggregateQuery_OK_Button_Click(object sender, RoutedEventArgs e)
         {
             movingObjMgr.procTraffic();
 
         }
+        private const string TmpAreaShapeId = "tmp-area";
         private bool collect_area = false;
-        private Location pt1 = null;
-        private Location pt2 = null;
-        private Location pttmp = null;
-        MapPolyline tmpPolyline = new MapPolyline();
+        private GeoPoint? pt1 = null;
+        private GeoPoint? pt2 = null;
         private void AddAreaBtn_Click(object sender, RoutedEventArgs e)
         {
-            tmpPolyline = new MapPolyline();
             collect_area = true;
             pt1 = null;
             pt2 = null;
         }
-        void Map_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        void Map_Click(double latitude, double longitude)
         {
             if (collect_area == true)
             {
-                Point mousePosition = e.GetPosition(this);
-                //Convert the mouse coordinates to a locatoin on the map
-                Location loc = myMap.ViewportPointToLocation(mousePosition);
+                GeoPoint loc = new GeoPoint(latitude, longitude);
                 if (pt1 == null)
                     pt1 = loc;
                 else if (pt2 == null)
                 {
-                    pt2 = loc; 
-                    myMap.Children.Remove(tmpPolyline);
-                    addArea(pt1,pt2);
+                    pt2 = loc;
+                    myMap.RemoveShape(TmpAreaShapeId);
+                    addArea(pt1.Value, pt2.Value);
                     collect_area = false;
                     pt1 = null;
                     pt2 = null;
@@ -83,47 +72,29 @@ namespace MapRunRxSpatial
             }
 
          }
-        //TextWriter tw = new StreamWriter(Parameters.dataPath + "collect.txt");
-        void Map_MouseMove(object sender, MouseEventArgs e)
+        void Map_MouseMove(double latitude, double longitude)
         {
-            if (collect_area == true)
+            if (collect_area == true && pt1 != null)
             {
-                Point mousePosition = e.GetPosition(this);
-                //Convert the mouse coordinates to a locatoin on the map
-                Location loc = myMap.ViewportPointToLocation(mousePosition);
-                pttmp = loc;
-                if (pt1 != null)
-                {
-                    DrawBoundary(pt1, pttmp);
-                }
+                DrawBoundary(pt1.Value, new GeoPoint(latitude, longitude));
             }
-            /*else
-            {
-                Point mousePosition = e.GetPosition(this);
-                //Convert the mouse coordinates to a locatoin on the map
-                Location loc = myMap.ViewportPointToLocation(mousePosition);
-                string str = "0 1 point " + loc.Latitude + " " + loc.Longitude;
-                tw.WriteLine(str); 
-            }*/
         }
-        void DrawBoundary(Location pt1, Location pt2)// draw the data boundary
+        void DrawBoundary(GeoPoint pt1, GeoPoint pt2)// draw the data boundary
         {
-            tmpPolyline.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Orange);
-            tmpPolyline.StrokeThickness = 2;
-            tmpPolyline.Opacity = 0.7;
-          
-
-            tmpPolyline.Locations = new LocationCollection() { 
-            new Location(pt1.Latitude, pt1.Longitude), 
-            new Location(pt1.Latitude,pt2.Longitude), 
-            new Location(pt2.Latitude,pt2.Longitude),
-            new Location(pt2.Latitude,pt1.Longitude),
-            new Location(pt1.Latitude, pt1.Longitude)};
-            myMap.Children.Remove(tmpPolyline);
-            myMap.Children.Add(tmpPolyline);
+            myMap.SetLine(
+                TmpAreaShapeId,
+                new[]
+                {
+                    new GeoPoint(pt1.Latitude, pt1.Longitude),
+                    new GeoPoint(pt1.Latitude, pt2.Longitude),
+                    new GeoPoint(pt2.Latitude, pt2.Longitude),
+                    new GeoPoint(pt2.Latitude, pt1.Longitude),
+                    new GeoPoint(pt1.Latitude, pt1.Longitude),
+                },
+                "orange", 2, false, 0.7);
         }
 
-        void addArea(Location pt1, Location pt2) 
+        void addArea(GeoPoint pt1, GeoPoint pt2)
         {
             Polygon p=polygonMgr.addPolygon(pt1,pt2);
             if (p != null) { 

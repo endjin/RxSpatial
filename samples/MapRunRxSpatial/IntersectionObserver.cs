@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.SqlServer.Types;
-using System.Windows.Media;
 
 namespace MapRunRxSpatial
 {
@@ -23,9 +22,9 @@ namespace MapRunRxSpatial
              * if we have different polygons, 
              * the color will be overridden by the color of the most recently added polygon*/
             if (intersection.STIsEmpty())
-                _objMovementHandler.updatePushpinColor(Brushes.Blue);
+                _objMovementHandler.updatePushpinColor("blue");
             else
-                _objMovementHandler.updatePushpinColor(Brushes.Wheat);
+                _objMovementHandler.updatePushpinColor("wheat");
         }
         public virtual void OnCompleted()
         {

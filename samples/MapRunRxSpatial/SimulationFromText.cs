@@ -5,7 +5,6 @@ using System.Text;
 using System.IO;
 using System.Threading.Tasks;
 
-using Microsoft.Maps.MapControl.WPF;
 using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows;
@@ -22,13 +21,13 @@ namespace MapRunRxSpatial
     {
        
         Dictionary<int, MovingObject> movingObjList = new Dictionary<int, MovingObject>();
-        public Map baseMap;
+        public MapLibreMap baseMap;
         TextReader tr = new StreamReader(Parameters.dataPath + Parameters.trafficFilename);
         string line;
         int timestamp;
         PolygonMgr polygonMgr;
         public static DispatcherTimer dispatcherTimer;
-        public SimulationFromText(Map map, PolygonMgr polygonMgr)
+        public SimulationFromText(MapLibreMap map, PolygonMgr polygonMgr)
         {
             baseMap = map;
             this.polygonMgr = polygonMgr;

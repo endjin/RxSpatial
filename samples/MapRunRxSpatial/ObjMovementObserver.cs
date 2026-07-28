@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Microsoft.Maps.MapControl.WPF;
 using Microsoft.SqlServer.Types;
 using System.Data.SqlTypes;
 using System.Windows.Media;

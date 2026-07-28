@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>RxSpatial MapLibre view</title>
+  <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    html, body, #map { margin: 0; padding: 0; height: 100%; }
+    .vehicle-marker {
+      display: flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.45); cursor: default;
+    }
+    .vehicle-marker span {
+      color: #fff; font: bold 11px sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '&copy; OpenStreetMap contributors'
+          }
+        },
+        layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+      },
+      center: [-122.2016143798835, 47.5319677333823],
+      // MapLibre zoom levels use the 512px-tile convention; 9 matches the original
+      // Bing Maps ZoomLevel of 10 (256px-tile convention).
+      zoom: 9
+    });
+    map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+
+    const post = (m) => window.chrome.webview.postMessage(m);
+    const markers = new Map(); // id -> maplibregl.Marker
+
+    map.on('load', () => post({ type: 'ready' }));
+    map.on('click', (e) => post({ type: 'click', lat: e.lngLat.lat, lon: e.lngLat.lng }));
+
+    let lastMove = 0;
+    map.on('mousemove', (e) => {
+      const now = Date.now();
+      if (now - lastMove > 60) {
+        lastMove = now;
+        post({ type: 'mousemove', lat: e.lngLat.lat, lon: e.lngLat.lng });
+      }
+    });
+
+    function setMarker(m) {
+      let marker = markers.get(m.id);
+      if (!marker) {
+        const el = document.createElement('div');
+        el.className = 'vehicle-marker';
+        const label = document.createElement('span');
+        el.appendChild(label);
+        marker = new maplibregl.Marker({ element: el, anchor: 'bottom' });
+        marker.setLngLat([m.lon, m.lat]).addTo(map);
+        markers.set(m.id, marker);
+      } else {
+        marker.setLngLat([m.lon, m.lat]);
+      }
+      marker.getElement().style.background = m.color;
+      marker.getElement().querySelector('span').textContent = m.label;
+    }
+
+    function setMarkerColor(m) {
+      const marker = markers.get(m.id);
+      if (marker) marker.getElement().style.background = m.color;
+    }
+
+    function removeMarker(m) {
+      const marker = markers.get(m.id);
+      if (marker) { marker.remove(); markers.delete(m.id); }
+    }
+
+    function upsertSource(id, geometry) {
+      const sourceId = 's-' + id;
+      const source = map.getSource(sourceId);
+      const data = { type: 'Feature', geometry };
+      if (source) { source.setData(data); return false; }
+      map.addSource(sourceId, { type: 'geojson', data });
+      return true;
+    }
+
+    function setLine(m) {
+      const added = upsertSource(m.id, { type: 'LineString', coordinates: m.points });
+      const layerId = 'l-' + m.id;
+      if (added) {
+        map.addLayer({
+          id: layerId, type: 'line', source: 's-' + m.id,
+          paint: { 'line-color': m.color, 'line-width': m.width, 'line-opacity': m.opacity }
+        });
+      } else {
+        map.setPaintProperty(layerId, 'line-color', m.color);
+        map.setPaintProperty(layerId, 'line-width', m.width);
+        map.setPaintProperty(layerId, 'line-opacity', m.opacity);
+      }
+      map.setPaintProperty(layerId, 'line-dasharray', m.dashed ? [2, 3] : [1, 0]);
+    }
+
+    function setPolygon(m) {
+      const added = upsertSource(m.id, { type: 'Polygon', coordinates: [m.ring] });
+      if (added) {
+        map.addLayer({
+          id: 'f-' + m.id, type: 'fill', source: 's-' + m.id,
+          paint: { 'fill-color': m.fill, 'fill-opacity': m.fillOpacity }
+        });
+        map.addLayer({
+          id: 'l-' + m.id, type: 'line', source: 's-' + m.id,
+          paint: { 'line-color': m.stroke, 'line-width': m.strokeWidth, 'line-opacity': m.strokeOpacity }
+        });
+      }
+    }
+
+    function removeShape(m) {
+      for (const layerId of ['f-' + m.id, 'l-' + m.id]) {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+      }
+      if (map.getSource('s-' + m.id)) map.removeSource('s-' + m.id);
+    }
+
+    window.chrome.webview.addEventListener('message', (ev) => {
+      const m = ev.data;
+      switch (m.cmd) {
+        case 'setMarker': setMarker(m); break;
+        case 'setMarkerColor': setMarkerColor(m); break;
+        case 'removeMarker': removeMarker(m); break;
+        case 'setLine': setLine(m); break;
+        case 'setPolygon': setPolygon(m); break;
+        case 'removeShape': removeShape(m); break;
+      }
+    });
+  </script>
+</body>
+</html>

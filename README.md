@@ -19,14 +19,14 @@ Open [`RxSpatial.slnx`](RxSpatial.slnx) at the repository root.
 | `src/RTree` | Guttman R-tree, vendored C# port of the Java version by Aled Morris (LGPL 2.1, see `src/RTree/LICENSE.txt`); sources intentionally kept in their original style. |
 | `src/RUMTree` | R-tree with Update Memo — reduces the cost of frequent location updates (same LGPL 2.1 lineage). |
 | `samples/RxSpatial.Examples` | Runnable example / smoke test: Rx.NET v7 sequences feeding and consuming RxSpatial streams on every backend. |
-| `samples/MapRunRxSpatial` | WPF demo that visualises moving objects and continuous queries on a Bing Maps control. |
+| `samples/MapRunRxSpatial` | WPF demo that visualises moving objects and continuous queries on a MapLibre GL JS map hosted in WebView2 (OpenStreetMap tiles, no API key). |
 | `benchmarks/RxSpatial.Benchmarks` | BenchmarkDotNet suite: per-backend location-update cost, plus R-tree vs RUM-tree bulk-insert / update / query comparisons with allocation statistics. |
 | `tests/RxSpatial.Tests` | MSTest (MSTest.Sdk + Shouldly) behavioural tests for the library and the tree indexes. |
 | `docs/prototypes` | Never-compiled 2016 prototype sources, archived with provenance notes. |
 
 ## Getting started
 
-Requirements: the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and Windows (the SQL Server spatial operations are implemented by the native `SqlServerSpatial170.dll` that ships in the `Microsoft.SqlServer.Types` NuGet package for win-x64, win-x86 and win-arm64).
+Requirements: the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and Windows (the SQL Server spatial operations are implemented by the native `SqlServerSpatial170.dll` that ships in the `Microsoft.SqlServer.Types` NuGet package for win-x64, win-x86 and win-arm64). The WPF map demo additionally needs the [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11) and internet access for the MapLibre GL JS CDN and OpenStreetMap tiles.
 
 ```shell
 dotnet build RxSpatial.slnx
@@ -132,4 +132,4 @@ The codebase was originally built in 2014-2016 against .NET Framework 4.0/4.5 an
 - **Modern configuration.** The legacy `System.Configuration.ConfigurationManager` appSettings were replaced by typed `RxSpatialOptions` with constructor injection plus an ambient default bound from Microsoft.Extensions.Configuration (see Configuration above); the samples now use `appsettings.json` instead of `App.config`. The core library itself has no configuration package dependency at all.
 - **Core library refactor.** File-scoped namespaces, nullable annotations that preserve the original null-flow, dead code removed, and a handful of verified bug fixes: the grid backend's non-square-grid maths (`longStep` and the cell-key stride), the grid's dead point-handling branch (`SqlString`-vs-`string` comparison that could never be true), and tree-backend unsubscription (`Remove`/`Contains` previously consulted the wrong index map, so disposing a subscription never detached observers from an R-tree backend).
 - **Vendored tree ports untouched.** `src/RTree` and `src/RUMTree` are LGPL 2.1 vendored source kept byte-identical apart from project files; their historic compiler warnings remain visible and are exempt from warnings-as-errors.
-- **Bing Maps WPF control.** `samples/MapRunRxSpatial` consumes `Microsoft.Maps.MapControl.WPF` 1.0.1 from NuGet (a .NET Framework assembly running under .NET via `AssetTargetFallback`; the app launches and runs). Bing Maps for Enterprise was retired in June 2025, so the embedded map credentials may no longer serve tiles; the control and the demo logic remain functional.
+- **MapLibre instead of Bing Maps.** The retired Bing Maps WPF control (and with it the repo's last .NET Framework-era package) was replaced by MapLibre GL JS hosted in WebView2: `wwwroot/map.html` renders OpenStreetMap raster tiles (no API key), and the `MapLibreMap` class bridges C# and the map over JSON web messages (markers, lines, polygons in; click/mousemove with geographic coordinates out — which also replaced the old `ViewportPointToLocation` conversion). Because WebView2 is HWND-hosted and always paints above WPF content, the control panel now sits beside the map rather than overlaying it. Note MapLibre zoom levels use the 512px-tile convention — one level lower than the equivalent Bing value.

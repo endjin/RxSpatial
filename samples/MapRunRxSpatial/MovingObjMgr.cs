@@ -6,7 +6,6 @@ using System.Text;
 using System.IO;
 using System.Threading.Tasks;
 
-using Microsoft.Maps.MapControl.WPF;
 using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows;
@@ -21,11 +20,11 @@ namespace MapRunRxSpatial
     class MovingObjMgr
     {
         Dictionary<int, MovingObject> movingObjList = new Dictionary<int, MovingObject>();
-        public Map baseMap;
+        public MapLibreMap baseMap;
         private PolygonMgr polygonMgr;
        
         public static DispatcherTimer dispatcherTimer;
-        public MovingObjMgr(Map map, PolygonMgr polygonMgr)
+        public MovingObjMgr(MapLibreMap map, PolygonMgr polygonMgr)
         {
             baseMap = map;
             this.polygonMgr = polygonMgr;
