@@ -4,10 +4,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>RTree</RootNamespace>
     <AssemblyName>RTree</AssemblyName>
+    <!-- Vendored LGPL 2.1 sources (C# port of Aled Morris' Java R-tree). Kept in
+         their original style: legacy usings, historic warnings visible. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="log4net" Version="3.3.2" />
+    <PackageReference Include="log4net" />
   </ItemGroup>
 
 </Project>

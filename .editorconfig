@@ -1,0 +1,35 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{csproj,props,targets,slnx,config,xml,xaml,resx}]
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+indent_size = 4
+
+# .NET style
+dotnet_sort_system_directives_first = true
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+# C# 14 features (endjin .NET 10 modernization specification)
+csharp_style_prefer_extended_property_pattern = true
+csharp_style_prefer_field_keyword = true
+csharp_style_null_conditional_assignment = true
+
+# Extension members
+dotnet_diagnostic.IDE0001.severity = suggestion
+
+# Performance
+dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1823.severity = warning

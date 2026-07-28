@@ -4,11 +4,16 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>RUMTree</RootNamespace>
     <AssemblyName>RUMTree</AssemblyName>
+    <!-- Vendored LGPL 2.1 sources (RUM-tree, same lineage as the RTree port).
+         Kept in their original style: legacy usings, historic warnings visible. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="log4net" Version="3.3.2" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.10" />
+    <PackageReference Include="log4net" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" />
   </ItemGroup>
 
 </Project>

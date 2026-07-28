@@ -1,0 +1,5 @@
+# Vendored LGPL 2.1 sources: keep the compiler's historic diagnostics visible,
+# but do not impose the repo's analyzer rules on code we intentionally do not touch.
+[*.cs]
+dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.CA1823.severity = none

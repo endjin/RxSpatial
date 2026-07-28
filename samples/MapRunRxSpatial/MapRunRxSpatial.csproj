@@ -6,14 +6,16 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>MapRunRxSpatial</RootNamespace>
     <AssemblyName>MapRunRxSpatial</AssemblyName>
+    <!-- 2016-era demo sources are kept close to their original style. -->
+    <Nullable>disable</Nullable>
     <!-- Microsoft.Maps.MapControl.WPF is a .NET Framework assembly consumed via
          AssetTargetFallback; NU1701 is expected and accepted. -->
     <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Maps.MapControl.WPF" Version="1.0.1" />
-    <PackageReference Include="Microsoft.SqlServer.Types" Version="170.1000.7" />
+    <PackageReference Include="Microsoft.Maps.MapControl.WPF" />
+    <PackageReference Include="Microsoft.SqlServer.Types" />
     <!-- System.Configuration.ConfigurationManager comes from the WindowsDesktop
          shared framework on net10.0-windows. -->
   </ItemGroup>
