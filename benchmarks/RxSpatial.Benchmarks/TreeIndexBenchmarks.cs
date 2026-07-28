@@ -18,17 +18,17 @@ namespace RxSpatial.Benchmarks
         [Params(1000)]
         public int N;
 
-        private RTree.Rectangle[] insertRectsRTree;
-        private RUMTree.Rectangle[] insertRectsRUMTree;
-        private RTree.Rectangle[] updatePoolRTree;
-        private RUMTree.Rectangle[] updatePoolRUMTree;
-        private RTree.Rectangle[] queryPoolRTree;
-        private RUMTree.Rectangle[] queryPoolRUMTree;
+        private RTree.Rectangle[] insertRectsRTree = null!;
+        private RUMTree.Rectangle[] insertRectsRUMTree = null!;
+        private RTree.Rectangle[] updatePoolRTree = null!;
+        private RUMTree.Rectangle[] updatePoolRUMTree = null!;
+        private RTree.Rectangle[] queryPoolRTree = null!;
+        private RUMTree.Rectangle[] queryPoolRUMTree = null!;
 
-        private RTree.RTree<int> rtree;
-        private RUMTree.RUMTree<int> rumTree;
-        private RTree.Rectangle[] currentRTree;
-        private RUMTree.Rectangle[] currentRUMTree;
+        private RTree.RTree<int> rtree = null!;
+        private RUMTree.RUMTree<int> rumTree = null!;
+        private RTree.Rectangle[] currentRTree = null!;
+        private RUMTree.Rectangle[] currentRUMTree = null!;
         private int cursor;
 
         [GlobalSetup]

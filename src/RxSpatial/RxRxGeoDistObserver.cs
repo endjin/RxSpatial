@@ -1,34 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
 
-namespace RxSpatial
+namespace RxSpatial;
+
+/// <summary>Continuous distance query between two moving objects.</summary>
+internal class RxRxGeoDistObserver : RxRxGeoObserver<SqlDouble>, IObserver<SqlGeography>
 {
-    class RxRxGeoDistObserver : RxRxGeoObserver<SqlDouble>, IObserver<SqlGeography>
+    public RxRxGeoDistObserver(RxGeography G, IObserver<SqlDouble> o)
+        : base(G, o)
     {
-    
+    }
 
-        public RxRxGeoDistObserver(RxGeography G, IObserver<SqlDouble> o)
-            : base(G, o)
-        {
-            _localG = G;
-        }
+    // _localG.loc is null until the tracked object's first push (preserved behaviour).
+    public virtual void OnNext(SqlGeography g) => _observer.OnNext(_localG.loc!.STDistance(g));
 
-        public virtual void OnNext(SqlGeography g)
-        {
-            _observer.OnNext(_localG.loc.STDistance(g));
-        }
-        public virtual void OnCompleted()
-        {
-        }
+    public virtual void OnCompleted()
+    {
+    }
 
-        public virtual void OnError(Exception e)
-        {
-        }
-
+    public virtual void OnError(Exception e)
+    {
     }
 }

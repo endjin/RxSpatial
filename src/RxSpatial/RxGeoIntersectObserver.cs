@@ -1,37 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
 
-namespace RxSpatial
-{
-    class RxGeoIntersectObserver : RxGeoObserverContainer<Boolean>, IObserver<SqlGeography>
-    {
-        public object G
-        { get { return this._localG; } }
+namespace RxSpatial;
 
-        public RxGeoIntersectObserver(SqlGeography G, IObserver<Boolean> o):base(o)
-        {
-            _localG = G;
-        }
-        public virtual void OnNext(SqlGeography g)
-        {
-            if (_localG.STIntersects(g).IsTrue)
-            {
-                _observer.OnNext(true);
-            }
-            else
-                _observer.OnNext(false);
-        }
-        public virtual void OnCompleted()
-        {
-        }
-        public virtual void OnError(Exception e)
-        {
-        }
-        private SqlGeography _localG;
+/// <summary>Continuous intersection test between a moving object and a stationary geography.</summary>
+internal class RxGeoIntersectObserver : RxGeoObserverContainer<bool>, IObserver<SqlGeography>
+{
+    private readonly SqlGeography _localG;
+
+    public RxGeoIntersectObserver(SqlGeography G, IObserver<bool> o)
+        : base(o)
+    {
+        _localG = G;
+    }
+
+    public object G => _localG;
+
+    public virtual void OnNext(SqlGeography g) => _observer.OnNext(_localG.STIntersects(g).IsTrue);
+
+    public virtual void OnCompleted()
+    {
+    }
+
+    public virtual void OnError(Exception e)
+    {
     }
 }

@@ -1,19 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.SqlServer.Types;
-using System.Data.SqlTypes;
 
-namespace RxSpatial.Lib
+namespace RxSpatial.Lib;
+
+/// <summary>A spatial container of observers, queryable by zone.</summary>
+public interface IContainer<T>
+    where T : notnull
 {
-    public interface IContainer<T>
-    {
-        bool Remove(T item);
-        bool Contains(T item);
-        List<T> getObjsInSameZone(SqlGeography loc);
-        void subscribeRxRx(T observer, RxGeography G);
-        void subscribeRx(T observer, SqlGeography loc);
-    }
+    bool Remove(T item);
+
+    bool Contains(T item);
+
+    /// <summary>Observers whose zone intersects <paramref name="loc"/>, or null when none.</summary>
+    List<T>? getObjsInSameZone(SqlGeography loc);
+
+    /// <summary>Subscribes an observer that follows the moving object <paramref name="G"/>.</summary>
+    void subscribeRxRx(T observer, RxGeography G);
+
+    /// <summary>Subscribes an observer anchored at the stationary geography <paramref name="loc"/>.</summary>
+    void subscribeRx(T observer, SqlGeography loc);
 }

@@ -1,22 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace RxSpatial;
 
-namespace RxSpatial
+/// <summary>Base for observers that relate two moving objects.</summary>
+internal class RxRxGeoObserver<T>
 {
-    class RxRxGeoObserver<T>
+    protected readonly RxGeography _localG;
+    protected readonly IObserver<T> _observer;
+
+    public RxRxGeoObserver(RxGeography G, IObserver<T> o)
     {
-        public RxGeography G
-        { get { return this._localG; } }
-        protected RxGeography _localG;
-        protected IObserver<T> _observer;
-            public RxRxGeoObserver(RxGeography G, IObserver<T> o)
-            {
-                _localG = G;
-                _observer = o;
-            }
-        
+        _localG = G;
+        _observer = o;
     }
+
+    public RxGeography G => _localG;
 }

@@ -17,14 +17,14 @@ namespace RxSpatial.Benchmarks
     public class SpatialBackendBenchmarks
     {
         [Params("list", "hashmap", "RTREE", "RUMTREE")]
-        public string Backend;
+        public string Backend = null!;
 
         [Params(100, 1000)]
         public int Observers;
 
-        private RxGeography vehicle;
-        private SqlGeography[] route;
-        private IDisposable[] subscriptions;
+        private RxGeography vehicle = null!;
+        private SqlGeography[] route = null!;
+        private IDisposable[] subscriptions = null!;
         private int step;
 
         [GlobalSetup]

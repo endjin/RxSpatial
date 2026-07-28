@@ -1,21 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Data.SqlTypes;
-using Microsoft.SqlServer.Types;
+namespace RxSpatial;
 
-namespace RxSpatial
+/// <summary>
+/// Thrown when a moving object's location-push buffer exceeds the configured
+/// <c>RxSpatialQueueLimit</c> in buffered (non-visualised) mode.
+/// </summary>
+public class RxSpatialOverLoadException : Exception
 {
-    public class RxSpatialOverLoadException:System.Exception
+    public RxSpatialOverLoadException()
     {
-        public RxSpatialOverLoadException() : base() { }
-        public RxSpatialOverLoadException(string message) : base(message) { }
-        public RxSpatialOverLoadException(string message, System.Exception inner)
-            : base(message, inner) { }
+    }
 
-        protected RxSpatialOverLoadException(System.Runtime.Serialization.SerializationInfo info,
-            System.Runtime.Serialization.StreamingContext context) { }
+    public RxSpatialOverLoadException(string message)
+        : base(message)
+    {
+    }
+
+    public RxSpatialOverLoadException(string message, Exception inner)
+        : base(message, inner)
+    {
     }
 }
