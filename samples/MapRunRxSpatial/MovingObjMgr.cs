@@ -53,7 +53,10 @@ namespace MapRunRxSpatial
                 currIdx = 0;
             }
             public ObjAction getNext(){
-                if(currIdx==len) currIdx=1;
+                if (len == 0)
+                    return null;
+                // Wrap past the initial "newpoint" action, unless it is the only action.
+                if (currIdx >= len) currIdx = len > 1 ? 1 : 0;
                 return _arr[currIdx++];
             }
             public void reset()
@@ -116,7 +119,9 @@ namespace MapRunRxSpatial
             }
             for (int i = 0; i < ParamMgr.VehicleNumber;i++)
             {
-                updateNewLoc(objActionArrayList[i].getNext());
+                ObjAction action = objActionArrayList[i].getNext();
+                if (action != null)
+                    updateNewLoc(action);
             }
             if (vehicleNumberPrev > ParamMgr.VehicleNumber)
             {

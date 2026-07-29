@@ -66,6 +66,8 @@ namespace MapRunRxSpatial
         private GeoPoint? pt2 = null;
         private void AddAreaBtn_Click(object sender, RoutedEventArgs e)
         {
+            // Re-arming mid-draw must not leave the previous preview rectangle behind.
+            myMap.RemoveShape(TmpAreaShapeId);
             collect_area = true;
             pt1 = null;
             pt2 = null;

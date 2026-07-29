@@ -76,6 +76,11 @@ namespace MapRunRxSpatial
             string json = JsonSerializer.Serialize(command);
             if (!ready)
             {
+                // If the map never becomes ready (no network for the MapLibre CDN or the
+                // tile server), the queue must not grow without bound under the once-a-second
+                // vehicle updates; later messages are mostly upserts, so drop the oldest.
+                if (pending.Count >= 4096)
+                    pending.RemoveAt(0);
                 pending.Add(json);
                 return;
             }
@@ -85,8 +90,28 @@ namespace MapRunRxSpatial
 
         private void OnWebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
-            using JsonDocument message = JsonDocument.Parse(e.WebMessageAsJson);
-            string type = message.RootElement.GetProperty("type").GetString();
+            JsonDocument message;
+            try
+            {
+                message = JsonDocument.Parse(e.WebMessageAsJson);
+            }
+            catch (JsonException)
+            {
+                return; // an unparseable message must not bring the UI thread down
+            }
+
+            using (message)
+            {
+                HandleWebMessage(message);
+            }
+        }
+
+        private void HandleWebMessage(JsonDocument message)
+        {
+            if (!message.RootElement.TryGetProperty("type", out JsonElement typeElement))
+                return;
+
+            string type = typeElement.GetString();
             switch (type)
             {
                 case "ready":
