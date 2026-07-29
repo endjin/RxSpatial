@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace RxSpatial.Index;
 
 /// <summary>Per-entry visibility filter applied at leaves during search and cleaning.</summary>
@@ -230,6 +232,27 @@ internal sealed class RStarCore<T>
     {
         Rect[] covers = node.Bounds;
         int count = node.Count;
+
+        // Fast path: a child that already contains the rect has zero overlap enlargement and
+        // zero area enlargement, so the full criterion provably selects the smallest such
+        // child — no need for the O(count²) overlap computation. This is the common case for
+        // update workloads, where leaf covers are broad relative to the moving objects.
+        {
+            int containing = -1;
+            double containingArea = double.PositiveInfinity;
+            for (int i = 0; i < count; i++)
+            {
+                if (covers[i].Contains(bounds) && covers[i].Area < containingArea)
+                {
+                    containing = i;
+                    containingArea = covers[i].Area;
+                }
+            }
+
+            if (containing >= 0)
+                return containing;
+        }
+
         int best = 0;
         double bestOverlapDelta = double.PositiveInfinity;
         double bestEnlargement = double.PositiveInfinity;
@@ -308,55 +331,71 @@ internal sealed class RStarCore<T>
         int count = node.Count;
         Rect cover = node.ComputeCover();
 
-        // Local stash: reinsertion can recurse into another ForcedReinsert at a different
-        // level, so the shared scratch arrays must not be used across these inserts.
-        var keys = new double[count];
-        var order = new int[count];
-        for (int i = 0; i < count; i++)
-        {
-            keys[i] = node.Bounds[i].CenterDistanceSquaredTo(cover);
-            order[i] = i;
-        }
-
-        Array.Sort(keys, order);
-
+        // Pooled stash: reinsertion can recurse into another ForcedReinsert at a different
+        // level, so the shared split scratch must not be used across these inserts. Renting
+        // keeps the recursion safety of per-call arrays without their steady allocations
+        // (the heap dump showed these six arrays dominating allocation counts).
+        double[] keys = ArrayPool<double>.Shared.Rent(count);
+        int[] order = ArrayPool<int>.Shared.Rent(count);
         int p = reinsertCount;
-        var stashBounds = new Rect[p];
-        T[]? stashItems = node.IsLeaf ? new T[p] : null;
-        long[]? stashStamps = node.IsLeaf ? new long[p] : null;
-        Node<T>[]? stashChildren = node.IsLeaf ? null : new Node<T>[p];
-
-        // Stash the p farthest entries, closest-first (the R* "close reinsert" order).
-        for (int j = 0; j < p; j++)
+        Rect[] stashBounds = ArrayPool<Rect>.Shared.Rent(p);
+        T[]? stashItems = node.IsLeaf ? ArrayPool<T>.Shared.Rent(p) : null;
+        long[]? stashStamps = node.IsLeaf ? ArrayPool<long>.Shared.Rent(p) : null;
+        Node<T>[]? stashChildren = node.IsLeaf ? null : ArrayPool<Node<T>>.Shared.Rent(p);
+        try
         {
-            int src = order[count - p + j];
-            stashBounds[j] = node.Bounds[src];
-            if (node.IsLeaf)
+            for (int i = 0; i < count; i++)
             {
-                stashItems![j] = node.Items![src];
-                stashStamps![j] = node.Stamps![src];
+                keys[i] = node.Bounds[i].CenterDistanceSquaredTo(cover);
+                order[i] = i;
             }
-            else
+
+            Array.Sort(keys, order, 0, count);
+
+            // Stash the p farthest entries, closest-first (the R* "close reinsert" order).
+            for (int j = 0; j < p; j++)
             {
-                stashChildren![j] = node.Children![src]!;
-                UnlinkLeavesOf(stashChildren[j]); // InsertSubtree invariant: detached leaves leave the ring
+                int src = order[count - p + j];
+                stashBounds[j] = node.Bounds[src];
+                if (node.IsLeaf)
+                {
+                    stashItems![j] = node.Items![src];
+                    stashStamps![j] = node.Stamps![src];
+                }
+                else
+                {
+                    stashChildren![j] = node.Children![src]!;
+                    UnlinkLeavesOf(stashChildren[j]); // InsertSubtree invariant: detached leaves leave the ring
+                }
+            }
+
+            // Remove the stashed slots highest-index-first so swap-removal cannot disturb
+            // the remaining target indices; reuse the tail of `order` as the index buffer.
+            Array.Sort(order, count - p, p);
+            for (int j = count - 1; j >= count - p; j--)
+                node.RemoveAt(order[j]);
+
+            RefreshUpward(node);
+
+            for (int j = 0; j < p; j++)
+            {
+                if (node.IsLeaf)
+                    InsertEntry(stashBounds[j], stashItems![j], stashStamps![j]);
+                else
+                    InsertSubtree(stashChildren![j], stashBounds[j]);
             }
         }
-
-        var removeAt = new int[p];
-        Array.Copy(order, count - p, removeAt, 0, p);
-        Array.Sort(removeAt);
-        for (int j = p - 1; j >= 0; j--)
-            node.RemoveAt(removeAt[j]);
-
-        RefreshUpward(node);
-
-        for (int j = 0; j < p; j++)
+        finally
         {
-            if (node.IsLeaf)
-                InsertEntry(stashBounds[j], stashItems![j], stashStamps![j]);
-            else
-                InsertSubtree(stashChildren![j], stashBounds[j]);
+            ArrayPool<double>.Shared.Return(keys);
+            ArrayPool<int>.Shared.Return(order);
+            ArrayPool<Rect>.Shared.Return(stashBounds);
+            if (stashItems is not null)
+                ArrayPool<T>.Shared.Return(stashItems, clearArray: true);
+            if (stashStamps is not null)
+                ArrayPool<long>.Shared.Return(stashStamps);
+            if (stashChildren is not null)
+                ArrayPool<Node<T>>.Shared.Return(stashChildren, clearArray: true);
         }
     }
 
