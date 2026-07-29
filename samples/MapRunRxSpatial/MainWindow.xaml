@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
 
-        Title="MainWindow" Height="600" Width="1024" Loaded="Window_Loaded" ResizeMode="NoResize">
+        Title="MainWindow" Height="640" Width="1024" MinHeight="600" MinWidth="900" Loaded="Window_Loaded">
     <Window.Resources>
     </Window.Resources>
     <Grid>
@@ -272,20 +272,24 @@
             </TabItem>
             </TabControl>
 
+            <!-- Fills the space left under the (per-tab, variable-height) TabControl and
+                 scrolls internally, so the text can never be clipped by the window edge. -->
             <Border Grid.Row="1" Background="Linen" BorderBrush="OldLace" BorderThickness="2"
-                    CornerRadius="10" Margin="4,6,4,4" Padding="8" VerticalAlignment="Top">
-                <StackPanel>
-                    <TextBlock FontWeight="Bold" FontFamily="Cambria" Text="How to use" Margin="0,0,0,4"/>
-                    <TextBlock TextWrapping="Wrap" FontFamily="Cambria" FontSize="11.5">
-                        1. Set Vehicle Number (20 = whole fleet) and Vehicle Speed (try 25), then press Start.
-                        Vehicles replay recorded Seattle trajectories - nothing moves until Start is pressed.<LineBreak/><LineBreak/>
-                        2. Press Add Area, then click two corners on the map. Vehicles inside the orange
-                        geofence turn red via continuous RxIntersect queries on the RUM-tree spatial index.<LineBreak/><LineBreak/>
-                        3. The Dist tab colours vehicles by distance band to your areas. The RxRxDist tabs
-                        track two moving vehicles against each other: pick their IDs with the twin sliders
-                        and press Add Obsver - their connection line changes as they approach.
-                    </TextBlock>
-                </StackPanel>
+                    CornerRadius="10" Margin="4,6,4,4" Padding="8,8,2,8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+                    <StackPanel>
+                        <TextBlock FontWeight="Bold" FontFamily="Cambria" Text="How to use" Margin="0,0,0,4"/>
+                        <TextBlock TextWrapping="Wrap" FontFamily="Cambria" FontSize="11.5">
+                            1. Set Vehicle Number (20 = whole fleet) and Vehicle Speed (try 25), then press Start.
+                            Vehicles replay recorded Seattle trajectories - nothing moves until Start is pressed.<LineBreak/><LineBreak/>
+                            2. Press Add Area, then click two corners on the map. Vehicles inside the orange
+                            geofence turn red via continuous RxIntersect queries on the RUM-tree spatial index.<LineBreak/><LineBreak/>
+                            3. The Dist tab colours vehicles by distance band to your areas. The RxRxDist tabs
+                            track two moving vehicles against each other: pick their IDs with the twin sliders
+                            and press Add Obsver - their connection line changes as they approach.
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
 
