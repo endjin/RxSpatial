@@ -24,6 +24,11 @@ namespace MapRunRxSpatial
         MapLibreMap myMap;
         PolygonMgr polygonMgr;
         MovingObjMgr movingObjMgr;
+        // The configured backend (RUM-tree by default) drives the intersect scenario; the
+        // distance-style tabs fall back to the list backend because spatial pruning would
+        // suppress their continuous distance streams.
+        readonly RxSpatial.RxGeographyDataStruct configuredBackend =
+            RxSpatial.RxSpatialOptions.Default.PreferredDataStruct;
         public MainWindow()
         {
             InitializeComponent();
@@ -237,8 +242,13 @@ namespace MapRunRxSpatial
                 }
                 ParamMgr.subscribeState = newState;
 
+                RxSpatial.RxSpatialOptions.Default.PreferredDataStruct = newState == STATE.INTERSCT
+                    ? configuredBackend
+                    : RxSpatial.RxGeographyDataStruct.List;
+
                 if (movingObjMgr != null) movingObjMgr.restartProcTraffic();
                 movingObjMgr.unsubscribeAll();
+                movingObjMgr.clearAllObjects();
                 polygonMgr.clearAllPolygons();
                 
            // }

@@ -16,7 +16,13 @@
 
         <wv2:WebView2 x:Name="mapView" Grid.Column="1"/>
 
-        <TabControl Grid.Column="0" VerticalAlignment="Top">
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TabControl Grid.Row="0" VerticalAlignment="Top">
             <TabItem Margin="0" Opacity="1" Background="Linen" MouseLeftButtonUp="tabClick_Intersect" >
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
@@ -264,11 +270,24 @@
                     </Grid>
                 </StackPanel>
             </TabItem>
-        </TabControl>
+            </TabControl>
 
-        <!-- <Button x:Name="PauseResume1"  Margin="184,34,789,517"
-                Height="20" Width="45" Content="Pause" Background="Linen" 
-                Click="click_StopResume" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" />-->
+            <Border Grid.Row="1" Background="Linen" BorderBrush="OldLace" BorderThickness="2"
+                    CornerRadius="10" Margin="4,6,4,4" Padding="8" VerticalAlignment="Top">
+                <StackPanel>
+                    <TextBlock FontWeight="Bold" FontFamily="Cambria" Text="How to use" Margin="0,0,0,4"/>
+                    <TextBlock TextWrapping="Wrap" FontFamily="Cambria" FontSize="11.5">
+                        1. Set Vehicle Number (20 = whole fleet) and Vehicle Speed (try 25), then press Start.
+                        Vehicles replay recorded Seattle trajectories - nothing moves until Start is pressed.<LineBreak/><LineBreak/>
+                        2. Press Add Area, then click two corners on the map. Vehicles inside the orange
+                        geofence turn red via continuous RxIntersect queries on the RUM-tree spatial index.<LineBreak/><LineBreak/>
+                        3. The Dist tab colours vehicles by distance band to your areas. The RxRxDist tabs
+                        track two moving vehicles against each other: pick their IDs with the twin sliders
+                        and press Add Obsver - their connection line changes as they approach.
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </Grid>
 
     </Grid>
 </Window>

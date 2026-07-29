@@ -234,5 +234,20 @@ namespace MapRunRxSpatial
             }
         }
 
+        /// <summary>
+        /// Removes every vehicle so the next traffic tick recreates them - used when the
+        /// active tab changes the spatial backend, which is baked into each RxGeography
+        /// at construction.
+        /// </summary>
+        public void clearAllObjects()
+        {
+            foreach (MovingObject obj in movingObjList.Values)
+            {
+                obj.delObj();
+            }
+            movingObjList.Clear();
+            vehicleNumberPrev = -1;
+        }
+
     }
 }

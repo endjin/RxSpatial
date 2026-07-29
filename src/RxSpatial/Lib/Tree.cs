@@ -37,11 +37,27 @@ internal class Tree<T> : IContainer<T>
 
     private static Rect BoundsOf(SqlGeography loc)
     {
-        SqlGeometry box = SqlGeometry.STGeomFromWKB(loc.STAsBinary(), loc.STSrid.Value).STEnvelope();
-        SqlGeometry lowerLeft = box.STPointN(1);
-        SqlGeometry upperRight = box.STPointN(3);
-        return new Rect(lowerLeft.STX.Value, lowerLeft.STY.Value, upperRight.STX.Value, upperRight.STY.Value);
+        if (loc.STGeometryType().Value == "Point")
+        {
+            // Fast path for bare position pushes; also avoids the WKB round-trip.
+            double x = loc.Long.Value;
+            double y = loc.Lat.Value;
+            return new Rect(x, y, x, y);
+        }
+
+        // SQL Server's STEnvelope returns degenerate shapes for degenerate extents:
+        // a Point for points, a LineString for axis-aligned lines, else a Polygon.
+        SqlGeometry envelope = SqlGeometry.STGeomFromWKB(loc.STAsBinary(), loc.STSrid.Value).STEnvelope();
+        return envelope.STGeometryType().Value switch
+        {
+            "Point" => CornersToRect(envelope, envelope),
+            "LineString" => CornersToRect(envelope.STPointN(1), envelope.STPointN(2)),
+            _ => CornersToRect(envelope.STPointN(1), envelope.STPointN(3)),
+        };
     }
+
+    private static Rect CornersToRect(SqlGeometry a, SqlGeometry b)
+        => new(a.STX.Value, a.STY.Value, b.STX.Value, b.STY.Value);
 
     // Tracks a moving observer and updates its indexed position on every location push.
     private class LocationObsvr(ISpatialIndex<T> index, T item) : IObserver<SqlGeography>

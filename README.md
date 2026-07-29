@@ -49,6 +49,8 @@ dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*"
 dotnet run --project samples/MapRunRxSpatial
 ```
 
+The demo runs its intersect scenario on the **RUM-tree backend by default** (see its `appsettings.json`); the distance-style tabs fall back to the list backend automatically, because spatial pruning would suppress their continuous distance streams. An in-app "How to use" panel repeats the steps below.
+
 Nothing moves until you press **Start** — and the defaults (1 vehicle at speed 1) produce a single slow marker near the top edge of the map, so:
 
 1. Drag **Vehicle Number** up (20 shows the whole fleet) and **Vehicle Speed** up (e.g. 25).

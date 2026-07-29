@@ -85,6 +85,23 @@ public class RxGeographyTests
     }
 
     [TestMethod]
+    [DataRow(RxGeographyDataStruct.HashMap)]
+    [DataRow(RxGeographyDataStruct.RTree)]
+    [DataRow(RxGeographyDataStruct.RumTree)]
+    public void SpatialBackends_HandleBarePointPushes(RxGeographyDataStruct backend)
+    {
+        // The map demo pushes raw points; the old tree ports crashed on point envelopes.
+        RxGeography vehicle = new(VisualizedOptions(backend));
+        List<bool> events = [];
+        using IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
+
+        vehicle.OnNext(SqlGeography.Point(46.2000, -123.5000, 4326));
+        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326));
+
+        events.ShouldBe([true]);
+    }
+
+    [TestMethod]
     public void RxRxDistanceStream_TracksTwoMovingObjects()
     {
         RxGeography a = new(VisualizedOptions());
