@@ -1,122 +1,85 @@
-﻿using System;
-using System.Collections.Generic;
-
 using Microsoft.SqlServer.Types;
-
 using RxSpatial;
 
-namespace MapRunRxSpatial
+namespace MapRunRxSpatial;
+
+/// <summary>
+/// One vehicle: an <see cref="RxGeography"/> fed from a recorded trajectory, its map marker,
+/// and the named continuous-query subscriptions attached to it.
+/// </summary>
+internal sealed class MovingObject
 {
-    class MovingObject
+    private readonly Dictionary<string, IDisposable> subscriptions = [];
+    private readonly VehicleMarker marker;
+    private readonly MarkerMovementObserver movementObserver;
+
+    public MovingObject(int id, MapLibreMap map, PolygonManager polygons)
     {
-        ObjMovementHandler objMovementHandler; //visualize movement on the map
-        Dictionary<string, IDisposable> observerIDisposableDict = new Dictionary<string, IDisposable>();
+        Geography = new RxGeography();
+        marker = new VehicleMarker(id, map, polygons);
+        movementObserver = new MarkerMovementObserver(marker);
+        movementObserver.Attach(Geography);
+    }
 
-        private ObjMovementObserver objMovementObserver; //receive location feed to trigger visualized movement in objMovementHandler
-        RxGeography currLoc;
-        public RxGeography loc
-        { get { return this.currLoc; } }
+    /// <summary>The moving object other vehicles subscribe against.</summary>
+    public RxGeography Geography { get; }
 
-        public MovingObject(int id, MapLibreMap baseMap, PolygonMgr polygonMgr)
-        {
-            currLoc = new RxGeography();
-            this.objMovementHandler = new ObjMovementHandler(id, baseMap, polygonMgr);
-            this.objMovementObserver = new ObjMovementObserver(objMovementHandler);
-            this.objMovementObserver.Subscribe(currLoc);
-        }
+    public void PushLocation(SqlGeography location) => Geography.OnNext(location);
 
-        public void feedLocation(SqlGeography location)
-        {
-            currLoc.OnNext(location);
-        }
+    public void SubscribeIntersect(string name, SqlGeography polygon)
+    {
+        if (!subscriptions.ContainsKey(name))
+            subscriptions.Add(name, Geography.RxIntersect(polygon, new IntersectObserver(marker)));
+    }
 
-        public void subscribeIntersect(string name, SqlGeography polygon)
-        {
-            if (!observerIDisposableDict.ContainsKey(name))
-            {
-               observerIDisposableDict.Add(name,
-                   currLoc.RxIntersect(polygon, new IntersectObserver(objMovementHandler)));
-            }
-        }
+    public void SubscribeIntersection(string name, SqlGeography polygon)
+    {
+        if (!subscriptions.ContainsKey(name))
+            subscriptions.Add(name, Geography.RxIntersection(polygon, new IntersectionObserver(marker)));
+    }
 
-        public void subscribeIntersection(string name, SqlGeography polygon)
-        {
-            if (!observerIDisposableDict.ContainsKey(name))
-            {
-                observerIDisposableDict.Add(name,
-                    currLoc.RxIntersection(polygon, new IntersectionObserver(objMovementHandler)));
-            }
-        }
+    public void SubscribeDistance(string name, SqlGeography polygon)
+    {
+        if (!subscriptions.ContainsKey(name))
+            subscriptions.Add(name, Geography.RxDistance(polygon, new DistanceObserver(marker)));
+    }
 
-        public void subscribeDist(string name, SqlGeography polygon)
-        {
-            if (!observerIDisposableDict.ContainsKey(name))
-            {
-                observerIDisposableDict.Add(name,
-                    currLoc.RxDistance(polygon, new DistanceObserver(objMovementHandler)));
-            }
-        }
-        public bool subscribeRxRxDist(string name,RxGeography pt)
-        {
-            if (!observerIDisposableDict.ContainsKey(name))
-            {
-                observerIDisposableDict.Add(name,
-                    currLoc.RxRxDistance(pt, new RxRxDistanceObserver(objMovementHandler)));
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
+    public bool SubscribeRxRxDistance(string name, RxGeography other)
+    {
+        if (subscriptions.ContainsKey(name))
+            return false;
 
-        public bool subscribeRxRxDistConnection(string name, RxGeography pt)
-        {
-            if (!observerIDisposableDict.ContainsKey(name))
-            {
-                observerIDisposableDict.Add(name,
-                    currLoc.RxRxDistance(pt, new RxRxDistanceConnectionObserver(pt, objMovementHandler)));
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
+        subscriptions.Add(name, Geography.RxRxDistance(other, new RxRxDistanceObserver(marker)));
+        return true;
+    }
 
-        public void subscribeRxRxIntersection(string name, RxGeography pt)
-        {
-            if (!observerIDisposableDict.ContainsKey(name))
-            {
-                observerIDisposableDict.Add(name,
-                    currLoc.RxRxIntersection(pt, new RxRxIntersectionObserver(objMovementHandler)));
-            }
-        }
-        public void unsubscribe(string name)
-        {
-            // Remove the disposed subscription so the name can be subscribed again later.
-            if (observerIDisposableDict.TryGetValue(name, out IDisposable subscription))
-            {
-                subscription.Dispose();
-                observerIDisposableDict.Remove(name);
-            }
-        }
+    public bool SubscribeRxRxDistanceConnection(string name, RxGeography other)
+    {
+        if (subscriptions.ContainsKey(name))
+            return false;
 
-        public void unsubscribeAll()
-        {
-            var observerDisposables = observerIDisposableDict.Values;
-            foreach (IDisposable observerDisposable in observerDisposables)
-            {
-                observerDisposable.Dispose();
-            }
-            observerIDisposableDict.Clear();
-        }
+        subscriptions.Add(name, Geography.RxRxDistance(other, new RxRxDistanceConnectionObserver(other, marker)));
+        return true;
+    }
 
-        public void delObj()
-        {
-            unsubscribeAll();
-            this.objMovementObserver.OnCompleted();
-        }
+    public void Unsubscribe(string name)
+    {
+        // Remove the disposed subscription so the name can be subscribed again later.
+        if (subscriptions.Remove(name, out IDisposable? subscription))
+            subscription.Dispose();
+    }
 
+    public void UnsubscribeAll()
+    {
+        foreach (IDisposable subscription in subscriptions.Values)
+            subscription.Dispose();
+
+        subscriptions.Clear();
+    }
+
+    public void Remove()
+    {
+        UnsubscribeAll();
+        movementObserver.OnCompleted();
     }
 }

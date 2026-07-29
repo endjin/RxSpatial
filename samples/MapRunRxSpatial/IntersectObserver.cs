@@ -1,33 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace MapRunRxSpatial;
 
-namespace MapRunRxSpatial
+/// <summary>
+/// Colours a vehicle red while it intersects an area. Demo simplification: with several
+/// areas, the most recently notified query wins the colour.
+/// </summary>
+internal sealed class IntersectObserver(VehicleMarker marker) : VehicleObserverBase(marker), IObserver<bool>
 {
-    class IntersectObserver : GeoObserver,IObserver<bool>
-    {
-        public IntersectObserver(ObjMovementHandler objMovementHandler)
-            : base(objMovementHandler)
-        {
-        }
+    public void OnNext(bool intersects) => Marker.ApplyColor(intersects ? "red" : "blue");
 
-        public virtual void OnNext(bool b)
-        {
-            /**this is for demo use only,
-             * if we have different polygons, 
-             * the color will be overridden by the color of the most recently added polygon*/
-            if(b==false)
-                _objMovementHandler.updatePushpinColor("blue");
-            else
-                _objMovementHandler.updatePushpinColor("red");
-        }
-        public virtual void OnCompleted()
-        {
-        }
-        public virtual void OnError(Exception e)
-        {
-        }
+    public void OnCompleted()
+    {
+    }
+
+    public void OnError(Exception error)
+    {
     }
 }

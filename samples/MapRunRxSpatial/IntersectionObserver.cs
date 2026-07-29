@@ -1,36 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 using Microsoft.SqlServer.Types;
 
-namespace MapRunRxSpatial
+namespace MapRunRxSpatial;
+
+/// <summary>
+/// Colours a vehicle by whether its intersection geometry with an area is non-empty. Demo
+/// simplification: with several areas, the most recently notified query wins the colour.
+/// </summary>
+internal sealed class IntersectionObserver(VehicleMarker marker) : VehicleObserverBase(marker), IObserver<SqlGeography>
 {
-    class IntersectionObserver : GeoObserver, IObserver<SqlGeography>
+    public void OnNext(SqlGeography intersection)
+        => Marker.ApplyColor(intersection.STIsEmpty() ? "blue" : "wheat");
+
+    public void OnCompleted()
     {
-        public IntersectionObserver(ObjMovementHandler objMovementHandler)
-            : base(objMovementHandler)
-        {
-        }
+    }
 
-        public virtual void OnNext(SqlGeography intersection)
-        {
-
-            /**this is for demo use only,
-             * if we have different polygons, 
-             * the color will be overridden by the color of the most recently added polygon*/
-            if (intersection.STIsEmpty())
-                _objMovementHandler.updatePushpinColor("blue");
-            else
-                _objMovementHandler.updatePushpinColor("wheat");
-        }
-        public virtual void OnCompleted()
-        {
-        }
-        public virtual void OnError(Exception e)
-        {
-        }
+    public void OnError(Exception error)
+    {
     }
 }

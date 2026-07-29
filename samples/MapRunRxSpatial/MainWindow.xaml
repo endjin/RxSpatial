@@ -1,11 +1,8 @@
-﻿<Window x:Class="MapRunRxSpatial.MainWindow"
+<Window x:Class="MapRunRxSpatial.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-
-        Title="MainWindow" Height="640" Width="1024" MinHeight="600" MinWidth="900" Loaded="Window_Loaded">
-    <Window.Resources>
-    </Window.Resources>
+        Title="MapRun RxSpatial" Height="640" Width="1024" MinHeight="600" MinWidth="900" Loaded="OnLoaded">
     <Grid>
         <Grid.ColumnDefinitions>
             <!-- WebView2 is an HWND-hosted control that always renders above WPF content,
@@ -22,11 +19,11 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <TabControl Grid.Row="0" VerticalAlignment="Top" SelectionChanged="ScenarioTabs_SelectionChanged">
-            <TabItem Margin="0" Opacity="1" Background="Linen" >
+            <TabControl Grid.Row="0" VerticalAlignment="Top" SelectionChanged="OnScenarioTabChanged">
+            <TabItem Margin="0" Opacity="1" Background="Linen">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Height="14" Width="45" Background="Linen" Text="Intersct"/>
+                        <TextBlock Background="Linen" Text="Intersect"/>
                     </StackPanel>
                 </TabItem.Header>
                 <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Background="Transparent" Margin="0,0,-3,0">
@@ -36,39 +33,35 @@
         			MinWidth="250"
         			Background="Linen"
                     Opacity="1"
-        			BorderBrush="OldLace" 
-        			BorderThickness="2" 
-        			CornerRadius="10,10,10,10" 
-        			HorizontalAlignment="Center" 
+        			BorderBrush="OldLace"
+        			BorderThickness="2"
+        			CornerRadius="10,10,10,10"
+        			HorizontalAlignment="Center"
         			VerticalAlignment="Center">
                                 <StackPanel>
-                                    <!-- <TextBlock Margin="0,5,0,20"
-            x:Name="textBlock1"  
-            Text="Current value: 0" />-->
                                     <TextBlock Margin="5,15" x:Name="VehicleNum" Text=" Vehicle Number: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,5,0,0"
-                        		x:Name="slider"  
-                        		Minimum="1" 
+                        		x:Name="VehicleCountSlider"
+                        		Minimum="1"
                         		Maximum="20"
-                        		ValueChanged="slider_NumValueChanged" Width="165" />
+                        		ValueChanged="OnVehicleCountChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="5" Text="1                        10                        20" FontWeight="Bold" FontFamily="Cambria" Width="163" />
                                     <TextBlock Margin="5" x:Name="VehicleSpeed" Text=" Vehicle Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,5,0,0"
-                        		x:Name="slider2"  
-                        		Minimum="1" 
+                        		x:Name="VehicleSpeedSlider"
+                        		Minimum="1"
                         		Maximum="100"
-                        		ValueChanged="slider_SpeedValueChanged" Width="165" />
+                        		ValueChanged="OnVehicleSpeedChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="5" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
-                                    <!-- <TextBox MinWidth="100" HorizontalAlignment="Center" VerticalAlignment="Center" x:Name="AggregateQueryInputTextBox" BorderThickness ="2" BorderBrush="Black" /> -->
-                                    <Button x:Name="AddArea" Margin="5" Content="Add Area" Background="{x:Null}" Click="AddAreaBtn_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="ClearArear" Margin="5" Content="Clear Area" Background="{x:Null}" Click="ClearAreaBtn_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="AggregateQueryOkButton" Margin="5" Content="Start" Background="{x:Null}" Click="AggregateQuery_OK_Button_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="PauseResume2" Height="20" Width="76" Content="Pause" Background="Linen" 
-                Click="click_StopResume" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="5"/>
+                                    <Button x:Name="AddAreaButton" Margin="5" Content="Add Area" Background="{x:Null}" Click="OnAddAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
+                                    <Button x:Name="ClearAreaButton" Margin="5" Content="Clear Area" Background="{x:Null}" Click="OnClearAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
+                                    <Button x:Name="StartButton" Margin="5" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
+                                    <Button x:Name="PauseResume2" Height="20" Width="76" Content="Pause" Background="Linen"
+                Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="5"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -77,8 +70,8 @@
             </TabItem>
             <TabItem Margin="0" Background="Linen">
                 <TabItem.Header>
-                    <StackPanel >
-                        <TextBlock Height="14" Width="22"  Text="Dist" Background="Linen"/>
+                    <StackPanel>
+                        <TextBlock Text="Dist" Background="Linen"/>
                     </StackPanel>
                 </TabItem.Header>
                 <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Background="Transparent" Margin="0,0,-3,0">
@@ -88,48 +81,43 @@
         			MinWidth="250"
         			Background="Linen"
                     Opacity="1"
-        			BorderBrush="OldLace" 
-        			BorderThickness="2" 
-        			CornerRadius="10,10,10,10" 
+        			BorderBrush="OldLace"
+        			BorderThickness="2"
+        			CornerRadius="10,10,10,10"
  Margin="0">
                                 <StackPanel Margin="2">
-                                    <!-- <TextBlock Margin="0,5,0,20"
-            x:Name="textBlock1"  
-            Text="Current value: 0" />-->
                                     <TextBlock Margin="5,30,15,0" x:Name="VehicleNum1" Text=" Vehicle Number: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="slider1"  
-                        		Minimum="1" 
+                        		x:Name="VehicleCountSlider1"
+                        		Minimum="1"
                         		Maximum="20"
-                        		ValueChanged="slider_NumValueChanged1" Width="165" />
+                        		ValueChanged="OnVehicleCountChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="0,0,0,0" Text="1                        10                        20" FontWeight="Bold" FontFamily="Cambria" Width="163" />
                                     <TextBlock Margin="5" x:Name="VehicleSpeed1" Text=" Vehicle Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="slider21"  
-                        		Minimum="1" 
+                        		x:Name="VehicleSpeedSlider1"
+                        		Minimum="1"
                         		Maximum="100"
-                        		ValueChanged="slider_SpeedValueChanged1" Width="165" />
+                        		ValueChanged="OnVehicleSpeedChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
                                     <TextBlock Margin="0,0,0,0" x:Name="ObserveDist" Text=" Observe Distance: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="slider3"  
-                        		Minimum="1" 
+                        		x:Name="ObserveDistanceSlider"
+                        		Minimum="1"
                         		Maximum="10000"
-                        		ValueChanged="slider_DistChanged" Width="165" />
+                        		ValueChanged="OnObserveDistanceChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="5" Text="1                        5k                     10k" FontWeight="Bold" FontFamily="Cambria" Width="162" />
-                                    <Button x:Name="AddArea1" Margin="3" Content="Add Area" Background="{x:Null}" Click="AddAreaBtn_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-
-                                    <!-- <TextBox MinWidth="100" HorizontalAlignment="Center" VerticalAlignment="Center" x:Name="AggregateQueryInputTextBox" BorderThickness ="2" BorderBrush="Black" /> -->
-                                    <Button x:Name="ClearArear1" Margin="3" Content="Clear Area" Background="{x:Null}" Click="ClearAreaBtn_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="AggregateQueryOkButton1" Margin="85,3" Content="Start" Background="{x:Null}" Click="AggregateQuery_OK_Button_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
-                                    <Button x:Name="PauseResume1" Height="20" Width="76" Content="Pause" Background="Linen" 
-                Click="click_StopResume" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="3"/>
+                                    <Button x:Name="AddAreaButton1" Margin="3" Content="Add Area" Background="{x:Null}" Click="OnAddAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
+                                    <Button x:Name="ClearAreaButton1" Margin="3" Content="Clear Area" Background="{x:Null}" Click="OnClearAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
+                                    <Button x:Name="StartButton1" Margin="85,3" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
+                                    <Button x:Name="PauseResume1" Height="20" Width="76" Content="Pause" Background="Linen"
+                Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="3"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -138,8 +126,8 @@
             </TabItem>
             <TabItem Margin="0,0,0,0" Background="Linen">
                 <TabItem.Header>
-                    <StackPanel Background="Linen" >
-                        <TextBlock Height="14" Width="44" Background="Linen" Text="RxRxDist"/>
+                    <StackPanel Background="Linen">
+                        <TextBlock Background="Linen" Text="RxRxDist"/>
                     </StackPanel>
                 </TabItem.Header>
                 <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Background="Transparent" Margin="0,0,-3,0">
@@ -149,54 +137,52 @@
         			MinWidth="250"
         			Background="Linen"
                     Opacity="1"
-        			BorderBrush="OldLace" 
-        			BorderThickness="2" 
-        			CornerRadius="10,10,10,10" 
+        			BorderBrush="OldLace"
+        			BorderThickness="2"
+        			CornerRadius="10,10,10,10"
  Margin="0">
                                 <StackPanel Margin="2">
                                     <TextBlock Margin="8,30,0,0"
-            x:Name="textBlock1"  
+            x:Name="FleetSizeText"
             Text="Moving Object Number: 20" FontWeight="Bold" FontFamily="Cambria"/>
                                     <TextBlock Margin="5" x:Name="VehicleSpeed2" Text=" Movement Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="slider22"  
-                        		Minimum="1" 
+                        		x:Name="VehicleSpeedSlider2"
+                        		Minimum="1"
                         		Maximum="100"
-                        		ValueChanged="slider_SpeedValueChanged2" Width="165" />
+                        		ValueChanged="OnVehicleSpeedChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
                                     <TextBlock Margin="0,0,0,0" x:Name="ObserveDist1" Text=" Observe Distance: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="slider32"  
-                        		Minimum="1" 
+                        		x:Name="ObserveDistanceSlider1"
+                        		Minimum="1"
                         		Maximum="10000"
-                        		ValueChanged="slider_DistChanged1" Width="165" />
+                        		ValueChanged="OnObserveDistanceChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="1                        5k                     10k" FontWeight="Bold" FontFamily="Cambria" Width="162" />
-                                    <TextBlock Margin="0,0,0,0" x:Name="RxRxObserverState" 
-                                               Text="Observer Conditon:" FontWeight="Bold" FontFamily="Cambria" />
+                                    <TextBlock Margin="0,0,0,0" x:Name="TrackedObserverState"
+                                               Text="Observer Condition:" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="200">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="sliderRxRxId1"  
-                        		Minimum="0" 
+                        		x:Name="TrackedPairSlider1"
+                        		Minimum="0"
                         		Maximum="19"
-                        		ValueChanged="slider_RxRxDistId" Width="90" />
+                        		ValueChanged="OnTrackedPairChanged" Width="90" />
                                         <Slider Margin="15,0,0,0"
-                        		x:Name="sliderRxRxId2"  
-                        		Minimum="0" 
+                        		x:Name="TrackedPairSlider2"
+                        		Minimum="0"
                         		Maximum="19"
-                        		ValueChanged="slider_RxRxDistId" Width="90" />
+                        		ValueChanged="OnTrackedPairChanged" Width="90" />
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="0                          19      0                         19" FontWeight="Bold" FontFamily="Cambria" Width="200" />
-                                    <Button x:Name="AddObserver" Margin="85,1" Content="Add Obsver" Background="{x:Null}" Click="AddRxRx_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-
-                                    <Button x:Name="ClearArear2" Margin="85,1" Content="ClearObsver" Background="{x:Null}" Click="ClearAreaBtn_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="AggregateQueryOkButton2" Margin="85,1" Content="Start" Background="{x:Null}" Click="AggregateQuery_OK_Button_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
-                                    <Button x:Name="PauseResume" Height="20" Width="76" Content="Pause" Background="Linen" 
-                Click="click_StopResume" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="1"/>
-                                    <!-- <TextBox MinWidth="100" HorizontalAlignment="Center" VerticalAlignment="Center" x:Name="AggregateQueryInputTextBox" BorderThickness ="2" BorderBrush="Black" /> -->
+                                    <Button x:Name="AddObserverButton" Margin="5,1" Content="Add Observer" Background="{x:Null}" Click="OnAddTrackedPairClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
+                                    <Button x:Name="ClearObserversButton" Margin="5,1" Content="Clear Observers" Background="{x:Null}" Click="OnClearAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
+                                    <Button x:Name="StartButton2" Margin="85,1" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
+                                    <Button x:Name="PauseResume" Height="20" Width="76" Content="Pause" Background="Linen"
+                Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="1"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -205,8 +191,8 @@
             </TabItem>
             <TabItem Margin="0,0,0,0" Background="Linen">
                 <TabItem.Header>
-                    <StackPanel Background="Linen" >
-                        <TextBlock Height="15" Width="51" Background="Linen" Text="RxRxDistConn"/>
+                    <StackPanel Background="Linen">
+                        <TextBlock Background="Linen" Text="RxRxDistConn"/>
                     </StackPanel>
                 </TabItem.Header>
                 <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Background="Transparent" Margin="0,0,-3,0">
@@ -216,54 +202,52 @@
         			MinWidth="250"
         			Background="Linen"
                     Opacity="1"
-        			BorderBrush="OldLace" 
-        			BorderThickness="2" 
-        			CornerRadius="10,10,10,10" 
+        			BorderBrush="OldLace"
+        			BorderThickness="2"
+        			CornerRadius="10,10,10,10"
  Margin="0">
                                 <StackPanel Margin="2">
                                     <TextBlock Margin="8,30,0,0"
-            x:Name="textBlock1_"  
+            x:Name="FleetSizeText2"
             Text="Moving Object Number: 20" FontWeight="Bold" FontFamily="Cambria"/>
-                                    <TextBlock Margin="5" x:Name="VehicleSpeed2_" Text=" Movement Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
+                                    <TextBlock Margin="5" x:Name="VehicleSpeed3" Text=" Movement Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="slider22_"  
-                        		Minimum="1" 
+                        		x:Name="VehicleSpeedSlider3"
+                        		Minimum="1"
                         		Maximum="100"
-                        		ValueChanged="slider_SpeedValueChanged3" Width="165" />
+                        		ValueChanged="OnVehicleSpeedChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
-                                    <TextBlock Margin="0,0,0,0" x:Name="ObserveDist1_" Text=" Observe Distance: 1" FontWeight="Bold" FontFamily="Cambria" />
+                                    <TextBlock Margin="0,0,0,0" x:Name="ObserveDist2" Text=" Observe Distance: 1" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="slider32_"  
-                        		Minimum="1" 
+                        		x:Name="ObserveDistanceSlider2"
+                        		Minimum="1"
                         		Maximum="10000"
-                        		ValueChanged="slider_DistConnChanged1" Width="165" />
+                        		ValueChanged="OnObserveDistanceChanged" Width="165" />
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="1                        5k                     10k" FontWeight="Bold" FontFamily="Cambria" Width="162" />
-                                    <TextBlock Margin="0,0,0,0" x:Name="RxRxObserverState_" 
-                                               Text="Observer Conditon:" FontWeight="Bold" FontFamily="Cambria" />
+                                    <TextBlock Margin="0,0,0,0" x:Name="ConnectionObserverState"
+                                               Text="Observer Condition:" FontWeight="Bold" FontFamily="Cambria" />
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="200">
                                         <Slider Margin="0,0,0,0"
-                        		x:Name="sliderRxRxConnId1"  
-                        		Minimum="0" 
+                        		x:Name="ConnectionPairSlider1"
+                        		Minimum="0"
                         		Maximum="19"
-                        		ValueChanged="slider_RxRxDistConnId" Width="90" />
+                        		ValueChanged="OnConnectionPairChanged" Width="90" />
                                         <Slider Margin="15,0,0,0"
-                        		x:Name="sliderRxRxConnId2"  
-                        		Minimum="0" 
+                        		x:Name="ConnectionPairSlider2"
+                        		Minimum="0"
                         		Maximum="19"
-                        		ValueChanged="slider_RxRxDistConnId" Width="90" />
+                        		ValueChanged="OnConnectionPairChanged" Width="90" />
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="0                          19      0                         19" FontWeight="Bold" FontFamily="Cambria" Width="200" />
-                                    <Button x:Name="AddObserver_" Margin="85,1" Content="Add Obsver" Background="{x:Null}" Click="AddRxRxConn_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-
-                                    <Button x:Name="ClearArear3" Margin="85,1" Content="ClearObsver" Background="{x:Null}" Click="ClearAreaBtn_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="AggregateQueryOkButton2_" Margin="85,1" Content="Start" Background="{x:Null}" Click="AggregateQuery_OK_Button_Click" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
-                                    <Button x:Name="PauseResume3" Height="20" Width="76" Content="Pause" Background="Linen" 
-                Click="click_StopResume" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="1"/>
-                                    <!-- <TextBox MinWidth="100" HorizontalAlignment="Center" VerticalAlignment="Center" x:Name="AggregateQueryInputTextBox" BorderThickness ="2" BorderBrush="Black" /> -->
+                                    <Button x:Name="AddConnectionObserverButton" Margin="5,1" Content="Add Observer" Background="{x:Null}" Click="OnAddConnectionPairClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
+                                    <Button x:Name="ClearObserversButton1" Margin="5,1" Content="Clear Observers" Background="{x:Null}" Click="OnClearAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
+                                    <Button x:Name="StartButton3" Margin="85,1" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
+                                    <Button x:Name="PauseResume3" Height="20" Width="76" Content="Pause" Background="Linen"
+                Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="1"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -286,7 +270,7 @@
                             geofence turn red via continuous RxIntersect queries on the RUM-tree spatial index.<LineBreak/><LineBreak/>
                             3. The Dist tab colours vehicles by distance band to your areas. The RxRxDist tabs
                             track two moving vehicles against each other: pick their IDs with the twin sliders
-                            and press Add Obsver - their connection line changes as they approach.
+                            and press Add Observer - their connection line changes as they approach.
                         </TextBlock>
                     </StackPanel>
                 </ScrollViewer>

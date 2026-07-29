@@ -6,8 +6,6 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>MapRunRxSpatial</RootNamespace>
     <AssemblyName>MapRunRxSpatial</AssemblyName>
-    <!-- 2016-era demo sources are kept close to their original style. -->
-    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

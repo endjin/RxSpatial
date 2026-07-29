@@ -1,43 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Data.SqlTypes;
-using System.Windows;
-namespace MapRunRxSpatial
+
+namespace MapRunRxSpatial;
+
+/// <summary>Colours a vehicle by its distance band to a stationary area.</summary>
+internal sealed class DistanceObserver(VehicleMarker marker) : VehicleObserverBase(marker), IObserver<SqlDouble>
 {
-    class DistanceObserver : GeoObserver,IObserver<SqlDouble>
+    public void OnNext(SqlDouble distance) => Marker.ApplyColor(ColorForDistance(distance.Value));
+
+    public void OnCompleted()
     {
-        public DistanceObserver(ObjMovementHandler objMovementHandler)
-            : base(objMovementHandler)
-        {
-        }
+    }
 
-        public virtual void OnNext(SqlDouble distance)
-        {
-           // MessageBox.Show("dist");
-            //MessageBox.Show(distance.ToString());
-            if (distance.Value > ParamMgr.ObsvDist)
-                _objMovementHandler.updatePushpinColor("blue");
-            else
-            {
-                if (distance.Value == 0)
-                    _objMovementHandler.updatePushpinColor("red");
-                else if (distance.Value < ParamMgr.ObsvDist*4/7) 
-                    _objMovementHandler.updatePushpinColor("orange");
-               // else if (distance.Value < ParamMgr.ObsvDist*1/3)
-                 //   _objMovementHandler.updatePushpinColor("greenyellow");
-                else if (distance.Value < ParamMgr.ObsvDist)
-                    _objMovementHandler.updatePushpinColor("green");
+    public void OnError(Exception error)
+    {
+    }
 
-            }
-        }
-        public virtual void OnCompleted()
+    /// <summary>The original demo's distance-band colour ladder.</summary>
+    internal static string ColorForDistance(double distance)
+    {
+        double observeDistance = DemoParameters.ObserveDistance;
+        return distance switch
         {
-        }
-        public virtual void OnError(Exception e)
-        {
-        }
+            0 => "red",
+            _ when distance >= observeDistance => "blue",
+            _ when distance < observeDistance * 4 / 7 => "orange",
+            _ => "green",
+        };
     }
 }

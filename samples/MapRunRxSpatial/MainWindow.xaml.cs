@@ -1,432 +1,288 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using RxSpatial;
 
-namespace MapRunRxSpatial
+namespace MapRunRxSpatial;
+
+/// <summary>The demo shell: a MapLibre map beside a per-scenario control panel.</summary>
+public partial class MainWindow : Window
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : Window
+    private const string PreviewAreaShapeId = "tmp-area";
+
+    private readonly MapLibreMap map;
+    private readonly PolygonManager polygons;
+    private readonly MovingObjectManager fleet;
+
+    // The configured backend (RUM-tree by default) drives the intersect scenario; the
+    // distance-style tabs fall back to the list backend because spatial pruning would
+    // suppress their continuous distance streams.
+    private readonly RxGeographyDataStruct configuredBackend = RxSpatialOptions.Default.PreferredDataStruct;
+
+    private bool isDrawingArea;
+    private GeoPoint? corner1;
+    private GeoPoint? corner2;
+    private bool isPaused;
+
+    public MainWindow()
     {
-        MapLibreMap myMap;
-        PolygonMgr polygonMgr;
-        MovingObjMgr movingObjMgr;
-        // The configured backend (RUM-tree by default) drives the intersect scenario; the
-        // distance-style tabs fall back to the list backend because spatial pruning would
-        // suppress their continuous distance streams.
-        readonly RxSpatial.RxGeographyDataStruct configuredBackend =
-            RxSpatial.RxSpatialOptions.Default.PreferredDataStruct;
-        public MainWindow()
+        InitializeComponent();
+        map = new MapLibreMap(mapView);
+        map.MapClick += OnMapClick;
+        map.MapMouseMove += OnMapMouseMove;
+        polygons = new PolygonManager(map);
+        fleet = new MovingObjectManager(map, polygons);
+    }
+
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        try
         {
-            InitializeComponent();
-            myMap = new MapLibreMap(mapView);
-            myMap.MapClick += Map_Click;
-            myMap.MapMouseMove += Map_MouseMove;
-            polygonMgr = new PolygonMgr(myMap);
-            movingObjMgr = new MovingObjMgr(myMap, polygonMgr);
+            await map.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                "The map view could not be initialised. The WebView2 Runtime is required "
+                + "(preinstalled on Windows 11, otherwise see "
+                + "https://developer.microsoft.com/microsoft-edge/webview2/).\n\n" + ex.Message,
+                "MapRunRxSpatial", MessageBoxButton.OK, MessageBoxImage.Error);
+            Close();
+        }
+    }
+
+    private void OnStartClick(object sender, RoutedEventArgs e) => fleet.StartTraffic();
+
+    private void OnAddAreaClick(object sender, RoutedEventArgs e)
+    {
+        // Re-arming mid-draw must not leave the previous preview rectangle behind.
+        map.RemoveShape(PreviewAreaShapeId);
+        isDrawingArea = true;
+        corner1 = null;
+        corner2 = null;
+    }
+
+    private void OnClearAreaClick(object sender, RoutedEventArgs e)
+    {
+        fleet.UnsubscribeAll();
+        polygons.ClearAllPolygons();
+        CancelAreaDrawing();
+    }
+
+    private void OnPauseResumeClick(object sender, RoutedEventArgs e)
+    {
+        // Pause/Resume has nothing to act on until Start has been pressed.
+        if (!fleet.TrafficStarted)
+            return;
+
+        if (isPaused)
+            fleet.RestartTraffic();
+        else
+            fleet.StopTraffic();
+
+        isPaused = !isPaused;
+        SetPauseResumeLabels(isPaused ? "Resume" : "Pause");
+    }
+
+    private void OnMapClick(double latitude, double longitude)
+    {
+        if (!isDrawingArea)
+            return;
+
+        GeoPoint corner = new(latitude, longitude);
+        if (corner1 is null)
+        {
+            corner1 = corner;
+        }
+        else if (corner2 is null)
+        {
+            corner2 = corner;
+            map.RemoveShape(PreviewAreaShapeId);
+            AddArea(corner1.Value, corner2.Value);
+            isDrawingArea = false;
+            corner1 = null;
+            corner2 = null;
+        }
+    }
+
+    private void OnMapMouseMove(double latitude, double longitude)
+    {
+        if (isDrawingArea && corner1 is not null)
+            DrawAreaPreview(corner1.Value, new GeoPoint(latitude, longitude));
+    }
+
+    private void DrawAreaPreview(GeoPoint corner1, GeoPoint corner2)
+        => map.SetLine(
+            PreviewAreaShapeId,
+            [
+                new GeoPoint(corner1.Latitude, corner1.Longitude),
+                new GeoPoint(corner1.Latitude, corner2.Longitude),
+                new GeoPoint(corner2.Latitude, corner2.Longitude),
+                new GeoPoint(corner2.Latitude, corner1.Longitude),
+                new GeoPoint(corner1.Latitude, corner1.Longitude),
+            ],
+            "orange", 2, false, 0.7);
+
+    private void AddArea(GeoPoint corner1, GeoPoint corner2)
+    {
+        DemoPolygon? polygon = polygons.AddPolygon(corner1, corner2);
+        if (polygon is null)
+            return;
+
+        if (DemoParameters.ActiveScenario == Scenario.Intersect)
+            fleet.SubscribeIntersectToNewPolygon(polygon.Name, polygon.Geography);
+        else if (DemoParameters.ActiveScenario == Scenario.Distance)
+            fleet.SubscribeDistanceToNewPolygon(polygon.Name, polygon.Geography);
+    }
+
+    private void OnVehicleCountChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        DemoParameters.VehicleCount = (int)e.NewValue;
+        SetLabels($" Vehicle Number: {(int)e.NewValue}", VehicleNum, VehicleNum1);
+    }
+
+    private void OnVehicleSpeedChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        DemoParameters.MovementIntervalMilliseconds = 1000 / (int)e.NewValue;
+        if (fleet is not null && !isPaused)
+            fleet.RestartTraffic();
+
+        SetLabels($" Vehicle Speed: {(int)e.NewValue}", VehicleSpeed, VehicleSpeed1);
+        SetLabels($" Movement Speed: {(int)e.NewValue}", VehicleSpeed2, VehicleSpeed3);
+    }
+
+    private void OnObserveDistanceChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        DemoParameters.ObserveDistance = e.NewValue;
+        SetLabels($" Observe Distance: {e.NewValue:F}", ObserveDist, ObserveDist1, ObserveDist2);
+    }
+
+    /// <summary>
+    /// One handler serves the equivalent sliders on every tab, and a value coerced during
+    /// InitializeComponent fires before the later tabs' labels exist — skip those.
+    /// </summary>
+    private static void SetLabels(string text, params TextBlock?[] labels)
+    {
+        foreach (TextBlock? label in labels)
+        {
+            if (label is not null)
+                label.Text = text;
+        }
+    }
+
+    private void OnTrackedPairChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        => TrackedObserverState.Text =
+            $"Observers:({(int)TrackedPairSlider1.Value},{(int)TrackedPairSlider2.Value}) SELECTED..";
+
+    private void OnConnectionPairChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        => ConnectionObserverState.Text =
+            $"Observers:({(int)ConnectionPairSlider1.Value},{(int)ConnectionPairSlider2.Value}) SELECTED..";
+
+    private void OnAddTrackedPairClick(object sender, RoutedEventArgs e)
+    {
+        int id1 = (int)TrackedPairSlider1.Value;
+        int id2 = (int)TrackedPairSlider2.Value;
+        TrackedObserverState.Text = DescribePairSubscription(
+            id1, id2, () => fleet.SubscribeRxRxDistance(id1, id2) && fleet.SubscribeRxRxDistance(id2, id1));
+    }
+
+    private void OnAddConnectionPairClick(object sender, RoutedEventArgs e)
+    {
+        int id1 = (int)ConnectionPairSlider1.Value;
+        int id2 = (int)ConnectionPairSlider2.Value;
+        ConnectionObserverState.Text = DescribePairSubscription(
+            id1, id2, () => fleet.SubscribeRxRxDistanceConnection(id1, id2)
+                && fleet.SubscribeRxRxDistanceConnection(id2, id1));
+    }
+
+    private static string DescribePairSubscription(int id1, int id2, Func<bool> subscribe)
+    {
+        if (id1 == id2)
+            return $"Observer Condition:({id1},{id2}) Invalid!";
+
+        return subscribe()
+            ? $"Observer Condition:({id1},{id2}) ADD!"
+            : "Observer Condition:WaitTraffic/Duplicate";
+    }
+
+    private void OnScenarioTabChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Fires only on a real tab change (never for clicks inside the tab content, which
+        // used to bubble to the old MouseLeftButtonUp handlers and wipe the demo state).
+        // Skipped during InitializeComponent, before the managers exist.
+        if (fleet is null || e.Source is not TabControl tabs)
+            return;
+
+        Scenario? scenario = tabs.SelectedIndex switch
+        {
+            0 => Scenario.Intersect,
+            1 => Scenario.Distance,
+            2 => Scenario.RxRxDistance,
+            3 => Scenario.RxRxDistanceConnection,
+            _ => null,
+        };
+
+        if (scenario is not null)
+            ResetScenario(scenario.Value);
+    }
+
+    private void ResetScenario(Scenario scenario)
+    {
+        isPaused = false;
+        SetPauseResumeLabels("Pause");
+
+        VehicleNum.Text = " Vehicle Number: 1";
+        VehicleSpeed.Text = " Vehicle Speed: 1";
+        VehicleNum1.Text = " Vehicle Number: 1";
+        VehicleSpeed1.Text = " Vehicle Speed: 1";
+        ObserveDist.Text = " Observe Distance: 1";
+        VehicleSpeed2.Text = " Movement Speed: 1";
+        VehicleSpeed3.Text = " Movement Speed: 1";
+        ObserveDist1.Text = " Observe Distance: 1";
+        ObserveDist2.Text = " Observe Distance: 1";
+        TrackedObserverState.Text = "Observer Condition:";
+        ConnectionObserverState.Text = "Observer Condition:";
+
+        foreach (Slider slider in (Slider[])
+            [
+                VehicleCountSlider, VehicleCountSlider1, VehicleSpeedSlider, VehicleSpeedSlider1,
+                VehicleSpeedSlider2, VehicleSpeedSlider3, ObserveDistanceSlider, ObserveDistanceSlider1,
+                ObserveDistanceSlider2, TrackedPairSlider1, TrackedPairSlider2, ConnectionPairSlider1,
+                ConnectionPairSlider2,
+            ])
+        {
+            slider.Value = slider.Minimum;
         }
 
-        private async void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await myMap.InitializeAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    "The map view could not be initialised. The WebView2 Runtime is required "
-                    + "(preinstalled on Windows 11, otherwise see "
-                    + "https://developer.microsoft.com/microsoft-edge/webview2/).\n\n" + ex.Message,
-                    "MapRunRxSpatial", MessageBoxButton.OK, MessageBoxImage.Error);
-                Close();
-            }
-        }
-        private void AggregateQuery_OK_Button_Click(object sender, RoutedEventArgs e)
-        {
-            movingObjMgr.procTraffic();
+        DemoParameters.MovementIntervalMilliseconds = 1000;
+        DemoParameters.ObserveDistance = 1;
+        DemoParameters.VehicleCount =
+            scenario is Scenario.RxRxDistance or Scenario.RxRxDistanceConnection ? 20 : 1;
+        DemoParameters.ActiveScenario = scenario;
 
-        }
-        private const string TmpAreaShapeId = "tmp-area";
-        private bool collect_area = false;
-        private GeoPoint? pt1 = null;
-        private GeoPoint? pt2 = null;
-        private void AddAreaBtn_Click(object sender, RoutedEventArgs e)
-        {
-            // Re-arming mid-draw must not leave the previous preview rectangle behind.
-            myMap.RemoveShape(TmpAreaShapeId);
-            collect_area = true;
-            pt1 = null;
-            pt2 = null;
-        }
-        void Map_Click(double latitude, double longitude)
-        {
-            if (collect_area == true)
-            {
-                GeoPoint loc = new GeoPoint(latitude, longitude);
-                if (pt1 == null)
-                    pt1 = loc;
-                else if (pt2 == null)
-                {
-                    pt2 = loc;
-                    myMap.RemoveShape(TmpAreaShapeId);
-                    addArea(pt1.Value, pt2.Value);
-                    collect_area = false;
-                    pt1 = null;
-                    pt2 = null;
-                }
-            }
+        RxSpatialOptions.Default.PreferredDataStruct = scenario == Scenario.Intersect
+            ? configuredBackend
+            : RxGeographyDataStruct.List;
 
-         }
-        void Map_MouseMove(double latitude, double longitude)
-        {
-            if (collect_area == true && pt1 != null)
-            {
-                DrawBoundary(pt1.Value, new GeoPoint(latitude, longitude));
-            }
-        }
-        void DrawBoundary(GeoPoint pt1, GeoPoint pt2)// draw the data boundary
-        {
-            myMap.SetLine(
-                TmpAreaShapeId,
-                new[]
-                {
-                    new GeoPoint(pt1.Latitude, pt1.Longitude),
-                    new GeoPoint(pt1.Latitude, pt2.Longitude),
-                    new GeoPoint(pt2.Latitude, pt2.Longitude),
-                    new GeoPoint(pt2.Latitude, pt1.Longitude),
-                    new GeoPoint(pt1.Latitude, pt1.Longitude),
-                },
-                "orange", 2, false, 0.7);
-        }
+        fleet.RestartTraffic();
+        fleet.UnsubscribeAll();
+        fleet.ClearAllVehicles();
+        polygons.ClearAllPolygons();
+        CancelAreaDrawing();
+    }
 
-        void addArea(GeoPoint pt1, GeoPoint pt2)
-        {
-            Polygon p=polygonMgr.addPolygon(pt1,pt2);
-            if (p != null) { 
-            if(ParamMgr.subscribeState==STATE.INTERSCT)
-                movingObjMgr.subscribeIntersectNewPolygon(p.name,p.polygon);
-            else if(ParamMgr.subscribeState==STATE.DIST)
-                movingObjMgr.subscribeDistNewPolygon(p.name, p.polygon);
-        }
-            //string msg = String.Format("subscribing obj # {0}", PolygonMgr.polygonDict.Count);
-            //this.textBlock1.Text = msg;
-        }
+    private void SetPauseResumeLabels(string label)
+    {
+        PauseResume.Content = label;
+        PauseResume1.Content = label;
+        PauseResume2.Content = label;
+        PauseResume3.Content = label;
+    }
 
-
-        private void slider_NumValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.VehicleNumber = (int)e.NewValue;
-            string msg = String.Format(" Vehicle Number: {0}", (int)e.NewValue);
-            this.VehicleNum.Text = msg;
-        }
-
-        private void slider_SpeedValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.MovementIntervalInMS = 1000/(int)e.NewValue;
-            if(movingObjMgr!=null && stoped==false)movingObjMgr.restartProcTraffic();
-            string msg = String.Format(" Vehicle Speed: {0}", (int)e.NewValue);
-            this.VehicleSpeed.Text = msg;
-        }
-
-        private void slider_SpeedValueChanged2(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.MovementIntervalInMS = 1000 / (int)e.NewValue;
-            if (movingObjMgr != null && stoped == false) movingObjMgr.restartProcTraffic();
-            string msg = String.Format(" Movement Speed: {0}", (int)e.NewValue);
-            this.VehicleSpeed2.Text = msg;
-        }
-
-        private void slider_SpeedValueChanged3(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.MovementIntervalInMS = 1000 / (int)e.NewValue;
-            if (movingObjMgr != null && stoped == false) movingObjMgr.restartProcTraffic();
-            string msg = String.Format(" Movement Speed: {0}", (int)e.NewValue);
-            this.VehicleSpeed2_.Text = msg;
-        }
-
-        private void slider_NumValueChanged1(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.VehicleNumber = (int)e.NewValue;
-            string msg = String.Format(" Vehicle Number: {0}", (int)e.NewValue);
-            this.VehicleNum1.Text = msg;
-        }
-
-        private void slider_SpeedValueChanged1(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.MovementIntervalInMS = 1000 / (int)e.NewValue;
-            if (movingObjMgr != null && stoped ==false ) movingObjMgr.restartProcTraffic();
-            string msg = String.Format(" Vehicle Speed: {0}", (int)e.NewValue);
-            this.VehicleSpeed1.Text = msg;
-        }
-        private void slider_DistChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.ObsvDist = e.NewValue;
-            string msg = String.Format(" Observe Distance: {0:F}", e.NewValue);
-            this.ObserveDist.Text = msg;
-        }
-        private void slider_DistChanged1(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.ObsvDist = e.NewValue;
-            string msg = String.Format(" Observe Distance: {0:F}", e.NewValue);
-            this.ObserveDist1.Text = msg;
-        }
-        private void slider_DistConnChanged1(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            ParamMgr.ObsvDist = e.NewValue;
-            string msg = String.Format(" Observe Distance: {0:F}", e.NewValue);
-            this.ObserveDist1_.Text = msg;
-        }
-
-        private void ScenarioTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // Fires only on a real tab change (never for clicks inside the tab content, which
-            // used to bubble to the old MouseLeftButtonUp handlers and wipe the demo state).
-            // Skipped during InitializeComponent, before the managers exist.
-            if (movingObjMgr == null || e.Source is not TabControl tabs)
-                return;
-
-            switch (tabs.SelectedIndex)
-            {
-                case 0: updateSubscribeState(STATE.INTERSCT); break;
-                case 1: updateSubscribeState(STATE.DIST); break;
-                case 2: updateSubscribeState(STATE.RXRXDIST); break;
-                case 3: updateSubscribeState(STATE.RXRXDISTCONN); break;
-            }
-        }
-        void updateSubscribeState(STATE newState)
-        {
-           // if (ParamMgr.subscribeState == newState) return;
-            //else
-            //{
-                stoped = false;
-                this.PauseResume.Content = "Pause";
-                this.PauseResume1.Content = "Pause";
-                this.PauseResume2.Content = "Pause";
-                this.PauseResume3.Content = "Pause";
-                this.VehicleNum.Text = " Vehicle Number: 1";
-                this.VehicleSpeed.Text = " Vehicle Speed: 1";
-                this.VehicleNum1.Text = " Vehicle Number: 1";
-                this.VehicleSpeed1.Text = " Vehicle Speed: 1";
-                this.ObserveDist.Text = " Observe Distance: 1";
-                this.VehicleSpeed2.Text = " Movement Speed: 1";
-                this.VehicleSpeed2_.Text = " Movement Speed: 1";
-                this.ObserveDist1.Text = "  Observe Distance: 1";
-                this.ObserveDist1_.Text = " Observe Distance: 1";
-                this.RxRxObserverState.Text = "Observer Conditon:";
-
-                this.RxRxObserverState_.Text = "Observer Conditon:";
-
-                this.slider.Value = this.slider.Minimum;
-                this.slider1.Value = this.slider1.Minimum;
-                this.slider2.Value = this.slider2.Minimum;
-                this.slider21.Value = this.slider21.Minimum;
-                this.slider22.Value = this.slider22.Minimum;
-                this.slider3.Value = this.slider3.Minimum;
-                this.slider32.Value = this.slider32.Minimum;
-                this.slider22_.Value = this.slider22_.Minimum;
-                this.slider32_.Value = this.slider32_.Minimum;
-                this.sliderRxRxId1.Value = this.sliderRxRxId1.Minimum;
-                this.sliderRxRxId2.Value = this.sliderRxRxId2.Minimum;
-
-
-                this.sliderRxRxConnId1.Value = this.sliderRxRxConnId1.Minimum;
-                this.sliderRxRxConnId2.Value = this.sliderRxRxConnId2.Minimum;
-                ParamMgr.MovementIntervalInMS = 1000;
-                ParamMgr.ObsvDist = 1;
-                if (newState == STATE.RXRXDIST || newState == STATE.RXRXDISTCONN)
-                {
-                    ParamMgr.VehicleNumber = 20;
-                }
-                else
-                {
-                    ParamMgr.VehicleNumber = 1;
-                }
-                ParamMgr.subscribeState = newState;
-
-                RxSpatial.RxSpatialOptions.Default.PreferredDataStruct = newState == STATE.INTERSCT
-                    ? configuredBackend
-                    : RxSpatial.RxGeographyDataStruct.List;
-
-                movingObjMgr.restartProcTraffic();
-                movingObjMgr.unsubscribeAll();
-                movingObjMgr.clearAllObjects();
-                polygonMgr.clearAllPolygons();
-                CancelAreaDrawing();
-                
-           // }
-
-        }
-       /* int RxRxObserverPairNum=0;
-        private void RxObserverKeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-               String s= this.RxRxDistTrackInputTextBox.Text;
-               if (s != null)
-               {
-                   s.Trim();
-                   String[] strs = s.Split(' ');
-                   try{
-                       int id1 = Convert.ToInt32(strs[0]);
-                       int id2 = Convert.ToInt32(strs[strs.Length - 1]);
-                       if ((id1 >= 0) && (id1 <= 19) && (id2 >= 0) && (id2 <= 19))
-                       {
-                           if (movingObjMgr.subscribeRxRxDist(id1, id2))
-                           {
-
-                               if(RxRxObserverPairNum%4==0){
-                                string msg=this.RxRxObserverState.Text+"&#x0a;"+s;
-                                this.RxRxObserverState.Text = msg;
-                               }
-                               else{
-                                string msg = this.RxRxObserverState.Text + " | " + "("+id1.ToString()+","+id2.ToString()+")";
-                                this.RxRxObserverState.Text = msg;
-                               }
-                               RxRxObserverPairNum++;
-                           }
-                           else
-                           {
-                               this.RxRxDistTrackInputTextBox.Text = "Input Err";
-                           }
-                           return;
-                       }
-                       else
-                       {
-                           this.RxRxDistTrackInputTextBox.Text = "Input id1,id2 range [0,19]";
-                           return;
-                       }
-                       }
-                   catch(Exception ex){
-
-                   }
-                   
-               }
-               this.RxRxDistTrackInputTextBox.Text = "InputFormat:id1;id2";
-               return;
-            }
-        }*/
-        private void CancelAreaDrawing()
-        {
-            collect_area = false;
-            pt1 = null;
-            pt2 = null;
-            myMap.RemoveShape(TmpAreaShapeId);
-        }
-
-        bool stoped = false;
-        private void click_StopResume(object sender, RoutedEventArgs e)
-        {
-            // Pause/Resume has nothing to act on until Start has been pressed.
-            if (!movingObjMgr.TrafficStarted)
-                return;
-
-            if (stoped == false)
-            {
-
-                movingObjMgr.stopTraffic();
-                stoped = true;
-                this.PauseResume.Content = "Resume";
-                this.PauseResume1.Content = "Resume";
-                this.PauseResume2.Content = "Resume";
-                this.PauseResume3.Content = "Resume";
-            }
-            else
-            {
-                movingObjMgr.restartProcTraffic();
-                stoped = false;
-                this.PauseResume.Content = "Pause";
-                this.PauseResume1.Content = "Pause";
-                this.PauseResume2.Content = "Pause";
-                this.PauseResume3.Content = "Pause";
-            }
-        }
-        private void ClearAreaBtn_Click(object sender, RoutedEventArgs e)
-        {
-            movingObjMgr.unsubscribeAll();
-            polygonMgr.clearAllPolygons();
-            CancelAreaDrawing();
-        }
-        
-        private void AddRxRx_Click(object sender, RoutedEventArgs e)
-        {
-            if ((int)this.sliderRxRxId2.Value == (int)this.sliderRxRxId1.Value)
-            {
-               this.RxRxObserverState.Text = "Observer Condition:("
-                + ((int)this.sliderRxRxId1.Value).ToString() + ","
-                + ((int)this.sliderRxRxId2.Value).ToString() + ") Invalid!";
-            }
-            else{
-                
-           if( movingObjMgr.subscribeRxRxDist((int)this.sliderRxRxId1.Value,
-               (int)this.sliderRxRxId2.Value)
-            && movingObjMgr.subscribeRxRxDist((int)this.sliderRxRxId2.Value,
-                (int)this.sliderRxRxId1.Value)){
-            this.RxRxObserverState.Text = "Observer Condition:("
-                + ((int)this.sliderRxRxId1.Value).ToString() + ","
-                + ((int)this.sliderRxRxId2.Value).ToString() + ") ADD!";//}
-            }
-           else
-           {
-               this.RxRxObserverState.Text = "Observer Condition:WaitTraffic/Duplicate";
-           }
-            }
-
-        }
-
-        private void AddRxRxConn_Click(object sender, RoutedEventArgs e)
-        {
-            if ((int)this.sliderRxRxConnId2.Value == (int)this.sliderRxRxConnId1.Value)
-            {
-                this.RxRxObserverState_.Text = "Observer Condition:("
-                 + ((int)this.sliderRxRxConnId1.Value).ToString() + ","
-                 + ((int)this.sliderRxRxConnId2.Value).ToString() + ") Invalid!";
-            }
-            else
-            {
-
-                if (movingObjMgr.subscribeRxRxDistConnection((int)this.sliderRxRxConnId1.Value,
-                    (int)this.sliderRxRxConnId2.Value)
-                 && movingObjMgr.subscribeRxRxDistConnection((int)this.sliderRxRxConnId2.Value,
-                     (int)this.sliderRxRxConnId1.Value))
-                {
-                    this.RxRxObserverState_.Text = "Observer Condition:("
-                        + ((int)this.sliderRxRxConnId1.Value).ToString() + ","
-                        + ((int)this.sliderRxRxConnId2.Value).ToString() + ") ADD!";//}
-                }
-                else
-                {
-                    this.RxRxObserverState_.Text = "Observer Condition:WaitTraffic/Duplicate";
-                }
-            }
-
-        }
-
-        private void slider_RxRxDistId(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            this.RxRxObserverState.Text = "Observers:("
-    + ((int)this.sliderRxRxId1.Value).ToString() + ","
-    + ((int)this.sliderRxRxId2.Value).ToString() + ") SELECTED..";
-        }
-
-        private void slider_RxRxDistConnId(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            this.RxRxObserverState_.Text = "Observers:("
-    + ((int)this.sliderRxRxConnId1.Value).ToString() + ","
-    + ((int)this.sliderRxRxConnId2.Value).ToString() + ") SELECTED..";
-        }
+    private void CancelAreaDrawing()
+    {
+        isDrawingArea = false;
+        corner1 = null;
+        corner2 = null;
+        map.RemoveShape(PreviewAreaShapeId);
     }
 }
