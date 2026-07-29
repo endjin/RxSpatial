@@ -24,6 +24,7 @@ public class TreeIndexBenchmarks
 
     private RStarTree<int> rstar = null!;
     private RumTree<int> rum = null!;
+    private readonly List<int> searchBuffer = new(256);
     private int cursor;
 
     [GlobalSetup]
@@ -106,6 +107,24 @@ public class TreeIndexBenchmarks
     public List<int> RumTree_Query()
     {
         return rum.Search(queryPool[cursor++ & 63]);
+    }
+
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("QueryBuffered")]
+    public int RStarTree_QueryBuffered()
+    {
+        searchBuffer.Clear();
+        rstar.Search(queryPool[cursor++ & 63], searchBuffer);
+        return searchBuffer.Count;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("QueryBuffered")]
+    public int RumTree_QueryBuffered()
+    {
+        searchBuffer.Clear();
+        rum.Search(queryPool[cursor++ & 63], searchBuffer);
+        return searchBuffer.Count;
     }
 
     private static Rect RandomRect(Random random, double size)

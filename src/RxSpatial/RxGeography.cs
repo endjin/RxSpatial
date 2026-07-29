@@ -22,7 +22,7 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
 
     private SqlGeography? currentLoc;
     private Thread? notifyThread;
-    private bool lockTaken;
+    private bool drainerRunning;
 
     /// <summary>Creates a moving object configured by <see cref="RxSpatialOptions.Default"/>.</summary>
     public RxGeography()
@@ -58,17 +58,26 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
         }
         else
         {
+            bool startDrainer = false;
             lock (queuedPushs)
             {
                 if (queuedPushs.Count < bufferLimit)
                     queuedPushs.Enqueue(new LocationPush(g));
                 else
                     throw new RxSpatialOverLoadException();
+
+                // Decide under the lock whether a drainer thread is needed; the old
+                // unsynchronised flag check could start two drainers racing over the queue.
+                if (!drainerRunning)
+                {
+                    drainerRunning = true;
+                    startDrainer = true;
+                }
             }
 
-            if (!lockTaken)
+            if (startDrainer)
             {
-                notifyThread = new Thread(NotifyObservers);
+                notifyThread = new Thread(DrainQueue);
                 notifyThread.Start();
             }
         }
@@ -143,24 +152,30 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
 
     private void NotifyObservers()
     {
-        if (isVisualized)
+        LocationPush push = queuedPushs.Dequeue();
+        NotifyLocation(push.Content);
+        NotifyObserversInSameZone(push.Content);
+    }
+
+    private void DrainQueue()
+    {
+        while (true)
         {
-            LocationPush push = queuedPushs.Dequeue();
-            NotifyLocation(push.Content);
-            NotifyObserversInSameZone(push.Content);
-        }
-        else
-        {
-            lockTaken = true;
-            while (queuedPushs.Count > 0)
+            LocationPush push;
+            lock (queuedPushs)
             {
-                LocationPush push = queuedPushs.Dequeue();
-                NotifyObserversInSameZone(push.Content);
-                push.FinishProcessing();
-                avgLatencyRecorder.recordLatency(push.Latency);
+                if (queuedPushs.Count == 0)
+                {
+                    drainerRunning = false;
+                    return;
+                }
+
+                push = queuedPushs.Dequeue();
             }
 
-            lockTaken = false;
+            NotifyObserversInSameZone(push.Content);
+            push.FinishProcessing();
+            avgLatencyRecorder.recordLatency(push.Latency);
         }
     }
 

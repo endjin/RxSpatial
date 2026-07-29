@@ -122,6 +122,118 @@ public class RxGeographyTests
     }
 
     [TestMethod]
+    public void ParameterlessConstructor_UsesAmbientDefaultOptions()
+    {
+        RxSpatialOptions saved = RxSpatialOptions.Default;
+        try
+        {
+            RxSpatialOptions.Default = VisualizedOptions();
+            RxGeography vehicle = new();
+            List<bool> events = [];
+            using IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
+            vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326));
+            events.ShouldBe([true]);
+        }
+        finally
+        {
+            RxSpatialOptions.Default = saved;
+        }
+    }
+
+    [TestMethod]
+    public void IntersectionWithStationaryGeography_StreamsIntersectionGeometry()
+    {
+        RxGeography vehicle = new(VisualizedOptions());
+        List<SqlGeography> intersections = [];
+        using IDisposable subscription = vehicle.IntersectionWith(Fence).Subscribe(intersections.Add);
+
+        vehicle.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326).STBuffer(100));
+        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(100));
+
+        intersections.Count.ShouldBe(2);
+        intersections[0].STIsEmpty().Value.ShouldBeTrue();
+        intersections[1].STIsEmpty().Value.ShouldBeFalse();
+    }
+
+    [TestMethod]
+    public void IntersectionWithMovingObject_StreamsIntersectionGeometry()
+    {
+        RxGeography a = new(VisualizedOptions());
+        RxGeography b = new(VisualizedOptions());
+        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(200));
+
+        List<SqlGeography> intersections = [];
+        using IDisposable subscription = a.IntersectionWith(b).Subscribe(intersections.Add);
+
+        a.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326).STBuffer(200));
+        a.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(200));
+
+        intersections.Count.ShouldBe(2);
+        intersections[0].STIsEmpty().Value.ShouldBeTrue();
+        intersections[1].STIsEmpty().Value.ShouldBeFalse();
+    }
+
+    [TestMethod]
+    public void IntersectsMovingObject_StreamsBooleanTests()
+    {
+        RxGeography a = new(VisualizedOptions());
+        RxGeography b = new(VisualizedOptions());
+        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(200));
+
+        List<bool> events = [];
+        using IDisposable subscription = a.Intersects(b).Subscribe(events.Add);
+
+        a.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326).STBuffer(200));
+        a.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(200));
+
+        events.ShouldBe([false, true]);
+    }
+
+    [TestMethod]
+    [DataRow(RxGeographyDataStruct.List)]
+    [DataRow(RxGeographyDataStruct.HashMap)]
+    [DataRow(RxGeographyDataStruct.RTree)]
+    [DataRow(RxGeographyDataStruct.RumTree)]
+    public void RxRxDistance_WorksOnEveryBackend_TrackingTheMovingObserver(RxGeographyDataStruct backend)
+    {
+        // The moving observer is registered in A's index at B's location and follows B's
+        // location stream (the Tree/Grid LocationObsvr trackers) — with buffered regions so
+        // the tree backends can index the observer's zone.
+        RxGeography a = new(VisualizedOptions(backend));
+        RxGeography b = new(VisualizedOptions(backend));
+        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500));
+
+        List<double> distances = [];
+        using IDisposable subscription = a.DistanceTo(b)
+                                          .Select(d => (double)d)
+                                          .Subscribe(distances.Add);
+
+        // Move B (exercises the location-tracking observer), then push A inside B's zone.
+        b.OnNext(SqlGeography.Point(47.6300, -122.3550, 4326).STBuffer(500));
+        a.OnNext(SqlGeography.Point(47.6300, -122.3550, 4326).STBuffer(500));
+
+        distances.Count.ShouldBeGreaterThanOrEqualTo(1);
+        distances[^1].ShouldBe(0);
+    }
+
+    [TestMethod]
+    [DataRow(RxGeographyDataStruct.HashMap)]
+    [DataRow(RxGeographyDataStruct.RTree)]
+    [DataRow(RxGeographyDataStruct.RumTree)]
+    public void Unsubscribe_StopsNotifications_OnSpatialBackends(RxGeographyDataStruct backend)
+    {
+        RxGeography vehicle = new(VisualizedOptions(backend));
+        List<bool> events = [];
+        IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
+
+        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        subscription.Dispose();
+        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+
+        events.Count.ShouldBe(1);
+    }
+
+    [TestMethod]
     public void BufferedMode_ThrowsOverloadException_WhenQueueLimitExceeded()
     {
         RxGeography vehicle = new(new RxSpatialOptions { IsVisualized = false, QueueLimit = 0 });
