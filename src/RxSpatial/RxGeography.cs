@@ -74,8 +74,14 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
                 }
             }
 
+            // One drainer at a time, dispatched to the thread pool. The original started a
+            // fresh OS thread per burst, which costs far more than the work it was created
+            // for: with the queue usually empty (the default QueueLimit is 1) a moving object
+            // paid a thread construction on almost every push. QueueUserWorkItem (not the
+            // Unsafe overload) keeps the ExecutionContext flow that Thread.Start gave the
+            // notification callbacks.
             if (startDrainer)
-                new Thread(DrainQueue).Start();
+                ThreadPool.QueueUserWorkItem(static self => self.DrainQueue(), this, preferLocal: false);
         }
     }
 
