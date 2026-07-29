@@ -38,7 +38,7 @@ public class BufferedModeTests
 
         // The queue drains on a background thread; poll briefly for completion.
         bool drained = SpinWait.SpinUntil(
-            () => vehicle.checkQueuedPushNum() == 0 && EventCount() == 2,
+            () => vehicle.QueuedPushCount == 0 && EventCount() == 2,
             TimeSpan.FromSeconds(10));
 
         drained.ShouldBeTrue("buffered pushes were not drained in time");
@@ -47,7 +47,7 @@ public class BufferedModeTests
             events.ShouldBe([false, true]);
         }
 
-        vehicle.latency.ShouldBeGreaterThanOrEqualTo(0);
+        vehicle.AverageLatency.ShouldBeGreaterThanOrEqualTo(0);
 
         int EventCount()
         {
@@ -70,8 +70,8 @@ public class BufferedModeTests
     public void OverloadException_PreservesMessageAndInnerException()
     {
         var inner = new InvalidOperationException("inner");
-        new RxSpatialOverLoadException("boom").Message.ShouldBe("boom");
-        var wrapped = new RxSpatialOverLoadException("outer", inner);
+        new RxSpatialOverloadException("boom").Message.ShouldBe("boom");
+        var wrapped = new RxSpatialOverloadException("outer", inner);
         wrapped.Message.ShouldBe("outer");
         wrapped.InnerException.ShouldBeSameAs(inner);
     }

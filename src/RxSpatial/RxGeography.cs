@@ -1,7 +1,6 @@
 using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
-using RxSpatial.Lib;
-using RxSpatial.Util;
+using RxSpatial.Backends;
 
 namespace RxSpatial;
 
@@ -9,19 +8,18 @@ namespace RxSpatial;
 /// A moving object: it observes its own location updates (<see cref="IObserver{T}"/>) and is
 /// observable by continuous spatial queries — distance, intersect and intersection — against
 /// stationary geographies (<c>Rx*</c>) or other moving objects (<c>RxRx*</c>). Observers are
-/// held in a spatial index selected by the <c>preferredDataStruct</c> application setting.
+/// held in the spatial backend selected by <see cref="RxSpatialOptions.PreferredDataStruct"/>.
 /// </summary>
 public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
 {
-    private readonly IContainer<IObserver<SqlGeography>> container;
-    private readonly GeoList<IObserver<SqlGeography>> observersForLocation = new();
-    private readonly Queue<LocationPush> queuedPushs = new();
-    private readonly AvgCalc avgLatencyRecorder = new();
+    private readonly ISpatialBackend<IObserver<SqlGeography>> backend;
+    private readonly ListBackend<IObserver<SqlGeography>> locationObservers = [];
+    private readonly Queue<LocationPush> pushQueue = new();
+    private readonly RunningAverage averageLatency = new();
     private readonly int bufferLimit;
     private readonly bool isVisualized;
 
-    private SqlGeography? currentLoc;
-    private Thread? notifyThread;
+    private SqlGeography? currentLocation;
     private bool drainerRunning;
 
     /// <summary>Creates a moving object configured by <see cref="RxSpatialOptions.Default"/>.</summary>
@@ -36,35 +34,36 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
         ArgumentNullException.ThrowIfNull(options);
         bufferLimit = options.QueueLimit;
         isVisualized = options.IsVisualized;
-        container = CreateContainer(options);
+        backend = CreateBackend(options);
     }
 
     /// <summary>The last location pushed to this moving object, or null before the first push.</summary>
-    public SqlGeography? loc => currentLoc;
+    public SqlGeography? Location => currentLocation;
 
     /// <summary>Average notification latency in milliseconds (performance instrumentation).</summary>
-    public double latency => avgLatencyRecorder.Avg;
+    public double AverageLatency => averageLatency.Average;
 
-    public int checkQueuedPushNum() => queuedPushs.Count;
+    /// <summary>Location pushes buffered but not yet processed (always 0 in visualised mode).</summary>
+    public int QueuedPushCount => pushQueue.Count;
 
-    public virtual void OnNext(SqlGeography g)
+    public virtual void OnNext(SqlGeography location)
     {
-        currentLoc = g;
+        currentLocation = location;
         if (isVisualized)
         {
             // Visualised mode processes every push synchronously on the caller's thread.
-            queuedPushs.Enqueue(new LocationPush(g));
-            NotifyObservers();
+            pushQueue.Enqueue(new LocationPush(location));
+            ProcessQueuedPush();
         }
         else
         {
             bool startDrainer = false;
-            lock (queuedPushs)
+            lock (pushQueue)
             {
-                if (queuedPushs.Count < bufferLimit)
-                    queuedPushs.Enqueue(new LocationPush(g));
+                if (pushQueue.Count < bufferLimit)
+                    pushQueue.Enqueue(new LocationPush(location));
                 else
-                    throw new RxSpatialOverLoadException();
+                    throw new RxSpatialOverloadException();
 
                 // Decide under the lock whether a drainer thread is needed; the old
                 // unsynchronised flag check could start two drainers racing over the queue.
@@ -76,10 +75,7 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
             }
 
             if (startDrainer)
-            {
-                notifyThread = new Thread(DrainQueue);
-                notifyThread.Start();
-            }
+                new Thread(DrainQueue).Start();
         }
     }
 
@@ -87,74 +83,62 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
     {
     }
 
-    public virtual void OnError(Exception e)
+    public virtual void OnError(Exception error)
     {
     }
 
     public IDisposable Subscribe(IObserver<SqlGeography> observer)
     {
-        if (!observersForLocation.Contains(observer))
-            observersForLocation.Add(observer);
+        if (!locationObservers.Contains(observer))
+            locationObservers.Add(observer);
 
-        return new Unsubscriber<SqlGeography>(observersForLocation, observer);
+        return new Unsubscriber<SqlGeography>(locationObservers, observer);
     }
 
-    public IDisposable RxRxIntersect(RxGeography G, IObserver<bool> o)
+    public IDisposable RxRxIntersect(RxGeography other, IObserver<bool> observer)
+        => SubscribeToMoving(new RxRxIntersectObserver(other, observer), other);
+
+    public IDisposable RxRxIntersection(RxGeography other, IObserver<SqlGeography> observer)
+        => SubscribeToMoving(new RxRxIntersectionObserver(other, observer), other);
+
+    public IDisposable RxRxDistance(RxGeography other, IObserver<SqlDouble> observer)
+        => SubscribeToMoving(new RxRxDistanceObserver(other, observer), other);
+
+    public IDisposable RxIntersect(SqlGeography geography, IObserver<bool> observer)
+        => SubscribeToStationary(new RxIntersectObserver(geography, observer), geography);
+
+    public IDisposable RxIntersection(SqlGeography geography, IObserver<SqlGeography> observer)
+        => SubscribeToStationary(new RxIntersectionObserver(geography, observer), geography);
+
+    public IDisposable RxDistance(SqlGeography geography, IObserver<SqlDouble> observer)
+        => SubscribeToStationary(new RxDistanceObserver(geography, observer), geography);
+
+    private IDisposable SubscribeToMoving(IObserver<SqlGeography> observer, RxGeography other)
     {
-        IObserver<SqlGeography> observer = new RxRxGeoIntersectObserver(G, o);
-        container.subscribeRxRx(observer, G);
-        return new Unsubscriber<SqlGeography>(container, observer);
+        backend.Subscribe(observer, other);
+        return new Unsubscriber<SqlGeography>(backend, observer);
     }
 
-    public IDisposable RxRxIntersection(RxGeography G, IObserver<SqlGeography> o)
+    private IDisposable SubscribeToStationary(IObserver<SqlGeography> observer, SqlGeography geography)
     {
-        IObserver<SqlGeography> observer = new RxRxGeoIntersectionObserver(G, o);
-        container.subscribeRxRx(observer, G);
-        return new Unsubscriber<SqlGeography>(container, observer);
+        backend.Subscribe(observer, geography);
+        return new Unsubscriber<SqlGeography>(backend, observer);
     }
 
-    public IDisposable RxRxDistance(RxGeography G, IObserver<SqlDouble> o)
-    {
-        IObserver<SqlGeography> observer = new RxRxGeoDistObserver(G, o);
-        container.subscribeRxRx(observer, G);
-        return new Unsubscriber<SqlGeography>(container, observer);
-    }
-
-    public IDisposable RxIntersect(SqlGeography G, IObserver<bool> o)
-    {
-        IObserver<SqlGeography> observer = new RxGeoIntersectObserver(G, o);
-        container.subscribeRx(observer, G);
-        return new Unsubscriber<SqlGeography>(container, observer);
-    }
-
-    public IDisposable RxIntersection(SqlGeography G, IObserver<SqlGeography> o)
-    {
-        IObserver<SqlGeography> observer = new RxGeoIntersectionObserver(G, o);
-        container.subscribeRx(observer, G);
-        return new Unsubscriber<SqlGeography>(container, observer);
-    }
-
-    public IDisposable RxDistance(SqlGeography G, IObserver<SqlDouble> o)
-    {
-        IObserver<SqlGeography> observer = new RxGeoDistObserver(G, o);
-        container.subscribeRx(observer, G);
-        return new Unsubscriber<SqlGeography>(container, observer);
-    }
-
-    private static IContainer<IObserver<SqlGeography>> CreateContainer(RxSpatialOptions options)
+    private static ISpatialBackend<IObserver<SqlGeography>> CreateBackend(RxSpatialOptions options)
         => options.PreferredDataStruct switch
         {
-            RxGeographyDataStruct.HashMap => new Grid<IObserver<SqlGeography>>(options.Grid),
-            RxGeographyDataStruct.RTree => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.RTree, options),
-            RxGeographyDataStruct.RumTree => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.RumTree, options),
-            _ => new GeoList<IObserver<SqlGeography>>(),
+            RxGeographyDataStruct.HashMap => new GridBackend<IObserver<SqlGeography>>(options.Grid),
+            RxGeographyDataStruct.RTree => new TreeBackend<IObserver<SqlGeography>>(RxGeographyDataStruct.RTree, options),
+            RxGeographyDataStruct.RumTree => new TreeBackend<IObserver<SqlGeography>>(RxGeographyDataStruct.RumTree, options),
+            _ => new ListBackend<IObserver<SqlGeography>>(),
         };
 
-    private void NotifyObservers()
+    private void ProcessQueuedPush()
     {
-        LocationPush push = queuedPushs.Dequeue();
-        NotifyLocation(push.Content);
-        NotifyObserversInSameZone(push.Content);
+        LocationPush push = pushQueue.Dequeue();
+        NotifyLocationObservers(push.Content);
+        NotifyZoneObservers(push.Content);
     }
 
     private void DrainQueue()
@@ -162,32 +146,32 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
         while (true)
         {
             LocationPush push;
-            lock (queuedPushs)
+            lock (pushQueue)
             {
-                if (queuedPushs.Count == 0)
+                if (pushQueue.Count == 0)
                 {
                     drainerRunning = false;
                     return;
                 }
 
-                push = queuedPushs.Dequeue();
+                push = pushQueue.Dequeue();
             }
 
-            NotifyObserversInSameZone(push.Content);
+            NotifyZoneObservers(push.Content);
             push.FinishProcessing();
-            avgLatencyRecorder.recordLatency(push.Latency);
+            averageLatency.Record(push.Latency);
         }
     }
 
-    private void NotifyLocation(SqlGeography location)
+    private void NotifyLocationObservers(SqlGeography location)
     {
-        foreach (IObserver<SqlGeography> observer in observersForLocation)
+        foreach (IObserver<SqlGeography> observer in locationObservers)
             observer.OnNext(location);
     }
 
-    private void NotifyObserversInSameZone(SqlGeography location)
+    private void NotifyZoneObservers(SqlGeography location)
     {
-        List<IObserver<SqlGeography>>? observers = container.getObjsInSameZone(location);
+        List<IObserver<SqlGeography>>? observers = backend.GetObserversInZone(location);
         if (observers is null)
             return;
 

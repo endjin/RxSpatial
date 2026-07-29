@@ -28,7 +28,7 @@ namespace MapRunRxSpatial
         public void updateLine(RxGeography rxGeoObj, bool isDash, int strokeThickness)
         {
             GeoPoint loc2 = this.position;
-            SqlGeography loc1 = rxGeoObj.loc;
+            SqlGeography loc1 = rxGeoObj.Location;
             lineId = polygonMgr.updateLine(lineId, new GeoPoint(loc1.Lat.Value, loc1.Long.Value),
                  loc2, isDash, strokeThickness);
         }

@@ -238,7 +238,7 @@ public class RxGeographyTests
     {
         RxGeography vehicle = new(new RxSpatialOptions { IsVisualized = false, QueueLimit = 0 });
 
-        Should.Throw<RxSpatialOverLoadException>(
+        Should.Throw<RxSpatialOverloadException>(
             () => vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326)));
     }
 

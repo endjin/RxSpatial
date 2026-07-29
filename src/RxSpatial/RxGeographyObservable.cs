@@ -16,7 +16,7 @@ public static class RxGeographyObservable
     {
         /// <summary>
         /// Stream of raw location updates published by the moving object. Location updates are
-        /// forwarded to direct subscribers when the <c>isVisualized</c> application setting is
+        /// forwarded to direct subscribers when <see cref="RxSpatialOptions.IsVisualized"/> is
         /// <c>true</c> (the original RxSpatial behaviour).
         /// </summary>
         public IObservable<SqlGeography> Locations
