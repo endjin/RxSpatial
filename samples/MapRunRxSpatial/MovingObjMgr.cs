@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Windows.Threading;
 
@@ -81,8 +82,9 @@ namespace MapRunRxSpatial
                         if (strs.Length != 5)
                             continue;
                         string status = strs[2];
-                        double latitude = Convert.ToDouble(strs[3]);
-                        double longitude = Convert.ToDouble(strs[4]);
+                        // The data files use '.' decimals; parsing must not depend on the OS locale.
+                        double latitude = double.Parse(strs[3], CultureInfo.InvariantCulture);
+                        double longitude = double.Parse(strs[4], CultureInfo.InvariantCulture);
                         arr.Add(new ObjAction(i, status, SqlGeography.Point(latitude, longitude, 4326)));
                     }
                 }
@@ -209,7 +211,9 @@ namespace MapRunRxSpatial
 
         public bool subscribeRxRxDist(int id1, int id2)
         {
-            if ((id1 >= 0) && (id1 <= movingObjList.Count - 1) && (id2 >= 0) && (id2 <= movingObjList.Count - 1))
+            // Membership checks rather than count-based bounds: ids need not stay
+            // contiguous if a trajectory deletes a vehicle mid-playback.
+            if (movingObjList.ContainsKey(id1) && movingObjList.ContainsKey(id2))
                 return movingObjList[id1].subscribeRxRxDist(id2.ToString(), movingObjList[id2].loc);
             else
                 return false;
@@ -217,7 +221,7 @@ namespace MapRunRxSpatial
 
         public bool subscribeRxRxDistConnection(int id1, int id2)
         {
-            if ((id1 >= 0) && (id1 <= movingObjList.Count - 1) && (id2 >= 0) && (id2 <= movingObjList.Count - 1))
+            if (movingObjList.ContainsKey(id1) && movingObjList.ContainsKey(id2))
                 return movingObjList[id1].subscribeRxRxDistConnection(id2.ToString(), movingObjList[id2].loc);
             else
                 return false;
