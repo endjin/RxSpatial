@@ -41,7 +41,19 @@ namespace MapRunRxSpatial
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            await myMap.InitializeAsync();
+            try
+            {
+                await myMap.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "The map view could not be initialised. The WebView2 Runtime is required "
+                    + "(preinstalled on Windows 11, otherwise see "
+                    + "https://developer.microsoft.com/microsoft-edge/webview2/).\n\n" + ex.Message,
+                    "MapRunRxSpatial", MessageBoxButton.OK, MessageBoxImage.Error);
+                Close();
+            }
         }
         private void AggregateQuery_OK_Button_Click(object sender, RoutedEventArgs e)
         {
@@ -177,22 +189,21 @@ namespace MapRunRxSpatial
             this.ObserveDist1_.Text = msg;
         }
 
-        private void tabClick_Dist(object sender, MouseButtonEventArgs e)
+        private void ScenarioTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            updateSubscribeState(STATE.DIST);
-        }
+            // Fires only on a real tab change (never for clicks inside the tab content, which
+            // used to bubble to the old MouseLeftButtonUp handlers and wipe the demo state).
+            // Skipped during InitializeComponent, before the managers exist.
+            if (movingObjMgr == null || e.Source is not TabControl tabs)
+                return;
 
-        private void tabClick_Intersect(object sender, MouseButtonEventArgs e)
-        {
-            updateSubscribeState(STATE.INTERSCT);
-        }
-        private void tabClick_RxRxDist(object sender, MouseButtonEventArgs e)
-        {
-            updateSubscribeState(STATE.RXRXDIST);
-        }
-        private void tabClick_RxRxDistConnection(object sender, MouseButtonEventArgs e)
-        {
-            updateSubscribeState(STATE.RXRXDISTCONN);
+            switch (tabs.SelectedIndex)
+            {
+                case 0: updateSubscribeState(STATE.INTERSCT); break;
+                case 1: updateSubscribeState(STATE.DIST); break;
+                case 2: updateSubscribeState(STATE.RXRXDIST); break;
+                case 3: updateSubscribeState(STATE.RXRXDISTCONN); break;
+            }
         }
         void updateSubscribeState(STATE newState)
         {
@@ -210,7 +221,9 @@ namespace MapRunRxSpatial
                 this.VehicleSpeed1.Text = " Vehicle Speed: 1";
                 this.ObserveDist.Text = " Observe Distance: 1";
                 this.VehicleSpeed2.Text = " Movement Speed: 1";
+                this.VehicleSpeed2_.Text = " Movement Speed: 1";
                 this.ObserveDist1.Text = "  Observe Distance: 1";
+                this.ObserveDist1_.Text = " Observe Distance: 1";
                 this.RxRxObserverState.Text = "Observer Conditon:";
 
                 this.RxRxObserverState_.Text = "Observer Conditon:";

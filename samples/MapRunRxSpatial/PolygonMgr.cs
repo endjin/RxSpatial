@@ -95,14 +95,18 @@ namespace MapRunRxSpatial
             return polygon;
        }
 
-       public int updateLine(int oldLineCnter, GeoPoint pt1, GeoPoint pt2, bool isDash, int strokeThickness)
+       public void removeLine(int lineCnter)
        {
-           if (lineDict.ContainsKey(oldLineCnter.ToString()))
+           if (lineDict.TryGetValue(lineCnter.ToString(), out Polygon line))
            {
-               Polygon line = lineDict[oldLineCnter.ToString()];
-               lineDict.Remove(oldLineCnter.ToString());
+               lineDict.Remove(lineCnter.ToString());
                _map.RemoveShape(line.shapeId);
            }
+       }
+
+       public int updateLine(int oldLineCnter, GeoPoint pt1, GeoPoint pt2, bool isDash, int strokeThickness)
+       {
+           removeLine(oldLineCnter);
            Polygon p = genLine(pt1, pt2, out GeoPoint[] points);
            if (p != null)
            {

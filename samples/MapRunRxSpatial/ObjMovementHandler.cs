@@ -87,6 +87,13 @@ namespace MapRunRxSpatial
         {
             visible = false;
             baseMap.RemoveMarker(markerId);
+            if (lineId != -1)
+            {
+                // Also remove this vehicle's RxRx connection line, or it would linger
+                // on the map after the vehicle is gone.
+                polygonMgr.removeLine(lineId);
+                lineId = -1;
+            }
         }
     }
 }
