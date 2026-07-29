@@ -24,6 +24,8 @@ public class TreeIndexBenchmarks
 
     private RStarTree<int> rstar = null!;
     private RumTree<int> rum = null!;
+    private Rect[] rstarPositions = null!;
+    private Rect[] rumPositions = null!;
     private readonly List<int> searchBuffer = new(256);
     private int cursor;
 
@@ -51,6 +53,19 @@ public class TreeIndexBenchmarks
             rstar.Insert(i, insertRects[i]);
             rum.Insert(i, insertRects[i]);
         }
+
+        rstarPositions = (Rect[])insertRects.Clone();
+        rumPositions = (Rect[])insertRects.Clone();
+    }
+
+    /// <summary>Bounded random walk: shifts the unit rect by ±0.5 per axis, staying in [0, 1000].</summary>
+    private static Rect Nudge(in Rect current, int step)
+    {
+        double dx = (((step * 2654435761u) >> 8 & 1023) / 1023.0) - 0.5;
+        double dy = (((step * 2246822519u) >> 8 & 1023) / 1023.0) - 0.5;
+        double x = Math.Clamp(current.MinX + dx, 0, 999);
+        double y = Math.Clamp(current.MinY + dy, 0, 999);
+        return new Rect(x, y, x + 1, y + 1);
     }
 
     [Benchmark(Baseline = true)]
@@ -92,6 +107,51 @@ public class TreeIndexBenchmarks
     public void RumTree_Update()
     {
         rum.Update(cursor % N, updatePool[cursor & 1023]);
+        cursor++;
+    }
+
+    /// <summary>
+    /// Small-delta moves (a fraction of the leaf cover) modeling object tracking, the workload
+    /// both trees exist for — unlike <c>Update</c>, which teleports items across the whole space.
+    /// </summary>
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("UpdateLocal")]
+    public void RStarTree_UpdateLocal()
+    {
+        int id = cursor % N;
+        rstarPositions[id] = Nudge(rstarPositions[id], cursor);
+        rstar.Update(id, rstarPositions[id]);
+        cursor++;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("UpdateLocal")]
+    public void RumTree_UpdateLocal()
+    {
+        int id = cursor % N;
+        rumPositions[id] = Nudge(rumPositions[id], cursor);
+        rum.Update(id, rumPositions[id]);
+        cursor++;
+    }
+
+    /// <summary>Full delete + reinsert cycles: the only category exercising the remove/condense path.</summary>
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("Churn")]
+    public void RStarTree_Churn()
+    {
+        int id = cursor % N;
+        rstar.Remove(id);
+        rstar.Insert(id, updatePool[cursor & 1023]);
+        cursor++;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory("Churn")]
+    public void RumTree_Churn()
+    {
+        int id = cursor % N;
+        rum.Remove(id);
+        rum.Insert(id, updatePool[cursor & 1023]);
         cursor++;
     }
 
