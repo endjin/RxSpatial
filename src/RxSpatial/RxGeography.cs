@@ -171,11 +171,7 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
 
     private void NotifyZoneObservers(SqlGeography location)
     {
-        List<IObserver<SqlGeography>>? observers = backend.GetObserversInZone(location);
-        if (observers is null)
-            return;
-
-        foreach (IObserver<SqlGeography> observer in observers)
+        foreach (IObserver<SqlGeography> observer in backend.GetObserversInZone(location))
             observer.OnNext(location);
     }
 }

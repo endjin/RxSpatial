@@ -11,6 +11,7 @@ internal sealed class TreeBackend<T> : ISpatialBackend<T>
     where T : notnull
 {
     private readonly ISpatialIndex<T> index;
+    private readonly Dictionary<T, IDisposable> trackers = [];
 
     public TreeBackend(RxGeographyDataStruct treeType, RxSpatialOptions options)
         => index = treeType == RxGeographyDataStruct.RumTree
@@ -22,14 +23,23 @@ internal sealed class TreeBackend<T> : ISpatialBackend<T>
         // Preserved behaviour: source.Location is null until the moving object's first OnNext
         // push; subscribing before it has reported a location fails, as it always has.
         index.Update(observer, BoundsOf(source.Location!));
-        source.Subscribe(new LocationTracker(index, observer));
+
+        // The tracker handle is kept so Remove can end it: otherwise the tracked object's next
+        // push would re-index (Update is an upsert) the observer that has just been unsubscribed.
+        trackers[observer] = source.Subscribe(new LocationTracker(index, observer));
     }
 
     public void Subscribe(T observer, SqlGeography location) => index.Update(observer, BoundsOf(location));
 
-    public List<T>? GetObserversInZone(SqlGeography location) => index.Search(BoundsOf(location));
+    public List<T> GetObserversInZone(SqlGeography location) => index.Search(BoundsOf(location));
 
-    public bool Remove(T observer) => index.Remove(observer);
+    public bool Remove(T observer)
+    {
+        if (trackers.Remove(observer, out IDisposable? tracker))
+            tracker.Dispose();
+
+        return index.Remove(observer);
+    }
 
     public bool Contains(T observer) => index.Contains(observer);
 

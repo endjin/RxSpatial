@@ -5,12 +5,17 @@ namespace RxSpatial.Backends;
 
 /// <summary>
 /// Spatial-hash backend: a fixed lat/long grid over the configured coverage region. Point
-/// observers occupy one cell; polygon observers occupy every cell their envelope covers.
+/// observers occupy one cell; region observers occupy every cell their envelope covers.
 /// </summary>
 internal sealed class GridBackend<T> : ISpatialBackend<T>
     where T : notnull
 {
-    private readonly Dictionary<T, int> cellByItem = [];
+    // Every observer's occupied cell block is recorded, region observers included, so that
+    // Remove can evict a region from all of its cells. (The original only tracked the single
+    // cell of a point observer, which left regions permanently subscribed and let a moving
+    // region accumulate in every cell it had ever visited.)
+    private readonly Dictionary<T, CellBlock> placements = [];
+    private readonly Dictionary<T, IDisposable> trackers = [];
     private readonly ListBackend<T>[,] cells;
     private readonly int latitudeCells;
     private readonly int longitudeCells;
@@ -41,24 +46,23 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
         // Preserved behaviour: source.Location is null until the moving object's first OnNext
         // push; subscribing before it has reported a location fails, as it always has.
         UpdateLocation(source.Location!, observer);
-        source.Subscribe(new LocationTracker(this, observer));
+
+        // The tracker handle is kept so Remove can end it: otherwise the tracked object's
+        // next push would re-register the observer that has just been unsubscribed.
+        trackers[observer] = source.Subscribe(new LocationTracker(this, observer));
     }
 
     public void Subscribe(T observer, SqlGeography location) => UpdateLocation(location, observer);
 
     public bool Remove(T observer)
     {
-        if (cellByItem.Remove(observer, out int cell))
-        {
-            int latitudeSlot = cell / longitudeCells;
-            int longitudeSlot = cell % longitudeCells;
-            return cells[latitudeSlot, longitudeSlot].Remove(observer);
-        }
+        if (trackers.Remove(observer, out IDisposable? tracker))
+            tracker.Dispose();
 
-        return true;
+        return Evict(observer);
     }
 
-    public bool Contains(T observer) => cellByItem.ContainsKey(observer);
+    public bool Contains(T observer) => placements.ContainsKey(observer);
 
     public List<T> GetObserversInZone(SqlGeography location)
     {
@@ -68,10 +72,10 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
         }
 
         List<T> result = [];
-        (int latitudeMin, int latitudeMax, int longitudeMin, int longitudeMax) = FindEnvelopeSlots(location);
-        for (int i = latitudeMin; i <= latitudeMax; i++)
+        CellBlock block = EnvelopeBlockOf(location);
+        for (int i = block.LatitudeMin; i <= block.LatitudeMax; i++)
         {
-            for (int j = longitudeMin; j <= longitudeMax; j++)
+            for (int j = block.LongitudeMin; j <= block.LongitudeMax; j++)
                 result.AddRange(cells[i, j]);
         }
 
@@ -98,33 +102,50 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
 
     private void UpdateLocation(SqlGeography location, T observer)
     {
-        Remove(observer);
+        Evict(observer);
         Insert(location, observer);
     }
 
     private void Insert(SqlGeography location, T observer)
     {
+        CellBlock block;
         if (location.STGeometryType().Value == "Point")
         {
             int latitudeSlot = LatitudeSlotOf(location);
             int longitudeSlot = LongitudeSlotOf(location);
-            cells[latitudeSlot, longitudeSlot].Add(observer);
-            cellByItem[observer] = (latitudeSlot * longitudeCells) + longitudeSlot;
+            block = new CellBlock(latitudeSlot, latitudeSlot, longitudeSlot, longitudeSlot);
         }
         else
         {
-            // Region observers (e.g. geofences) are registered in every cell their
-            // envelope covers; they are not tracked in cellByItem (original behaviour).
-            (int latitudeMin, int latitudeMax, int longitudeMin, int longitudeMax) = FindEnvelopeSlots(location);
-            for (int i = latitudeMin; i <= latitudeMax; i++)
-            {
-                for (int j = longitudeMin; j <= longitudeMax; j++)
-                    cells[i, j].Add(observer);
-            }
+            // Region observers (e.g. geofences) are registered in every cell their envelope covers.
+            block = EnvelopeBlockOf(location);
         }
+
+        for (int i = block.LatitudeMin; i <= block.LatitudeMax; i++)
+        {
+            for (int j = block.LongitudeMin; j <= block.LongitudeMax; j++)
+                cells[i, j].Add(observer);
+        }
+
+        placements[observer] = block;
     }
 
-    private (int LatitudeMin, int LatitudeMax, int LongitudeMin, int LongitudeMax) FindEnvelopeSlots(SqlGeography location)
+    /// <summary>Takes an observer out of every cell it occupies. False when it was not indexed.</summary>
+    private bool Evict(T observer)
+    {
+        if (!placements.Remove(observer, out CellBlock block))
+            return false;
+
+        for (int i = block.LatitudeMin; i <= block.LatitudeMax; i++)
+        {
+            for (int j = block.LongitudeMin; j <= block.LongitudeMax; j++)
+                cells[i, j].Remove(observer);
+        }
+
+        return true;
+    }
+
+    private CellBlock EnvelopeBlockOf(SqlGeography location)
     {
         SqlGeometry envelope = SqlGeometry.STGeomFromWKB(location.STAsBinary(), location.STSrid.Value).STEnvelope();
         SqlGeometry lowerLeft = envelope.STPointN(1);
@@ -137,8 +158,9 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
         int latitudeB = LatitudeSlotOf(corner2);
         int longitudeB = LongitudeSlotOf(corner2);
 
-        return (Math.Min(latitudeA, latitudeB), Math.Max(latitudeA, latitudeB),
-                Math.Min(longitudeA, longitudeB), Math.Max(longitudeA, longitudeB));
+        return new CellBlock(
+            Math.Min(latitudeA, latitudeB), Math.Max(latitudeA, latitudeB),
+            Math.Min(longitudeA, longitudeB), Math.Max(longitudeA, longitudeB));
     }
 
     private int LatitudeSlotOf(SqlGeography location)
@@ -146,6 +168,9 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
 
     private int LongitudeSlotOf(SqlGeography location)
         => Math.Clamp((int)((location.Long.Value - originLongitude) / longitudeStep), 0, longitudeCells - 1);
+
+    /// <summary>The inclusive rectangle of grid slots an observer occupies.</summary>
+    private readonly record struct CellBlock(int LatitudeMin, int LatitudeMax, int LongitudeMin, int LongitudeMax);
 
     // Tracks a moving observer and updates its grid cell on every location push.
     private sealed class LocationTracker(GridBackend<T> grid, T observer) : IObserver<SqlGeography>
