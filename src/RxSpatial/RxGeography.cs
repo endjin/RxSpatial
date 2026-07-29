@@ -136,8 +136,8 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
         => options.PreferredDataStruct switch
         {
             RxGeographyDataStruct.HashMap => new Grid<IObserver<SqlGeography>>(options.Grid),
-            RxGeographyDataStruct.RTree => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.RTree),
-            RxGeographyDataStruct.RumTree => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.RumTree),
+            RxGeographyDataStruct.RTree => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.RTree, options),
+            RxGeographyDataStruct.RumTree => new Tree<IObserver<SqlGeography>>(RxGeographyDataStruct.RumTree, options),
             _ => new GeoList<IObserver<SqlGeography>>(),
         };
 

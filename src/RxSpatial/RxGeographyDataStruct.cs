@@ -9,9 +9,9 @@ public enum RxGeographyDataStruct
     /// <summary>Fixed lat/long grid (spatial hash) over a configured coverage region.</summary>
     HashMap,
 
-    /// <summary>Classic Guttman R-tree.</summary>
+    /// <summary>R*-tree.</summary>
     RTree,
 
-    /// <summary>R-tree with Update Memo — optimised for frequent location updates.</summary>
+    /// <summary>RUM-tree (R-tree with Update Memo), layered on the R*-tree core — optimised for frequent location updates.</summary>
     RumTree,
 }

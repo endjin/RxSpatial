@@ -10,12 +10,10 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="Microsoft.SqlServer.Types" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RTree\RTree.csproj" />
-    <ProjectReference Include="..\..\src\RUMTree\RUMTree.csproj" />
+    <ProjectReference Include="..\..\src\RxSpatial.Index\RxSpatial.Index.csproj" />
     <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
   </ItemGroup>
 

@@ -8,9 +8,7 @@ namespace RxSpatial.Tests;
 
 /// <summary>
 /// Behavioural tests for <see cref="RxGeography"/> and its Rx.NET v7 bridge. Settings are
-/// passed explicitly as <see cref="RxSpatialOptions"/>; only the vendored RUM-tree garbage
-/// cleaner still reads process-global AppSettings, so the suite stays on MSTest's default
-/// sequential execution.
+/// passed explicitly as <see cref="RxSpatialOptions"/>.
 /// </summary>
 [TestClass]
 public class RxGeographyTests
@@ -18,10 +16,6 @@ public class RxGeographyTests
     // 500 m geofence around the Seattle Space Needle.
     private static readonly SqlGeography Fence =
         SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500);
-
-    [TestInitialize]
-    public void Initialize()
-        => System.Configuration.ConfigurationManager.AppSettings["RUMTreeGCInspectionInterval"] = "5";
 
     [TestMethod]
     public void DistanceStream_DecreasesToZero_WhileApproachingFence()

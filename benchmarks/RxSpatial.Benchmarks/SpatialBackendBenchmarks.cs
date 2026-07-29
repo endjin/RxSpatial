@@ -1,4 +1,3 @@
-using System.Configuration;
 using BenchmarkDotNet.Attributes;
 using Microsoft.SqlServer.Types;
 
@@ -33,13 +32,11 @@ public class SpatialBackendBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        // The vendored RUM-tree's lazy garbage cleaner still reads legacy AppSettings.
-        ConfigurationManager.AppSettings["RUMTreeGCInspectionInterval"] = "5";
-
         vehicle = new RxGeography(new RxSpatialOptions
         {
             PreferredDataStruct = Backend,
             IsVisualized = true,
+            RumTreeCleaningInterval = 5,
         });
 
         // Stationary observation zones spread over the coverage region, like the polygon

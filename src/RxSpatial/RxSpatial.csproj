@@ -12,8 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RTree\RTree.csproj" />
-    <ProjectReference Include="..\RUMTree\RUMTree.csproj" />
+    <ProjectReference Include="..\RxSpatial.Index\RxSpatial.Index.csproj" />
   </ItemGroup>
 
   <ItemGroup>

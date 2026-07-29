@@ -34,4 +34,11 @@ public sealed class RxSpatialOptions
 
     /// <summary>Settings for the grid (<see cref="RxGeographyDataStruct.HashMap"/>) backend.</summary>
     public GridOptions Grid { get; set; } = new();
+
+    /// <summary>
+    /// Cleaning-token interval of the <see cref="RxGeographyDataStruct.RumTree"/> backend:
+    /// the number of garbage-creating operations between purges of one leaf. Successor to
+    /// the legacy <c>RUMTreeGCInspectionInterval</c> application setting.
+    /// </summary>
+    public int RumTreeCleaningInterval { get; set; } = 10;
 }

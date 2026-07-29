@@ -10,13 +10,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Shouldly" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" />
     <PackageReference Include="System.Reactive" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RTree\RTree.csproj" />
-    <ProjectReference Include="..\..\src\RUMTree\RUMTree.csproj" />
     <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
     <ProjectReference Include="..\..\src\RxSpatial.Index\RxSpatial.Index.csproj" />
   </ItemGroup>

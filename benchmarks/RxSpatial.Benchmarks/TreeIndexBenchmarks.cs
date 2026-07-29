@@ -1,15 +1,14 @@
-using System.Configuration;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
+using RxSpatial.Index;
 
 namespace RxSpatial.Benchmarks;
 
 /// <summary>
-/// Successor to the original memoryTestApplication: compares the classic R-tree (the baseline
-/// of each category) against the RUM-tree (R-tree with Update Memo) for bulk insertion, the
-/// frequent-update workload the RUM-tree was designed for (delete old entry + insert new
-/// position), and intersection queries. MemoryDiagnoser reports the allocation cost that the
-/// old harness sampled with GC.GetTotalMemory.
+/// Compares the R*-tree (the baseline of each category) against the RUM-tree (R-tree with
+/// Update Memo) for bulk insertion, the frequent-update workload the RUM-tree was designed
+/// for, and intersection queries. Both trees share the same R* core, so the measured delta
+/// is purely the update-memo strategy.
 /// </summary>
 [MemoryDiagnoser]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
@@ -19,75 +18,48 @@ public class TreeIndexBenchmarks
     [Params(1000)]
     public int N;
 
-    private RTree.Rectangle[] insertRectsRTree = null!;
-    private RUMTree.Rectangle[] insertRectsRUMTree = null!;
-    private RTree.Rectangle[] updatePoolRTree = null!;
-    private RUMTree.Rectangle[] updatePoolRUMTree = null!;
-    private RTree.Rectangle[] queryPoolRTree = null!;
-    private RUMTree.Rectangle[] queryPoolRUMTree = null!;
+    private Rect[] insertRects = null!;
+    private Rect[] updatePool = null!;
+    private Rect[] queryPool = null!;
 
-    private RTree.RTree<int> rtree = null!;
-    private RUMTree.RUMTree<int> rumTree = null!;
-    private RTree.Rectangle[] currentRTree = null!;
-    private RUMTree.Rectangle[] currentRUMTree = null!;
+    private RStarTree<int> rstar = null!;
+    private RumTree<int> rum = null!;
     private int cursor;
 
     [GlobalSetup]
     public void Setup()
     {
-        // The RUM-tree's lazy garbage cleaner reads its inspection interval from AppSettings.
-        ConfigurationManager.AppSettings["RUMTreeGCInspectionInterval"] = "5";
-
         Random random = new(42);
-        insertRectsRTree = new RTree.Rectangle[N];
-        insertRectsRUMTree = new RUMTree.Rectangle[N];
+        insertRects = new Rect[N];
         for (int i = 0; i < N; i++)
-        {
-            (double x, double y) = RandomOrigin(random);
-            insertRectsRTree[i] = new RTree.Rectangle(x, y, x + 1, y + 1);
-            insertRectsRUMTree[i] = new RUMTree.Rectangle(x, y, x + 1, y + 1);
-        }
+            insertRects[i] = RandomRect(random, 1);
 
-        updatePoolRTree = new RTree.Rectangle[1024];
-        updatePoolRUMTree = new RUMTree.Rectangle[1024];
-        for (int i = 0; i < updatePoolRTree.Length; i++)
-        {
-            (double x, double y) = RandomOrigin(random);
-            updatePoolRTree[i] = new RTree.Rectangle(x, y, x + 1, y + 1);
-            updatePoolRUMTree[i] = new RUMTree.Rectangle(x, y, x + 1, y + 1);
-        }
+        updatePool = new Rect[1024];
+        for (int i = 0; i < updatePool.Length; i++)
+            updatePool[i] = RandomRect(random, 1);
 
-        queryPoolRTree = new RTree.Rectangle[64];
-        queryPoolRUMTree = new RUMTree.Rectangle[64];
-        for (int i = 0; i < queryPoolRTree.Length; i++)
-        {
-            (double x, double y) = RandomOrigin(random);
-            queryPoolRTree[i] = new RTree.Rectangle(x, y, x + 20, y + 20);
-            queryPoolRUMTree[i] = new RUMTree.Rectangle(x, y, x + 20, y + 20);
-        }
+        queryPool = new Rect[64];
+        for (int i = 0; i < queryPool.Length; i++)
+            queryPool[i] = RandomRect(random, 20);
 
         // Pre-built trees for the update and query benchmarks.
-        rtree = new RTree.RTree<int>();
-        rumTree = new RUMTree.RUMTree<int>();
-        currentRTree = new RTree.Rectangle[N];
-        currentRUMTree = new RUMTree.Rectangle[N];
+        rstar = new RStarTree<int>();
+        rum = new RumTree<int>(new RumTreeOptions { CleaningInterval = 5 });
         for (int i = 0; i < N; i++)
         {
-            rtree.Add(insertRectsRTree[i], i);
-            currentRTree[i] = insertRectsRTree[i];
-            rumTree.Add(insertRectsRUMTree[i], i);
-            currentRUMTree[i] = insertRectsRUMTree[i];
+            rstar.Insert(i, insertRects[i]);
+            rum.Insert(i, insertRects[i]);
         }
     }
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("BulkInsert")]
-    public RTree.RTree<int> RTree_BulkInsert()
+    public RStarTree<int> RStarTree_BulkInsert()
     {
-        RTree.RTree<int> tree = new();
+        RStarTree<int> tree = new();
         for (int i = 0; i < N; i++)
         {
-            tree.Add(insertRectsRTree[i], i);
+            tree.Insert(i, insertRects[i]);
         }
 
         return tree;
@@ -95,12 +67,12 @@ public class TreeIndexBenchmarks
 
     [Benchmark]
     [BenchmarkCategory("BulkInsert")]
-    public RUMTree.RUMTree<int> RUMTree_BulkInsert()
+    public RumTree<int> RumTree_BulkInsert()
     {
-        RUMTree.RUMTree<int> tree = new();
+        RumTree<int> tree = new(new RumTreeOptions { CleaningInterval = 5 });
         for (int i = 0; i < N; i++)
         {
-            tree.Add(insertRectsRUMTree[i], i);
+            tree.Insert(i, insertRects[i]);
         }
 
         return tree;
@@ -108,42 +80,38 @@ public class TreeIndexBenchmarks
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Update")]
-    public void RTree_Update()
+    public void RStarTree_Update()
     {
-        int id = cursor % N;
-        RTree.Rectangle next = updatePoolRTree[cursor & 1023];
-        rtree.Delete(currentRTree[id], id);
-        rtree.Add(next, id);
-        currentRTree[id] = next;
+        rstar.Update(cursor % N, updatePool[cursor & 1023]);
         cursor++;
     }
 
     [Benchmark]
     [BenchmarkCategory("Update")]
-    public void RUMTree_Update()
+    public void RumTree_Update()
     {
-        int id = cursor % N;
-        RUMTree.Rectangle next = updatePoolRUMTree[cursor & 1023];
-        rumTree.Delete(currentRUMTree[id], id);
-        rumTree.Add(next, id);
-        currentRUMTree[id] = next;
+        rum.Update(cursor % N, updatePool[cursor & 1023]);
         cursor++;
     }
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Query")]
-    public List<int> RTree_IntersectsQuery()
+    public List<int> RStarTree_Query()
     {
-        return rtree.Intersects(queryPoolRTree[cursor++ & 63]);
+        return rstar.Search(queryPool[cursor++ & 63]);
     }
 
     [Benchmark]
     [BenchmarkCategory("Query")]
-    public List<int> RUMTree_IntersectsQuery()
+    public List<int> RumTree_Query()
     {
-        return rumTree.Intersects(queryPoolRUMTree[cursor++ & 63]);
+        return rum.Search(queryPool[cursor++ & 63]);
     }
 
-    private static (double X, double Y) RandomOrigin(Random random)
-        => (random.NextDouble() * 1000, random.NextDouble() * 1000);
+    private static Rect RandomRect(Random random, double size)
+    {
+        double x = random.NextDouble() * 1000;
+        double y = random.NextDouble() * 1000;
+        return new Rect(x, y, x + size, y + size);
+    }
 }
