@@ -54,6 +54,14 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
    `latency`→`AverageLatency`, `RxSpatialOverloadException` casing) and the WPF sample
    (MovingObjectManager/PolygonManager/VehicleMarker/DemoParameters, nullable enabled,
    handler consolidation, WKT culture bug fixed with FormattableString.Invariant).
+8. Second idiom pass over everything phase 7 missed — Index, tests, benchmarks, Examples,
+   build config — driven by an `AnalysisMode=All` diagnostic run (8612170, 760dfa4, 871ca57,
+   2ad73cb). Two real defects found via the discarded `IDisposable` in the backends'
+   `Subscribe` overloads (see Gotchas), observer bases now carry the `IObserver` boilerplate,
+   `RumTreeOptions.Validate` stopped hiding its base with `new`, drainer moved to the thread
+   pool (~2×), stringly-typed `[DataRow]`s became enums, and the standard is now enforced
+   in-build (`AnalysisMode=Recommended` + CA1305/CA2000/CA5392/CA1852; exemptions justified
+   in `.editorconfig`).
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
@@ -78,6 +86,12 @@ Headline: the optimisations reversed the initial honest finding — memo-based l
 (RUM) *now beats* direct R\* remove+insert in memory (0.60×), vindicating the paper's thesis,
 and the R\*-tree with the in-place fast path wins tracking workloads outright.
 
+Off-table (871ca57, different axis — the buffered push path, not the index): dispatching the
+drainer to the thread pool instead of `new Thread(...)` per burst took a push-wait-push cycle
+from 438/442/411 µs to 182/165/247 µs (three runs each, same session, sleep-free spin so
+`Thread.Sleep` granularity cannot swamp it). ~2×, with a wider spread — a fixed construction
+cost traded for scheduling that depends on pool state.
+
 ## Gotchas and conventions
 
 - **Never push** without being asked; commit per logical phase on master.
@@ -100,3 +114,16 @@ and the R\*-tree with the in-place fast path wins tracking workloads outright.
 - MapLibre zoom uses the 512px-tile convention (one level lower than Bing/Leaflet).
 - Residual uncovered `RStarCore` lines are defensive-by-invariant (single-chain condense,
   roots keep ≥2 children, cleaning ring never empties) — don't chase them with tests.
+- Backends own the location-tracker subscription they open in `Subscribe(observer, source)`
+  and must dispose it in `Remove`; otherwise the tracked object's next push re-registers the
+  observer (`Update` is an upsert). Grid `placements` likewise records the *whole* cell block
+  of every observer, region observers included, or unsubscribe and re-indexing silently
+  misbehave. `BackendSubscriptionTests` guards both.
+- Rx's `Observable.Create` detaches an observer on dispose, so subscription-lifetime bugs are
+  invisible through `RxGeographyObservable` — test them on the raw `Rx*`/`RxRx*` API.
+- The analyzer bar is `AnalysisMode=Recommended` plus CA1305/CA2000/CA5392/CA1852; new
+  exemptions belong in `.editorconfig` with the reason, not in the code. Verify an analyzer
+  change with a real recompile (`--no-incremental` or after an edit) — an up-to-date build
+  reports nothing and reads as clean.
+- `LibraryImport` is not usable here: its generated stub requires `AllowUnsafeBlocks` across
+  the assembly, which the single blittable P/Invoke does not justify.
