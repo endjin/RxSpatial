@@ -140,8 +140,8 @@ public class TreeIndexTests
     public void LargeWorkload_SurvivesSplitsReinsertionAndCondensation(string kind)
     {
         ISpatialIndex<int> index = Create(kind);
-        var rng = new Random(7);
-        var rects = new Rect[2000];
+        Random rng = new(7);
+        Rect[] rects = new Rect[2000];
         for (int i = 0; i < rects.Length; i++)
         {
             double x = rng.NextDouble() * 1000;

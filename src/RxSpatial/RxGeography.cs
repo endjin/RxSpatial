@@ -113,13 +113,14 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
     public IDisposable RxDistance(SqlGeography geography, IObserver<SqlDouble> observer)
         => SubscribeToStationary(new RxDistanceObserver(geography, observer), geography);
 
-    private IDisposable SubscribeToMoving(IObserver<SqlGeography> observer, RxGeography other)
+    private Unsubscriber<SqlGeography> SubscribeToMoving(IObserver<SqlGeography> observer, RxGeography other)
     {
         backend.Subscribe(observer, other);
         return new Unsubscriber<SqlGeography>(backend, observer);
     }
 
-    private IDisposable SubscribeToStationary(IObserver<SqlGeography> observer, SqlGeography geography)
+    private Unsubscriber<SqlGeography> SubscribeToStationary(
+        IObserver<SqlGeography> observer, SqlGeography geography)
     {
         backend.Subscribe(observer, geography);
         return new Unsubscriber<SqlGeography>(backend, observer);

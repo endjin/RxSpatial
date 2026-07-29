@@ -45,9 +45,9 @@ public class SpatialIndexOracleTests
 
     private static void RunWorkload(ISpatialIndex<int> index, int seed, bool clustered)
     {
-        var rng = new Random(seed);
-        var oracle = new Dictionary<int, Rect>();
-        var liveIds = new List<int>();
+        Random rng = new(seed);
+        Dictionary<int, Rect> oracle = [];
+        List<int> liveIds = [];
         int nextId = 0;
 
         for (int op = 0; op < 800; op++)

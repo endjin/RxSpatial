@@ -3,17 +3,9 @@ using System.Data.SqlTypes;
 namespace MapRunRxSpatial;
 
 /// <summary>Colours a vehicle by its distance band to a stationary area.</summary>
-internal sealed class DistanceObserver(VehicleMarker marker) : VehicleObserverBase(marker), IObserver<SqlDouble>
+internal sealed class DistanceObserver(VehicleMarker marker) : VehicleObserverBase<SqlDouble>(marker)
 {
-    public void OnNext(SqlDouble distance) => Marker.ApplyColor(ColorForDistance(distance.Value));
-
-    public void OnCompleted()
-    {
-    }
-
-    public void OnError(Exception error)
-    {
-    }
+    public override void OnNext(SqlDouble distance) => Marker.ApplyColor(ColorForDistance(distance.Value));
 
     /// <summary>The original demo's distance-band colour ladder.</summary>
     internal static string ColorForDistance(double distance)

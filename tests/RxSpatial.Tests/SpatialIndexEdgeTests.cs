@@ -62,8 +62,8 @@ public class SpatialIndexEdgeTests
 
         // Clustered inserts build a multi-level tree with tiny nodes; removing everything in a
         // shuffled order forces deep condensation cascades (the tree-collapse machinery).
-        var rng = new Random(1234);
-        var ids = new List<int>();
+        Random rng = new(1234);
+        List<int> ids = [];
         for (int i = 0; i < 300; i++)
         {
             double cx = (i % 3) * 100;

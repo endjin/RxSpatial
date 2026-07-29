@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 
 namespace RxSpatial.Index;
 
@@ -51,7 +52,7 @@ internal sealed class RStarCore<T>
     private readonly Node<T>?[] tmpChildren;
     private readonly List<Node<T>> orphans = [];
 
-    private Node<T> root = null!;
+    private Node<T> root;
     private Node<T>? cleaningToken;
     private int reinsertedLevelsMask;
 
@@ -72,6 +73,7 @@ internal sealed class RStarCore<T>
         Clear();
     }
 
+    [MemberNotNull(nameof(root))]
     internal void Clear()
     {
         root = new Node<T>(capacity, 0);
@@ -235,7 +237,7 @@ internal sealed class RStarCore<T>
 
     private void GrowRootWith(Node<T> subtree, in Rect cover)
     {
-        var newRoot = new Node<T>(capacity, Math.Max(root.Level, subtree.Level) + 1);
+        Node<T> newRoot = new(capacity, Math.Max(root.Level, subtree.Level) + 1);
         newRoot.AddChild(root.ComputeCover(), root);
         newRoot.AddChild(cover, subtree);
         root = newRoot;
@@ -452,7 +454,7 @@ internal sealed class RStarCore<T>
             }
         }
 
-        var sibling = new Node<T>(capacity, node.Level);
+        Node<T> sibling = new(capacity, node.Level);
         node.Count = 0;
         for (int i = 0; i < splitAt; i++)
         {
@@ -479,7 +481,7 @@ internal sealed class RStarCore<T>
 
         if (node == root)
         {
-            var newRoot = new Node<T>(capacity, node.Level + 1);
+            Node<T> newRoot = new(capacity, node.Level + 1);
             newRoot.AddChild(node.ComputeCover(), node);
             newRoot.AddChild(sibling.ComputeCover(), sibling);
             root = newRoot;

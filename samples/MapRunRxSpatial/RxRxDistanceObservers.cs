@@ -4,17 +4,10 @@ using RxSpatial;
 namespace MapRunRxSpatial;
 
 /// <summary>Colours a vehicle by its distance band to another moving vehicle.</summary>
-internal sealed class RxRxDistanceObserver(VehicleMarker marker) : VehicleObserverBase(marker), IObserver<SqlDouble>
+internal sealed class RxRxDistanceObserver(VehicleMarker marker) : VehicleObserverBase<SqlDouble>(marker)
 {
-    public void OnNext(SqlDouble distance) => Marker.ApplyColor(DistanceObserver.ColorForDistance(distance.Value));
-
-    public void OnCompleted()
-    {
-    }
-
-    public void OnError(Exception error)
-    {
-    }
+    public override void OnNext(SqlDouble distance)
+        => Marker.ApplyColor(DistanceObserver.ColorForDistance(distance.Value));
 }
 
 /// <summary>
@@ -22,9 +15,9 @@ internal sealed class RxRxDistanceObserver(VehicleMarker marker) : VehicleObserv
 /// vehicle whose style reflects the distance band.
 /// </summary>
 internal sealed class RxRxDistanceConnectionObserver(RxGeography other, VehicleMarker marker)
-    : VehicleObserverBase(marker), IObserver<SqlDouble>
+    : VehicleObserverBase<SqlDouble>(marker)
 {
-    public void OnNext(SqlDouble distance)
+    public override void OnNext(SqlDouble distance)
     {
         double observeDistance = DemoParameters.ObserveDistance;
         if (distance.Value >= observeDistance)
@@ -46,13 +39,5 @@ internal sealed class RxRxDistanceConnectionObserver(RxGeography other, VehicleM
             Marker.ApplyColor("green");
             Marker.UpdateConnectionLine(other, dashed: false, strokeThickness: 2);
         }
-    }
-
-    public void OnCompleted()
-    {
-    }
-
-    public void OnError(Exception error)
-    {
     }
 }

@@ -19,7 +19,7 @@ public record RTreeOptions
     /// </summary>
     public int ReinsertCount { get; init; } = 3;
 
-    internal void Validate()
+    internal virtual void Validate()
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(MaxEntries, 4);
         ArgumentOutOfRangeException.ThrowIfLessThan(MinEntries, 2);

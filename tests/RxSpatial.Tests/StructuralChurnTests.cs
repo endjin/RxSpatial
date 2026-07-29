@@ -67,7 +67,7 @@ public class StructuralChurnTests
 
         // Removing spatially-contiguous blocks empties whole subtrees: parents underflow,
         // orphaned subtrees are reinserted, and the root shrinks (and regrows) repeatedly.
-        var live = new Dictionary<int, Rect>(oracle);
+        Dictionary<int, Rect> live = new(oracle);
         int step = 0;
         foreach (int id in DrainOrder(Side, order))
         {
@@ -116,7 +116,7 @@ public class StructuralChurnTests
 
         VerifyAgainstOracle(index, items);
 
-        var live = new Dictionary<int, Rect>(items);
+        Dictionary<int, Rect> live = new(items);
         foreach (int id in items.Keys.Where(id => id % 2 == 0))
         {
             index.Remove(id).ShouldBeTrue();
@@ -129,7 +129,7 @@ public class StructuralChurnTests
     [TestMethod]
     public void RumTree_DrainAndRefill_Cycles_KeepGarbageBounded()
     {
-        var index = new RumTree<int>(TinyRumOptions(cleaningInterval: 1));
+        RumTree<int> index = new(TinyRumOptions(cleaningInterval: 1));
         Dictionary<int, Rect> items = GridItems(8);
 
         // Repeated full drain/refill cycles walk the cleaning token over every leaf the

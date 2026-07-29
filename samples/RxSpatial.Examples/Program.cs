@@ -12,7 +12,7 @@ namespace RxSpatial.Examples;
 /// Microsoft.Extensions.Configuration (appsettings.json + RXSPATIAL_-prefixed environment
 /// variables) bound to <see cref="RxSpatialOptions"/>.
 /// </summary>
-internal class Program
+internal static class Program
 {
     // 500 m geofence around the Seattle Space Needle.
     private static readonly SqlGeography Fence =

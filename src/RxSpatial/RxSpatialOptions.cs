@@ -21,7 +21,7 @@ public sealed class RxSpatialOptions
     public RxGeographyDataStruct PreferredDataStruct { get; set; } = RxGeographyDataStruct.List;
 
     /// <summary>
-    /// Location-push buffer size before <see cref="RxSpatialOverLoadException"/> is thrown
+    /// Location-push buffer size before <see cref="RxSpatialOverloadException"/> is thrown
     /// (buffered mode only).
     /// </summary>
     public int QueueLimit { get; set; } = 1;

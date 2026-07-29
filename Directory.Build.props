@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
+    <AnalysisMode>Recommended</AnalysisMode>
   </PropertyGroup>
 
 </Project>

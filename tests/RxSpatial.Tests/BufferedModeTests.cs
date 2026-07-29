@@ -69,9 +69,9 @@ public class BufferedModeTests
     [TestMethod]
     public void OverloadException_PreservesMessageAndInnerException()
     {
-        var inner = new InvalidOperationException("inner");
+        InvalidOperationException inner = new("inner");
         new RxSpatialOverloadException("boom").Message.ShouldBe("boom");
-        var wrapped = new RxSpatialOverloadException("outer", inner);
+        RxSpatialOverloadException wrapped = new("outer", inner);
         wrapped.Message.ShouldBe("outer");
         wrapped.InnerException.ShouldBeSameAs(inner);
     }

@@ -20,7 +20,7 @@ public sealed record RumTreeOptions : RTreeOptions
     /// </summary>
     public int CleaningInterval { get; init; } = 5;
 
-    internal new void Validate()
+    internal override void Validate()
     {
         base.Validate();
         ArgumentOutOfRangeException.ThrowIfLessThan(CleaningInterval, 1);

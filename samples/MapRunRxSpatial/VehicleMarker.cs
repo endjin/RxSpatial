@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.SqlServer.Types;
 using RxSpatial;
 
@@ -53,7 +54,12 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, PolygonManager poly
             position = new GeoPoint(location.Lat.Value, location.Long.Value);
             currentColor = "blue";
             visible = true;
-            map.SetMarker(markerId, id.ToString(), position.Latitude, position.Longitude, currentColor);
+            map.SetMarker(
+                markerId,
+                id.ToString(CultureInfo.InvariantCulture),
+                position.Latitude,
+                position.Longitude,
+                currentColor);
         }
         else
         {

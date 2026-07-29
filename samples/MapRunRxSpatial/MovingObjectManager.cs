@@ -69,15 +69,18 @@ internal sealed class MovingObjectManager
         // contiguous if a trajectory deletes a vehicle mid-playback.
         return vehicles.TryGetValue(id1, out MovingObject? first)
             && vehicles.TryGetValue(id2, out MovingObject? second)
-            && first.SubscribeRxRxDistance(id2.ToString(), second.Geography);
+            && first.SubscribeRxRxDistance(SubscriptionKey(id2), second.Geography);
     }
 
     public bool SubscribeRxRxDistanceConnection(int id1, int id2)
     {
         return vehicles.TryGetValue(id1, out MovingObject? first)
             && vehicles.TryGetValue(id2, out MovingObject? second)
-            && first.SubscribeRxRxDistanceConnection(id2.ToString(), second.Geography);
+            && first.SubscribeRxRxDistanceConnection(SubscriptionKey(id2), second.Geography);
     }
+
+    /// <summary>Subscriptions are named after the tracked vehicle's id, locale-independently.</summary>
+    private static string SubscriptionKey(int id) => id.ToString(CultureInfo.InvariantCulture);
 
     public void UnsubscribeAll()
     {

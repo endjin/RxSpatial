@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.SqlServer.Types;
 using RxSpatial.Index;
 
@@ -44,7 +45,7 @@ internal sealed class TreeBackend<T> : ISpatialBackend<T>
     public bool Contains(T observer) => index.Contains(observer);
 
     /// <summary>Number of indexed observers — diagnostic snapshot.</summary>
-    public override string ToString() => index.Count.ToString();
+    public override string ToString() => index.Count.ToString(CultureInfo.InvariantCulture);
 
     private static Rect BoundsOf(SqlGeography location)
     {

@@ -1,4 +1,5 @@
 using System.Data.SqlTypes;
+using System.Globalization;
 using Microsoft.SqlServer.Types;
 
 namespace MapRunRxSpatial;
@@ -38,8 +39,11 @@ internal sealed class PolygonManager(MapLibreMap map)
         SqlGeography line = SqlGeography.STLineFromText(new SqlChars(new SqlString(wkt)), 4326);
 
         points = [point1, point2];
-        return new DemoPolygon(polygonCounter.ToString(), null, line);
+        return new DemoPolygon(Key(polygonCounter), null, line);
     }
+
+    /// <summary>Dictionary keys are formed from ids, so they must not follow the OS locale.</summary>
+    private static string Key(int id) => id.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Axis-aligned rectangle between two opposite corners, or null when the corners are
@@ -63,7 +67,7 @@ internal sealed class PolygonManager(MapLibreMap map)
 
     public void RemoveLine(int lineId)
     {
-        if (lines.Remove(lineId.ToString(), out DemoPolygon? line))
+        if (lines.Remove(Key(lineId), out DemoPolygon? line))
             map.RemoveShape(line.ShapeId!);
     }
 
@@ -75,7 +79,7 @@ internal sealed class PolygonManager(MapLibreMap map)
         {
             lineCounter++;
             line.ShapeId = $"line-{lineCounter}";
-            lines.Add(lineCounter.ToString(), line);
+            lines.Add(Key(lineCounter), line);
             map.SetLine(line.ShapeId, points!, "red", strokeThickness, dashed, 0.7);
         }
 
@@ -88,7 +92,7 @@ internal sealed class PolygonManager(MapLibreMap map)
         if (geography is null)
             return null;
 
-        string name = polygonCounter.ToString();
+        string name = Key(polygonCounter);
         string shapeId = $"area-{name}";
         DemoPolygon polygon = new(name, shapeId, geography);
         polygons.Add(name, polygon);

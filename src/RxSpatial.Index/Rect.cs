@@ -11,8 +11,10 @@ public readonly record struct Rect
 {
     public Rect(double x1, double y1, double x2, double y2)
     {
-        if (double.IsNaN(x1) || double.IsNaN(y1) || double.IsNaN(x2) || double.IsNaN(y2))
-            throw new ArgumentException("Rectangle coordinates must not be NaN.");
+        ThrowIfNaN(x1, nameof(x1));
+        ThrowIfNaN(y1, nameof(y1));
+        ThrowIfNaN(x2, nameof(x2));
+        ThrowIfNaN(y2, nameof(y2));
 
         (MinX, MaxX) = x1 <= x2 ? (x1, x2) : (x2, x1);
         (MinY, MaxY) = y1 <= y2 ? (y1, y2) : (y2, y1);
@@ -89,5 +91,11 @@ public readonly record struct Rect
         double dx = CenterX - other.CenterX;
         double dy = CenterY - other.CenterY;
         return (dx * dx) + (dy * dy);
+    }
+
+    private static void ThrowIfNaN(double value, string paramName)
+    {
+        if (double.IsNaN(value))
+            throw new ArgumentException("Rectangle coordinates must not be NaN.", paramName);
     }
 }

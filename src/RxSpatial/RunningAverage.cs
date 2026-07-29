@@ -7,10 +7,9 @@ internal sealed class RunningAverage
 
     public double Average { get; private set; }
 
-    public double Record(double value)
+    public void Record(double value)
     {
         Average += (value - Average) / (count + 1);
         count++;
-        return Average;
     }
 }

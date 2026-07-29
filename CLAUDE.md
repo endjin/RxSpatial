@@ -57,15 +57,15 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
-| Metric | Vendored Java port (start) | Clean-room rewrite | + profile-guided opt (4e38362) | + in-place update (3f29809) |
-| --- | --- | --- | --- | --- |
-| RUM-tree update | 229,330 ns / 18,133 B | 2,784 ns / 27 B (82×) | **609 ns / 17 B (377×)** | unchanged (RUM never removes) |
-| R\*-tree update (teleport) | 602 ns / 447 B ¹ | 1,237 ns / 19 B | **1,009 ns / 11 B** | unchanged (fallback path) |
-| R\*-tree update (local move) | — | 0.90× of teleport ² | — | **0.42× of teleport, 1 B** ² |
-| Intersection query | ~64 ns ³ | ~70 ns / 46 B | unchanged | unchanged; buffered overload **0 B** |
-| Bulk insert (R\* / RUM) | — | 2.31 / 4.37 ms | **1.92 / 2.60 ms** | unchanged |
-| 90s mixed soak (both trees) | — | 17.34M ops | **71.86M ops (4.14×)** ⁴ | — |
-| Test line coverage (core / Index) | — | 60.9% / 96.0% | 82.9% / 96.0% | (coverage cycle, c7f1a31) |
+| Metric                            | Vendored Java port (start) | Clean-room rewrite    | + profile-guided opt (4e38362) | + in-place update (3f29809)          |
+|-----------------------------------|----------------------------|-----------------------|--------------------------------|--------------------------------------|
+| RUM-tree update                   | 229,330 ns / 18,133 B      | 2,784 ns / 27 B (82×) | **609 ns / 17 B (377×)**       | unchanged (RUM never removes)        |
+| R\*-tree update (teleport)        | 602 ns / 447 B ¹           | 1,237 ns / 19 B       | **1,009 ns / 11 B**            | unchanged (fallback path)            |
+| R\*-tree update (local move)      | —                          | 0.90× of teleport ²   | —                              | **0.42× of teleport, 1 B** ²         |
+| Intersection query                | ~64 ns ³                   | ~70 ns / 46 B         | unchanged                      | unchanged; buffered overload **0 B** |
+| Bulk insert (R\* / RUM)           | —                          | 2.31 / 4.37 ms        | **1.92 / 2.60 ms**             | unchanged                            |
+| 90s mixed soak (both trees)       | —                          | 17.34M ops            | **71.86M ops (4.14×)** ⁴       | —                                    |
+| Test line coverage (core / Index) | —                          | 60.9% / 96.0%         | 82.9% / 96.0%                  | (coverage cycle, c7f1a31)            |
 
 ¹ The vendored update baseline is a Guttman R-tree (cheaper ChooseSubtree, worse query
 quality); the rewrite pays the R\* overlap criterion for better trees. ² Same-run ratio —

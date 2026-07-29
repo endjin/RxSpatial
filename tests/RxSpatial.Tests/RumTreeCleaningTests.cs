@@ -11,7 +11,7 @@ public class RumTreeCleaningTests
     [TestMethod]
     public void MemoFiltering_WithCleaningDisabled_HidesEveryObsoleteEntry()
     {
-        var tree = new RumTree<int>(new RumTreeOptions { CleaningInterval = int.MaxValue });
+        RumTree<int> tree = new(new RumTreeOptions { CleaningInterval = int.MaxValue });
         for (int i = 0; i < 50; i++)
             tree.Insert(i, new Rect(i, 0, i + 0.5, 0.5));
 
@@ -35,7 +35,7 @@ public class RumTreeCleaningTests
     [TestMethod]
     public void CleaningToken_KeepsPendingGarbageBounded()
     {
-        var tree = new RumTree<int>(new RumTreeOptions { CleaningInterval = 1 });
+        RumTree<int> tree = new(new RumTreeOptions { CleaningInterval = 1 });
         for (int i = 0; i < 50; i++)
             tree.Insert(i, new Rect(i, 0, i + 0.5, 0.5));
 
@@ -57,7 +57,7 @@ public class RumTreeCleaningTests
     [TestMethod]
     public void Remove_WritesATombstone_AndReinsertRevivesTheItem()
     {
-        var tree = new RumTree<int>(new RumTreeOptions { CleaningInterval = int.MaxValue });
+        RumTree<int> tree = new(new RumTreeOptions { CleaningInterval = int.MaxValue });
         tree.Insert(42, new Rect(0, 0, 1, 1));
 
         tree.Remove(42).ShouldBeTrue();
@@ -76,9 +76,9 @@ public class RumTreeCleaningTests
     [TestMethod]
     public void CleaningRetiresMemoEntries_ResultsStayIdenticalToEagerTree()
     {
-        var lazy = new RumTree<int>(new RumTreeOptions { CleaningInterval = int.MaxValue });
-        var eager = new RumTree<int>(new RumTreeOptions { CleaningInterval = 1 });
-        var rng = new Random(99);
+        RumTree<int> lazy = new(new RumTreeOptions { CleaningInterval = int.MaxValue });
+        RumTree<int> eager = new(new RumTreeOptions { CleaningInterval = 1 });
+        Random rng = new(99);
 
         for (int i = 0; i < 30; i++)
         {

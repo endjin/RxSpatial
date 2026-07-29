@@ -57,6 +57,9 @@ public sealed class RumTree<T> : ISpatialIndex<T>
     {
         long stamp = ++stampCounter;
         bool createdGarbage;
+
+        // Scoped so the memo reference cannot outlive the block: core.Insert below may run
+        // the cleaning token, which removes retired entries and invalidates the reference.
         {
             ref MemoEntry entry = ref CollectionsMarshal.GetValueRefOrAddDefault(memo, item, out bool exists);
             createdGarbage = exists && entry.IsLive;
