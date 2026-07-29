@@ -15,12 +15,11 @@ Open [`RxSpatial.slnx`](RxSpatial.slnx) at the repository root.
 
 | Path | Description |
 | --- | --- |
-| `src/RxSpatial` | The core library: `RxGeography` moving objects, continuous distance / intersection / intersect queries, and pluggable spatial index backends (list, grid, R-tree, RUM-tree). |
-| `src/RTree` | Guttman R-tree, vendored C# port of the Java version by Aled Morris (LGPL 2.1, see `src/RTree/LICENSE.txt`); sources intentionally kept in their original style. |
-| `src/RUMTree` | R-tree with Update Memo — reduces the cost of frequent location updates (same LGPL 2.1 lineage). |
+| `src/RxSpatial` | The core library: `RxGeography` moving objects, continuous distance / intersection / intersect queries, and pluggable spatial index backends (list, grid, R*-tree, RUM-tree). |
+| `src/RxSpatial.Index` | R*-tree (Beckmann et al., 1990) and RUM-tree (R-tree with Update Memo, Xiong &amp; Aref) spatial indexes sharing one engine; a clean-room .NET 10 replacement for the formerly vendored LGPL Java ports. Zero dependencies. |
 | `samples/RxSpatial.Examples` | Runnable example / smoke test: Rx.NET v7 sequences feeding and consuming RxSpatial streams on every backend. |
 | `samples/MapRunRxSpatial` | WPF demo that visualises moving objects and continuous queries on a MapLibre GL JS map hosted in WebView2 (OpenStreetMap tiles, no API key). |
-| `benchmarks/RxSpatial.Benchmarks` | BenchmarkDotNet suite: per-backend location-update cost, plus R-tree vs RUM-tree bulk-insert / update / query comparisons with allocation statistics. |
+| `benchmarks/RxSpatial.Benchmarks` | BenchmarkDotNet suite: per-backend location-update cost, plus R*-tree vs RUM-tree bulk-insert / update / query comparisons with allocation statistics. |
 | `tests/RxSpatial.Tests` | MSTest (MSTest.Sdk + Shouldly) behavioural tests for the library and the tree indexes. |
 | `docs/prototypes` | Never-compiled 2016 prototype sources, archived with provenance notes. |
 
@@ -42,7 +41,7 @@ To run the benchmarks (BenchmarkDotNet requires a Release build):
 dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*"
 ```
 
-`SpatialBackendBenchmarks` measures the cost of pushing one location update through `RxGeography` per index backend — the list backend scales linearly with the observer count while the grid and tree backends prune by zone. `TreeIndexBenchmarks` compares the R-tree (the per-category baseline) against the RUM-tree for bulk insertion, the frequent-update workload the RUM-tree was designed for, and intersection queries.
+`SpatialBackendBenchmarks` measures the cost of pushing one location update through `RxGeography` per index backend — the list backend scales linearly with the observer count while the grid and tree backends prune by zone. `TreeIndexBenchmarks` compares the R*-tree (the per-category baseline) against the RUM-tree for bulk insertion, the frequent-update workload the RUM-tree was designed for, and intersection queries. Because both trees share the same R* engine, the measured delta is purely the update-memo strategy — and the honest in-memory result is that memo-based lazy deletion does not beat a direct R* remove-and-reinsert (its historical advantage was avoiding delete I/O in disk-based trees), while still running ~80× faster than the original vendored RUM-tree port.
 
 ### Running the map demo
 
@@ -126,12 +125,12 @@ RxSpatialOptions.Default =
 
 | Option | Meaning | Default |
 | --- | --- | --- |
-| `PreferredDataStruct` | Spatial index for observers: `List`, `HashMap` (grid), `RTree`, or `RumTree`. Historic setting values (`RTREE`, `hashmap`, ...) bind case-insensitively. | `List` |
+| `PreferredDataStruct` | Spatial index for observers: `List`, `HashMap` (grid), `RTree` (R*-tree), or `RumTree`. Historic setting values (`RTREE`, `hashmap`, ...) bind case-insensitively. | `List` |
+| `RumTreeCleaningInterval` | Cleaning-token interval of the RUM-tree backend: garbage-creating operations between purges of one leaf (successor to the legacy `RUMTreeGCInspectionInterval` appSetting). | `5` |
 | `QueueLimit` | Location-push buffer size before `RxSpatialOverLoadException` is thrown (buffered mode). | `1` |
 | `IsVisualized` | `true` processes pushes synchronously and forwards raw locations to direct subscribers (used by the WPF demo, the examples and the benchmarks); `false` is the buffered throughput mode. | `false` |
 | `Grid` | Grid backend dimensions and coverage rectangle. | `10×10` over `46,-124 .. 49,-120` |
 
-One legacy exception: the vendored RUM-tree's lazy garbage cleaner still reads the `RUMTreeGCInspectionInterval` key from classic `App.config` appSettings (default `10`), because those LGPL sources are intentionally untouched.
 
 ## Modernisation notes (2026)
 
@@ -143,5 +142,5 @@ The codebase was originally built in 2014-2016 against .NET Framework 4.0/4.5 an
 - **Tests and benchmarks.** The original `LoadTestApplication` and `memoryTestApplication` consoles (and the 2016 experiment outputs they had written into their source folders) were replaced by the `RxSpatial.Benchmarks` BenchmarkDotNet suite; behavioural coverage lives in `tests/RxSpatial.Tests` (MSTest.Sdk). The originals remain in the git history.
 - **Modern configuration.** The legacy `System.Configuration.ConfigurationManager` appSettings were replaced by typed `RxSpatialOptions` with constructor injection plus an ambient default bound from Microsoft.Extensions.Configuration (see Configuration above); the samples now use `appsettings.json` instead of `App.config`. The core library itself has no configuration package dependency at all.
 - **Core library refactor.** File-scoped namespaces, nullable annotations that preserve the original null-flow, dead code removed, and a handful of verified bug fixes: the grid backend's non-square-grid maths (`longStep` and the cell-key stride), the grid's dead point-handling branch (`SqlString`-vs-`string` comparison that could never be true), and tree-backend unsubscription (`Remove`/`Contains` previously consulted the wrong index map, so disposing a subscription never detached observers from an R-tree backend).
-- **Vendored tree ports untouched.** `src/RTree` and `src/RUMTree` are LGPL 2.1 vendored source kept byte-identical apart from project files; their historic compiler warnings remain visible and are exempt from warnings-as-errors.
+- **Modern spatial indexes.** The 20-year-old vendored Java ports of the R-tree and RUM-tree (4,068 lines, LGPL 2.1, log4net-era) were replaced by `src/RxSpatial.Index`: a clean-room R*-tree engine shared by both trees, with the RUM-tree implemented per the paper (long stamps, per-item update memo, tombstones, a round-robin cleaning token over a leaf ring). The item-keyed API (`Insert`/`Update`/`Remove`/`Search`) made the core library's per-tree rectangle caches unnecessary, `Count` now reports live items, removing an unknown item returns `false` instead of throwing, and the whole solution builds warning-free with no analyzer exemptions. Correctness is guarded by seeded randomized oracle tests (hundreds of operations compared per-op against a naive scan). Steady-state update cost dropped from 229 µs to 2.8 µs on the RUM-tree (with ~670× less allocation); the LGPL obligation, log4net and the last `ConfigurationManager` usage left the repo with the ports (git history preserves them).
 - **MapLibre instead of Bing Maps.** The retired Bing Maps WPF control (and with it the repo's last .NET Framework-era package) was replaced by MapLibre GL JS hosted in WebView2: `wwwroot/map.html` renders OpenStreetMap raster tiles (no API key), and the `MapLibreMap` class bridges C# and the map over JSON web messages (markers, lines, polygons in; click/mousemove with geographic coordinates out — which also replaced the old `ViewportPointToLocation` conversion). Because WebView2 is HWND-hosted and always paints above WPF content, the control panel now sits beside the map rather than overlaying it. Note MapLibre zoom levels use the 512px-tile convention — one level lower than the equivalent Bing value.

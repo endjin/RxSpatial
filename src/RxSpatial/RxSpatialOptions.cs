@@ -40,5 +40,5 @@ public sealed class RxSpatialOptions
     /// the number of garbage-creating operations between purges of one leaf. Successor to
     /// the legacy <c>RUMTreeGCInspectionInterval</c> application setting.
     /// </summary>
-    public int RumTreeCleaningInterval { get; set; } = 10;
+    public int RumTreeCleaningInterval { get; set; } = 5;
 }
