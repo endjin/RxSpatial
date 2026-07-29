@@ -42,7 +42,9 @@ public sealed class RStarTree<T> : ISpatialIndex<T>
             if (current == bounds)
                 return;
 
-            core.Remove(current, item);
+            core.Update(current, item, bounds, 0);
+            current = bounds;
+            return;
         }
 
         current = bounds;

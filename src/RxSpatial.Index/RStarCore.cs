@@ -98,6 +98,36 @@ internal sealed class RStarCore<T>
         return true;
     }
 
+    /// <summary>
+    /// Moves an item's entry with a bottom-up fast path: when the new bounds still fit the
+    /// cover recorded for the leaf in its parent, the entry is rewritten in place — no cover
+    /// ever grows and search stays exact, because the recorded cover remains a superset of
+    /// the leaf's entries. Otherwise falls back to the structural remove + reinsert.
+    /// </summary>
+    internal void Update(in Rect oldBounds, T item, in Rect newBounds, long stamp)
+    {
+        reinsertedLevelsMask = 0;
+        Node<T>? leaf = FindLeaf(root, oldBounds, item, out int slot);
+        if (leaf is null)
+        {
+            InsertEntry(newBounds, item, stamp); // dictionary/tree divergence guard
+            return;
+        }
+
+        Node<T>? parent = leaf.Parent;
+        if (parent is null || parent.Bounds[parent.IndexOfChild(leaf)].Contains(newBounds))
+        {
+            leaf.Bounds[slot] = newBounds;
+            leaf.Stamps![slot] = stamp;
+            return;
+        }
+
+        leaf.RemoveAt(slot);
+        CondenseFrom(leaf);
+        reinsertedLevelsMask = 0;
+        InsertEntry(newBounds, item, stamp);
+    }
+
     internal void Search<TFilter>(in Rect query, List<T> results, ref TFilter filter)
         where TFilter : struct, ILeafFilter<T>
         => SearchNode(root, query, results, ref filter);
