@@ -52,11 +52,11 @@ public class SpatialIndexEdgeTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void DrainingTheEntireIndex_ThenReusingIt_Works(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void DrainingTheEntireIndex_ThenReusingIt_Works(TreeKind kind)
     {
-        ISpatialIndex<int> index = kind == "rstar"
+        ISpatialIndex<int> index = kind == TreeKind.RStar
             ? new RStarTree<int>(new RTreeOptions { MaxEntries = 4, MinEntries = 2, ReinsertCount = 1 })
             : new RumTree<int>(new RumTreeOptions { MaxEntries = 4, MinEntries = 2, ReinsertCount = 1, CleaningInterval = 2 });
 

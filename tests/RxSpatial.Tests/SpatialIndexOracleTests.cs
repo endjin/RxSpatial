@@ -11,37 +11,39 @@ namespace RxSpatial.Tests;
 [TestClass]
 public class SpatialIndexOracleTests
 {
-    private static ISpatialIndex<int> Create(string kind)
-        => kind switch
+    private static ISpatialIndex<int> Create(OracleFlavour flavour)
+        => flavour switch
         {
-            "rstar" => new RStarTree<int>(),
-            "rstar-noreinsert" => new RStarTree<int>(new RTreeOptions { ReinsertCount = 0 }),
-            "rstar-tiny-nodes" => new RStarTree<int>(new RTreeOptions { MaxEntries = 4, MinEntries = 2, ReinsertCount = 1 }),
-            "rum-eager" => new RumTree<int>(new RumTreeOptions { CleaningInterval = 1 }),
-            "rum-lazy" => new RumTree<int>(new RumTreeOptions { CleaningInterval = int.MaxValue }),
-            "rum-tiny-nodes" => new RumTree<int>(new RumTreeOptions { MaxEntries = 4, MinEntries = 2, ReinsertCount = 1, CleaningInterval = 3 }),
-            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+            OracleFlavour.RStar => new RStarTree<int>(),
+            OracleFlavour.RStarNoReinsert => new RStarTree<int>(new RTreeOptions { ReinsertCount = 0 }),
+            OracleFlavour.RStarTinyNodes =>
+                new RStarTree<int>(new RTreeOptions { MaxEntries = 4, MinEntries = 2, ReinsertCount = 1 }),
+            OracleFlavour.RumEager => new RumTree<int>(new RumTreeOptions { CleaningInterval = 1 }),
+            OracleFlavour.RumLazy => new RumTree<int>(new RumTreeOptions { CleaningInterval = int.MaxValue }),
+            OracleFlavour.RumTinyNodes => new RumTree<int>(
+                new RumTreeOptions { MaxEntries = 4, MinEntries = 2, ReinsertCount = 1, CleaningInterval = 3 }),
+            _ => throw new ArgumentOutOfRangeException(nameof(flavour)),
         };
 
     [TestMethod]
-    [DataRow("rstar", 12345)]
-    [DataRow("rstar", 987)]
-    [DataRow("rstar-noreinsert", 12345)]
-    [DataRow("rstar-tiny-nodes", 4242)]
-    [DataRow("rum-eager", 12345)]
-    [DataRow("rum-eager", 987)]
-    [DataRow("rum-lazy", 12345)]
-    [DataRow("rum-tiny-nodes", 4242)]
-    public void RandomizedWorkload_MatchesNaiveOracle(string kind, int seed)
-        => RunWorkload(Create(kind), seed, clustered: false);
+    [DataRow(OracleFlavour.RStar, 12345)]
+    [DataRow(OracleFlavour.RStar, 987)]
+    [DataRow(OracleFlavour.RStarNoReinsert, 12345)]
+    [DataRow(OracleFlavour.RStarTinyNodes, 4242)]
+    [DataRow(OracleFlavour.RumEager, 12345)]
+    [DataRow(OracleFlavour.RumEager, 987)]
+    [DataRow(OracleFlavour.RumLazy, 12345)]
+    [DataRow(OracleFlavour.RumTinyNodes, 4242)]
+    public void RandomizedWorkload_MatchesNaiveOracle(OracleFlavour flavour, int seed)
+        => RunWorkload(Create(flavour), seed, clustered: false);
 
     [TestMethod]
-    [DataRow("rstar", 555)]
-    [DataRow("rstar-tiny-nodes", 555)]
-    [DataRow("rum-eager", 555)]
-    [DataRow("rum-lazy", 555)]
-    public void ClusteredWorkload_WithDuplicatePositions_MatchesNaiveOracle(string kind, int seed)
-        => RunWorkload(Create(kind), seed, clustered: true);
+    [DataRow(OracleFlavour.RStar, 555)]
+    [DataRow(OracleFlavour.RStarTinyNodes, 555)]
+    [DataRow(OracleFlavour.RumEager, 555)]
+    [DataRow(OracleFlavour.RumLazy, 555)]
+    public void ClusteredWorkload_WithDuplicatePositions_MatchesNaiveOracle(OracleFlavour flavour, int seed)
+        => RunWorkload(Create(flavour), seed, clustered: true);
 
     private static void RunWorkload(ISpatialIndex<int> index, int seed, bool clustered)
     {

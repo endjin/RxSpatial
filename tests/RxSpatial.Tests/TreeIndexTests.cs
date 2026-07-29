@@ -8,18 +8,18 @@ namespace RxSpatial.Tests;
 [TestClass]
 public class TreeIndexTests
 {
-    private static ISpatialIndex<int> Create(string kind)
+    private static ISpatialIndex<int> Create(TreeKind kind)
         => kind switch
         {
-            "rstar" => new RStarTree<int>(),
-            "rum" => new RumTree<int>(new RumTreeOptions { CleaningInterval = 5 }),
+            TreeKind.RStar => new RStarTree<int>(),
+            TreeKind.Rum => new RumTree<int>(new RumTreeOptions { CleaningInterval = 5 }),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void InsertSearchRemove_Roundtrip(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void InsertSearchRemove_Roundtrip(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         index.Insert(1, new Rect(0, 0, 1, 1));
@@ -39,9 +39,9 @@ public class TreeIndexTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void Search_OnEmptyIndex_ReturnsEmptyListNotNull(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void Search_OnEmptyIndex_ReturnsEmptyListNotNull(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         List<int> results = index.Search(new Rect(0, 0, 100, 100));
@@ -50,18 +50,18 @@ public class TreeIndexTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void Remove_UnknownItem_ReturnsFalseWithoutThrowing(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void Remove_UnknownItem_ReturnsFalseWithoutThrowing(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         index.Remove(12345).ShouldBeFalse();
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void Insert_DuplicateLiveItem_Throws(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void Insert_DuplicateLiveItem_Throws(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         index.Insert(7, new Rect(0, 0, 1, 1));
@@ -69,9 +69,9 @@ public class TreeIndexTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void Update_ActsAsUpsert(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void Update_ActsAsUpsert(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         index.Update(9, new Rect(0, 0, 1, 1));
@@ -80,9 +80,9 @@ public class TreeIndexTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void Update_Churn_KeepsExactlyOneVisibleEntry(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void Update_Churn_KeepsExactlyOneVisibleEntry(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         Rect current = new(0, 0, 1, 1);
@@ -100,9 +100,9 @@ public class TreeIndexTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void Count_StaysLive_ThroughChurnAndRemovals(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void Count_StaysLive_ThroughChurnAndRemovals(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         for (int i = 0; i < 20; i++)
@@ -121,9 +121,9 @@ public class TreeIndexTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void PointRectangles_AreValidEntriesAndQueries(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void PointRectangles_AreValidEntriesAndQueries(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         index.Insert(1, new Rect(5, 5, 5, 5));
@@ -135,9 +135,9 @@ public class TreeIndexTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void LargeWorkload_SurvivesSplitsReinsertionAndCondensation(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void LargeWorkload_SurvivesSplitsReinsertionAndCondensation(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         Random rng = new(7);
@@ -174,9 +174,9 @@ public class TreeIndexTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void Clear_ResetsTheIndex(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void Clear_ResetsTheIndex(TreeKind kind)
     {
         ISpatialIndex<int> index = Create(kind);
         for (int i = 0; i < 100; i++)

@@ -31,31 +31,31 @@ public class StructuralChurnTests
         return items;
     }
 
-    private static IEnumerable<int> DrainOrder(int side, string order)
+    private static IEnumerable<int> Drain(int side, DrainOrder order)
         => order switch
         {
-            "row-major" => Enumerable.Range(0, side * side),
-            "reverse" => Enumerable.Range(0, side * side).Reverse(),
-            "column-major" => from x in Enumerable.Range(0, side)
-                              from y in Enumerable.Range(0, side)
-                              select (y * side) + x,
-            "inside-out" => Enumerable.Range(0, side * side)
+            DrainOrder.RowMajor => Enumerable.Range(0, side * side),
+            DrainOrder.Reverse => Enumerable.Range(0, side * side).Reverse(),
+            DrainOrder.ColumnMajor => from x in Enumerable.Range(0, side)
+                                      from y in Enumerable.Range(0, side)
+                                      select (y * side) + x,
+            DrainOrder.InsideOut => Enumerable.Range(0, side * side)
                 .OrderBy(id => Math.Abs((id % side) - (side / 2)) + Math.Abs((id / side) - (side / 2))),
             _ => throw new ArgumentOutOfRangeException(nameof(order)),
         };
 
     [TestMethod]
-    [DataRow("rstar", "row-major")]
-    [DataRow("rstar", "reverse")]
-    [DataRow("rstar", "column-major")]
-    [DataRow("rstar", "inside-out")]
-    [DataRow("rum", "row-major")]
-    [DataRow("rum", "column-major")]
-    [DataRow("rum", "inside-out")]
-    public void SpatialOrderDrain_CollapsesThenRebuilds(string kind, string order)
+    [DataRow(TreeKind.RStar, DrainOrder.RowMajor)]
+    [DataRow(TreeKind.RStar, DrainOrder.Reverse)]
+    [DataRow(TreeKind.RStar, DrainOrder.ColumnMajor)]
+    [DataRow(TreeKind.RStar, DrainOrder.InsideOut)]
+    [DataRow(TreeKind.Rum, DrainOrder.RowMajor)]
+    [DataRow(TreeKind.Rum, DrainOrder.ColumnMajor)]
+    [DataRow(TreeKind.Rum, DrainOrder.InsideOut)]
+    public void SpatialOrderDrain_CollapsesThenRebuilds(TreeKind kind, DrainOrder order)
     {
         const int Side = 12;
-        ISpatialIndex<int> index = kind == "rstar"
+        ISpatialIndex<int> index = kind == TreeKind.RStar
             ? new RStarTree<int>(TinyOptions)
             : new RumTree<int>(TinyRumOptions(cleaningInterval: 1));
         Dictionary<int, Rect> oracle = GridItems(Side);
@@ -69,7 +69,7 @@ public class StructuralChurnTests
         // orphaned subtrees are reinserted, and the root shrinks (and regrows) repeatedly.
         Dictionary<int, Rect> live = new(oracle);
         int step = 0;
-        foreach (int id in DrainOrder(Side, order))
+        foreach (int id in Drain(Side, order))
         {
             index.Remove(id).ShouldBeTrue($"item {id} missing at drain step {step}");
             live.Remove(id);
@@ -92,11 +92,11 @@ public class StructuralChurnTests
     }
 
     [TestMethod]
-    [DataRow("rstar")]
-    [DataRow("rum")]
-    public void SplitAfterClear_RestoresInternalStructure(string kind)
+    [DataRow(TreeKind.RStar)]
+    [DataRow(TreeKind.Rum)]
+    public void SplitAfterClear_RestoresInternalStructure(TreeKind kind)
     {
-        ISpatialIndex<int> index = kind == "rstar"
+        ISpatialIndex<int> index = kind == TreeKind.RStar
             ? new RStarTree<int>(TinyOptions)
             : new RumTree<int>(TinyRumOptions(cleaningInterval: 1));
         Dictionary<int, Rect> items = GridItems(6);
