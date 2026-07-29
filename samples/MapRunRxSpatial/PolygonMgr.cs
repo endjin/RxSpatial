@@ -24,13 +24,14 @@ namespace MapRunRxSpatial
         MapLibreMap _map;
         int addCnter = 0;
         int addLineCnter = 0;
-       public static Dictionary<string,Polygon> polygonDict = new Dictionary<string,Polygon>();
-       public static Dictionary<string, Polygon> lineDict = new Dictionary<string, Polygon>();
+       public Dictionary<string,Polygon> polygonDict = new Dictionary<string,Polygon>();
+       public Dictionary<string, Polygon> lineDict = new Dictionary<string, Polygon>();
 
        public Polygon genLine(GeoPoint pt1, GeoPoint pt2, out GeoPoint[] points)
        {
            points = null;
-           if (pt1.Latitude == pt2.Latitude || pt1.Longitude == pt2.Longitude)
+           // Only a zero-length line is degenerate; axis-aligned connection lines are valid.
+           if (pt1.Latitude == pt2.Latitude && pt1.Longitude == pt2.Longitude)
                return null;
 
            string line = String.Format("LINESTRING({0} {1},{2} {3})",

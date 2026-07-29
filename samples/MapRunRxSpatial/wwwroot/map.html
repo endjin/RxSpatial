@@ -64,7 +64,7 @@
         el.className = 'vehicle-marker';
         const label = document.createElement('span');
         el.appendChild(label);
-        marker = new maplibregl.Marker({ element: el, anchor: 'bottom' });
+        marker = new maplibregl.Marker({ element: el, anchor: 'center' });
         marker.setLngLat([m.lon, m.lat]).addTo(map);
         markers.set(m.id, marker);
       } else {

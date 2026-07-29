@@ -246,10 +246,11 @@ namespace MapRunRxSpatial
                     ? configuredBackend
                     : RxSpatial.RxGeographyDataStruct.List;
 
-                if (movingObjMgr != null) movingObjMgr.restartProcTraffic();
+                movingObjMgr.restartProcTraffic();
                 movingObjMgr.unsubscribeAll();
                 movingObjMgr.clearAllObjects();
                 polygonMgr.clearAllPolygons();
+                CancelAreaDrawing();
                 
            // }
 
@@ -303,9 +304,21 @@ namespace MapRunRxSpatial
                return;
             }
         }*/
+        private void CancelAreaDrawing()
+        {
+            collect_area = false;
+            pt1 = null;
+            pt2 = null;
+            myMap.RemoveShape(TmpAreaShapeId);
+        }
+
         bool stoped = false;
         private void click_StopResume(object sender, RoutedEventArgs e)
         {
+            // Pause/Resume has nothing to act on until Start has been pressed.
+            if (!movingObjMgr.TrafficStarted)
+                return;
+
             if (stoped == false)
             {
 
@@ -330,6 +343,7 @@ namespace MapRunRxSpatial
         {
             movingObjMgr.unsubscribeAll();
             polygonMgr.clearAllPolygons();
+            CancelAreaDrawing();
         }
         
         private void AddRxRx_Click(object sender, RoutedEventArgs e)

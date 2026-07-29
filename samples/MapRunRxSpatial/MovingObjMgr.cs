@@ -1,19 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
-using System.Threading.Tasks;
-
-using System.Windows.Media;
-using System.Windows.Controls;
-using System.Windows;
 using System.Windows.Threading;
 
 using Microsoft.SqlServer.Types;
-
-using RxSpatial;
 
 namespace MapRunRxSpatial
 {
@@ -22,14 +12,17 @@ namespace MapRunRxSpatial
         Dictionary<int, MovingObject> movingObjList = new Dictionary<int, MovingObject>();
         public MapLibreMap baseMap;
         private PolygonMgr polygonMgr;
-       
-        public static DispatcherTimer dispatcherTimer;
+        private DispatcherTimer dispatcherTimer;
+
         public MovingObjMgr(MapLibreMap map, PolygonMgr polygonMgr)
         {
             baseMap = map;
             this.polygonMgr = polygonMgr;
             initMovingObjActionList();
         }
+
+        public bool TrafficStarted { get; private set; }
+
         #region ObjectActionDefinition
         enum Operation { Add, Modify, Delete, NA };
         class ObjAction
@@ -72,51 +65,48 @@ namespace MapRunRxSpatial
         ObjActionArray[] objActionArrayList = new ObjActionArray[20];
         private void initMovingObjActionList()
         {
-
             for (int i = 0; i < 20; i++)
             {
-                List<ObjAction> arr= new List<ObjAction>();
-                TextReader tr = new StreamReader(Parameters.dataPath + i.ToString()+".txt");
-                tr.ReadLine();
-                tr.ReadLine();
-                string line=tr.ReadLine();
-                while(line!=null && line.Length!=0)
+                List<ObjAction> arr = new List<ObjAction>();
+                using (TextReader tr = new StreamReader(Parameters.dataPath + i.ToString() + ".txt"))
                 {
-                    string[] strs = line.Split();
-                    if (strs.Length != 5)
-                        continue;
-                    string status = strs[2];
-                    Double latitude = Convert.ToDouble(strs[3]);
-                    Double longitude = Convert.ToDouble(strs[4]);
-                    SqlGeography location = SqlGeography.Point(latitude, longitude, 4326);
-                    arr.Add(new ObjAction(i, status, location));
-                    line = tr.ReadLine();
+                    tr.ReadLine();
+                    tr.ReadLine();
+                    for (string line = tr.ReadLine(); !string.IsNullOrEmpty(line); line = tr.ReadLine())
+                    {
+                        string[] strs = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+                        if (strs.Length != 5)
+                            continue;
+                        string status = strs[2];
+                        double latitude = Convert.ToDouble(strs[3]);
+                        double longitude = Convert.ToDouble(strs[4]);
+                        arr.Add(new ObjAction(i, status, SqlGeography.Point(latitude, longitude, 4326)));
+                    }
                 }
                 objActionArrayList[i] = new ObjActionArray(arr);
             }
         }
-        private Boolean traffic_started = false;
+
         public void procTraffic()
         {
-            //  DispatcherTimer setup
-            dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
-            dispatcherTimer.Tick += new EventHandler(updateTraffic);
+            // Stop any running timer first: repeated Start clicks must not stack timers
+            // (each stacked timer would multiply the traffic speed).
+            stopTraffic();
+            dispatcherTimer = new DispatcherTimer();
+            dispatcherTimer.Tick += updateTraffic;
             dispatcherTimer.Interval = TimeSpan.FromMilliseconds(ParamMgr.MovementIntervalInMS);
             dispatcherTimer.Start();
-            traffic_started = true;
+            TrafficStarted = true;
         }
         public void stopTraffic()
         {
-            if (traffic_started == true)
-            dispatcherTimer.Stop();
+            if (dispatcherTimer != null)
+                dispatcherTimer.Stop();
         }
         public void restartProcTraffic()
         {
-            if (traffic_started == true)
-            {
-                dispatcherTimer.Stop();
+            if (TrafficStarted)
                 procTraffic();
-            }
         }
         int vehicleNumberPrev=-1;
         private void updateTraffic(object sender, EventArgs e)
@@ -126,7 +116,7 @@ namespace MapRunRxSpatial
             }
             for (int i = 0; i < ParamMgr.VehicleNumber;i++)
             {
-                updateNewLoc(objActionArrayList[i].getNext()); 
+                updateNewLoc(objActionArrayList[i].getNext());
             }
             if (vehicleNumberPrev > ParamMgr.VehicleNumber)
             {
@@ -157,16 +147,18 @@ namespace MapRunRxSpatial
         }
         private void addItem(int id, SqlGeography loc)
         {
+            // A trajectory can replay an add for a vehicle that already exists; treat it
+            // as a position update instead of crashing on the duplicate dictionary key.
             if (movingObjList.ContainsKey(id))
             {
-           //     throw new Exception("key" + id.ToString() + "already added");
+                updateItem(id, loc);
+                return;
             }
 
             MovingObject newItem = new MovingObject(id, baseMap, polygonMgr);
             newItem.feedLocation(loc);
-            //  Console.WriteLine("add"+id.ToString());
             movingObjList.Add(id, newItem);
-            foreach(Polygon p in PolygonMgr.polygonDict.Values){
+            foreach(Polygon p in polygonMgr.polygonDict.Values){
                 if (ParamMgr.subscribeState == STATE.INTERSCT)
                 {
                     newItem.subscribeIntersect(p.name, p.polygon);
@@ -247,6 +239,14 @@ namespace MapRunRxSpatial
             }
             movingObjList.Clear();
             vehicleNumberPrev = -1;
+
+            // Rewind every trajectory to its "newpoint" action so the next tick
+            // recreates the vehicles; mid-file "point" updates for ids that no
+            // longer exist would otherwise be ignored forever.
+            foreach (ObjActionArray actions in objActionArrayList)
+            {
+                actions.reset();
+            }
         }
 
     }
