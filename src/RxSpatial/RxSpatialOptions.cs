@@ -12,7 +12,8 @@ public sealed class RxSpatialOptions
     public const string SectionName = "RxSpatial";
 
     /// <summary>
-    /// The ambient options used by the parameterless <see cref="RxGeography"/> constructor.
+    /// The ambient options used by the parameterless <see cref="RxGeography"/> and
+    /// <see cref="RxGeometry"/> constructors.
     /// Set once at application start-up (typically from bound configuration).
     /// </summary>
     public static RxSpatialOptions Default { get; set; } = new();
@@ -32,8 +33,17 @@ public sealed class RxSpatialOptions
     /// </summary>
     public bool IsVisualized { get; set; }
 
-    /// <summary>Settings for the grid (<see cref="RxGeographyDataStruct.HashMap"/>) backend.</summary>
+    /// <summary>
+    /// Settings for the grid (<see cref="RxGeographyDataStruct.HashMap"/>) backend of
+    /// <see cref="RxGeography"/>: a latitude/longitude grid.
+    /// </summary>
     public GridOptions Grid { get; set; } = new();
+
+    /// <summary>
+    /// Settings for the grid (<see cref="RxGeographyDataStruct.HashMap"/>) backend of
+    /// <see cref="RxGeometry"/>: a planar X/Y grid in the geometries' coordinate units.
+    /// </summary>
+    public PlanarGridOptions PlanarGrid { get; set; } = new();
 
     /// <summary>
     /// Cleaning-token interval of the <see cref="RxGeographyDataStruct.RumTree"/> backend:

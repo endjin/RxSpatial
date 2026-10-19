@@ -67,11 +67,24 @@ internal sealed class GridBackend<TShape, TOps, T> : ISpatialBackend<TShape, T>
         if (block.IsSingleCell)
             return cells[block.RowMin, block.ColumnMin];
 
+        // A region observer sits in every cell of its own block, so a region push that shares
+        // several of those cells would meet it once per shared cell. Report each observer only
+        // from the first (lowest row, then column) cell the two blocks share.
         List<T> result = [];
         for (int row = block.RowMin; row <= block.RowMax; row++)
         {
             for (int column = block.ColumnMin; column <= block.ColumnMax; column++)
-                result.AddRange(cells[row, column]);
+            {
+                foreach (T observer in cells[row, column])
+                {
+                    CellBlock placed = placements[observer];
+                    if (row == Math.Max(placed.RowMin, block.RowMin)
+                        && column == Math.Max(placed.ColumnMin, block.ColumnMin))
+                    {
+                        result.Add(observer);
+                    }
+                }
+            }
         }
 
         return result;

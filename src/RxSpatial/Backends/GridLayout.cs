@@ -18,4 +18,15 @@ internal readonly record struct GridLayout(Rect Extent, int XCells, int YCells)
                 options.CoverageRegion.UpperRightLatitude),
             options.LongitudeCells,
             options.LatitudeCells);
+
+    /// <summary>The layout of the planar grid, in the geometries' coordinate units.</summary>
+    public static GridLayout From(PlanarGridOptions options)
+        => new(
+            new Rect(
+                options.CoverageRegion.MinX,
+                options.CoverageRegion.MinY,
+                options.CoverageRegion.MaxX,
+                options.CoverageRegion.MaxY),
+            options.XCells,
+            options.YCells);
 }
