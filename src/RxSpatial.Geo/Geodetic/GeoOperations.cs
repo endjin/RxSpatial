@@ -90,7 +90,7 @@ public static class GeoOperations
             ({ Kind: ShapeKind.Empty }, _) => false,
             (GeoPointShape p, GeoPointShape q) => SamePosition(p.Position, q.Position),
             (GeoPointShape p, GeoCircle c) => c.Bounds.Contains(p.Position) && WithinReach(c.Center, p.Position, c.RadiusMetres),
-            (GeoPointShape p, GeoPolygon polygon) => polygon.Bounds.Contains(p.Position) && polygon.Contains(p.Position),
+            (GeoPointShape p, GeoPolygon polygon) => polygon.Bounds.Contains(p.Position) && polygon.ContainsGuarded(p.Position),
             (GeoCircle c1, GeoCircle c2) => c1.Bounds.Overlaps(c2.Bounds) && WithinReach(c1.Center, c2.Center, c1.RadiusMetres + c2.RadiusMetres),
             (GeoCircle c, GeoPolygon polygon) => c.Bounds.Overlaps(polygon.Bounds) && CircleReachesPolygon(c, polygon),
             (GeoPolygon p1, GeoPolygon p2) => p1.Bounds.Overlaps(p2.Bounds) && PolygonsOverlap(p1, p2),

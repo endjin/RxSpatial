@@ -141,6 +141,62 @@ public class GeoPropertyTests
     }
 
     [TestMethod]
+    public void FastOffset_StaysWithinThePolygonGuardBound()
+    {
+        // The bound GeoPolygon.ContainsGuarded relies on: the flat-earth offset is within
+        // s² (tan φ + 0.1) / R + 1e-6 s + 1 mm of the exact projection, up to 75° and 50 km.
+        RandomShapes random = new(13);
+        double worst = 0;
+        for (int i = 0; i < 200_000; i++)
+        {
+            GeoPoint origin = new(random.Between(-75, 75), random.Between(-180, 180));
+            double s = Math.Pow(10, random.Between(0, Math.Log10(50_000)));
+            GeoPoint point = GeoOperationsTests.At(origin, random.Between(0, 360), s);
+            if (Math.Abs(point.Latitude) > 75)
+                continue;
+
+            PlanarPoint exact = new LocalPlane(origin).Project(point);
+            PlanarPoint fast = Wgs84.FastOffset(origin, point);
+            double tangent = Math.Tan((Math.Abs(origin.Latitude) + 0.46) * Math.PI / 180);
+            double bound = (s * s * (tangent + 0.1) / 6_335_439) + (1e-6 * s) + 1e-3;
+            double error = exact.DistanceTo(fast);
+            worst = Math.Max(worst, error / bound);
+            error.ShouldBeLessThanOrEqualTo(bound, $"{origin} → {point}");
+        }
+
+        TestContext.WriteLine($"worst error / bound {worst:F3}");
+        worst.ShouldBeLessThan(0.6); // the bound keeps a margin of ~2× over the worst case
+    }
+
+    [TestMethod]
+    public void PointInPolygon_GuardedDecision_MatchesTheExactTest()
+    {
+        // Positions within metres of an edge, where the flat-earth guard must defer to the
+        // exact test, and positions well inside and outside, where it decides itself.
+        RandomShapes random = new(14);
+        for (int i = 0; i < 400; i++)
+        {
+            GeoPolygon polygon = random.Polygon(random.Centre(), random.Between(50, 40_000));
+            IReadOnlyList<GeoPoint> vertices = polygon.Vertices;
+            for (int k = 0; k < vertices.Count; k++)
+            {
+                GeoPoint from = vertices[k];
+                GeoPoint to = vertices[(k + 1) % vertices.Count];
+                Geodesic.WGS84.Inverse(from.Latitude, from.Longitude, to.Latitude, to.Longitude, out double s, out double azimuth, out _);
+                Geodesic.WGS84.Direct(from.Latitude, from.Longitude, azimuth, s * random.Between(0, 1), out double lat, out double lon, out double alongAzimuth);
+                foreach (double offset in new[] { random.Between(-3, 3), random.Between(-200, 200), random.Between(-0.01, 0.01) })
+                {
+                    GeoPoint point = GeoOperationsTests.At(new(lat, lon), alongAzimuth - 90, offset);
+                    polygon.ContainsGuarded(point).ShouldBe(polygon.Contains(point), $"{point} {polygon}");
+                }
+            }
+
+            GeoPoint inner = random.Near(polygon.Plane.Origin, 60_000);
+            polygon.ContainsGuarded(inner).ShouldBe(polygon.Contains(inner), $"{inner} {polygon}");
+        }
+    }
+
+    [TestMethod]
     public void PointToPolygonDistance_MatchesAGeographicLibSearchAlongTheEdges()
     {
         RandomShapes random = new(7);

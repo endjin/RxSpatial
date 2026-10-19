@@ -76,13 +76,26 @@ public static class Wgs84
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double FastDistance(GeoPoint from, GeoPoint to)
     {
+        PlanarPoint offset = FastOffset(from, to);
+        return Math.Sqrt((offset.X * offset.X) + (offset.Y * offset.Y));
+    }
+
+    /// <summary>
+    /// The flat-earth offset behind <see cref="FastDistance"/>: metres east (X) and north (Y)
+    /// from <paramref name="from"/> to <paramref name="to"/>, with the radii of curvature at
+    /// the mean latitude. It differs from the exact <see cref="LocalPlane"/> projection about
+    /// <paramref name="from"/> mainly by the meridians' convergence, about s² tan φ / 2N.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static PlanarPoint FastOffset(GeoPoint from, GeoPoint to)
+    {
         double meanLatitude = (from.Latitude + to.Latitude) * 0.5 * RadiansPerDegree;
         (double sin, double cos) = Math.SinCos(meanLatitude);
         double w2 = 1 - (EccentricitySquared * sin * sin);
         double w = Math.Sqrt(w2);
         double dy = (to.Latitude - from.Latitude) * RadiansPerDegree * (SemiMajorAxis * (1 - EccentricitySquared) / (w2 * w));
         double dx = LongitudeDifference(from.Longitude, to.Longitude) * RadiansPerDegree * (SemiMajorAxis / w) * cos;
-        return Math.Sqrt((dx * dx) + (dy * dy));
+        return new(dx, dy);
     }
 
     /// <summary>The meridional radius of curvature at a latitude (degrees), in metres.</summary>

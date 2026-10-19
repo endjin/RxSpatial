@@ -15,7 +15,16 @@ public sealed class GeoPolygon : GeoShape
 {
     private const double DegreesPerRadian = 180 / Math.PI;
 
+    /// <summary>How far, in metres, <see cref="ContainsGuarded"/> may use the flat-earth offset.</summary>
+    private const double FastGuardReach = 50_000;
+
+    /// <summary>The highest latitude, in degrees, at which <see cref="ContainsGuarded"/> may use the flat-earth offset.</summary>
+    private const double FastGuardLatitude = 75;
+
     private readonly GeoBounds bounds;
+
+    // tan φ bounding the latitudes ContainsGuarded may see, or −1 where it may not decide.
+    private readonly double guardTangent;
 
     /// <summary>The smallest radius of curvature of the ellipsoid (meridional, at the equator), in metres.</summary>
     private const double MinRadiusOfCurvature = Wgs84.SemiMajorAxis * (1 - (Wgs84.Flattening * (2 - Wgs84.Flattening)));
@@ -47,6 +56,10 @@ public sealed class GeoPolygon : GeoShape
         }
 
         Reach = reach;
+
+        // The guard needs tan φ at any latitude within FastGuardReach of the origin (0.46°).
+        double guardLatitude = Math.Abs(plane.Origin.Latitude);
+        guardTangent = guardLatitude <= FastGuardLatitude ? Math.Tan((guardLatitude + 0.46) / DegreesPerRadian) : -1;
         LongestEdge = longest;
 
         // A geodesic edge that does not pass through the plane's origin bows in the plane by
@@ -101,6 +114,43 @@ public sealed class GeoPolygon : GeoShape
     /// turns left (counter-clockwise) of the edge's own azimuth.
     /// </summary>
     internal bool Contains(GeoPoint point) => Contains(point, out _);
+
+    /// <summary>
+    /// <see cref="Contains(GeoPoint)"/>, deciding first with the cheap flat-earth offset from
+    /// the plane's origin (<see cref="Wgs84.FastOffset"/>) instead of a Vincenty projection.
+    /// Up to <see cref="FastGuardReach"/> from the origin and <see cref="FastGuardLatitude"/>,
+    /// that offset is within <c>s² (tan φ + 0.1) / R + 1 mm</c> of the exact projection:
+    /// twice its worst measured error (2 million random cases; s² tan φ / 2N, the meridians'
+    /// convergence). A position that clears every edge by that much more than
+    /// <see cref="EdgeBow"/>, or lies beyond one edge by as much, gets the answer the exact
+    /// test would give; only positions near an edge pay for the projection.
+    /// </summary>
+    internal bool ContainsGuarded(GeoPoint point)
+    {
+        if (guardTangent >= 0 && Math.Abs(point.Latitude) <= FastGuardLatitude)
+        {
+            PlanarPoint p = Wgs84.FastOffset(Plane.Origin, point);
+            double s = p.Length;
+            if (s <= FastGuardReach)
+            {
+                double band = EdgeBow + (s * s * (guardTangent + 0.1) / MinRadiusOfCurvature) + (1e-6 * s) + 1e-3;
+                bool clear = true;
+                for (int i = 0, j = ring.Length - 1; i < ring.Length; j = i++)
+                {
+                    double offset = ConvexMath.Cross(ring[j], ring[i], p) / edgeLengths[j];
+                    if (offset < -band)
+                        return false;
+
+                    clear &= offset > band;
+                }
+
+                if (clear)
+                    return true;
+            }
+        }
+
+        return Contains(point);
+    }
 
     /// <summary><see cref="Contains(GeoPoint)"/>, also giving the position projected into <see cref="Plane"/>.</summary>
     internal bool Contains(GeoPoint point, out PlanarPoint projected)
