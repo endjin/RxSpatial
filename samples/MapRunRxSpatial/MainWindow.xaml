@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        Title="MapRun RxSpatial" Height="720" Width="1100" MinHeight="600" MinWidth="900" Loaded="OnLoaded">
+        Title="MapRun RxSpatial" Height="880" Width="1300" MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen" Loaded="OnLoaded">
     <!-- Shared styles come first: a missing StaticResource key fails when the window is
          created, not at build time. -->
     <Window.Resources>
@@ -171,23 +172,35 @@
                             <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="5 km"/>
                         </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=TrackedPairSlider1, StringFormat='First vehicle: {0:0}'}"/>
-                        <Slider x:Name="TrackedPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
-                            <TextBlock Style="{StaticResource Tick}"/>
-                        </DockPanel>
-
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=TrackedPairSlider2, StringFormat='Second vehicle: {0:0}'}"/>
-                        <Slider x:Name="TrackedPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
-                            <TextBlock Style="{StaticResource Tick}"/>
-                        </DockPanel>
+                        <!-- The pair sliders sit side by side (as in the 2016 panel) so the
+                             guidance below keeps room for the whole legend. -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource SectionLabel}"
+                                           Text="{Binding Value, ElementName=TrackedPairSlider1, StringFormat='First vehicle: {0:0}'}"/>
+                                <Slider x:Name="TrackedPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
+                                    <TextBlock Style="{StaticResource Tick}"/>
+                                </DockPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource SectionLabel}"
+                                           Text="{Binding Value, ElementName=TrackedPairSlider2, StringFormat='Second vehicle: {0:0}'}"/>
+                                <Slider x:Name="TrackedPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
+                                    <TextBlock Style="{StaticResource Tick}"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </Grid>
 
                         <WrapPanel>
                             <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
@@ -223,23 +236,33 @@
                             <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="5 km"/>
                         </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=ConnectionPairSlider1, StringFormat='First vehicle: {0:0}'}"/>
-                        <Slider x:Name="ConnectionPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
-                            <TextBlock Style="{StaticResource Tick}"/>
-                        </DockPanel>
-
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=ConnectionPairSlider2, StringFormat='Second vehicle: {0:0}'}"/>
-                        <Slider x:Name="ConnectionPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
-                            <TextBlock Style="{StaticResource Tick}"/>
-                        </DockPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource SectionLabel}"
+                                           Text="{Binding Value, ElementName=ConnectionPairSlider1, StringFormat='First vehicle: {0:0}'}"/>
+                                <Slider x:Name="ConnectionPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
+                                    <TextBlock Style="{StaticResource Tick}"/>
+                                </DockPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource SectionLabel}"
+                                           Text="{Binding Value, ElementName=ConnectionPairSlider2, StringFormat='Second vehicle: {0:0}'}"/>
+                                <Slider x:Name="ConnectionPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
+                                    <TextBlock Style="{StaticResource Tick}"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </Grid>
 
                         <WrapPanel>
                             <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>

@@ -32,6 +32,7 @@ public partial class MainWindow : Window
         // "Observe distance: {0:N0} m" groups digits the way the user expects.
         Language = XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag);
         InitializeComponent();
+        FitToWorkArea();
         map = new MapLibreMap(mapView);
         map.MapClick += OnMapClick;
         map.MapMouseMove += OnMapMouseMove;
@@ -40,6 +41,18 @@ public partial class MainWindow : Window
         fleet = new MovingObjectManager(map, polygons, lines);
         ApplyControlDefaults(DemoParameters.ActiveScenario);
         ShowGuidance(DemoParameters.ActiveScenario);
+    }
+
+    /// <summary>
+    /// The XAML size is a preference: shrink it to the primary screen's work area so a small
+    /// or high-scaling display never pushes the window (and its guidance) off-screen.
+    /// MinWidth/MinHeight still win, and the guidance panel scrolls below them.
+    /// </summary>
+    private void FitToWorkArea()
+    {
+        Rect workArea = SystemParameters.WorkArea;
+        Width = Math.Min(Width, workArea.Width);
+        Height = Math.Min(Height, workArea.Height);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
