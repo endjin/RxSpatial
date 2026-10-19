@@ -191,6 +191,19 @@ public partial class MainWindow : Window
         status.Text = DescribePairSubscription(id1, id2, fleet.WatchPair(id1, id2, drawConnection));
     }
 
+    /// <summary>Near vehicle only: the self join over every pair (no connection lines).</summary>
+    private void OnWatchAllPairsClick(object sender, RoutedEventArgs e)
+    {
+        int waiting = fleet.WatchAllPairs();
+        int total = MovingObjectManager.AllPairsCount;
+        TrackedPairStatus.Text = waiting switch
+        {
+            0 => $"Watching all {total} pairs.",
+            _ when !fleet.TrafficStarted => $"All {total} pairs will be watched from Start.",
+            _ => $"All {total} pairs will be watched as soon as their vehicles are on the map.",
+        };
+    }
+
     private static string DescribePairSubscription(int id1, int id2, PairSubscriptionResult result) => result switch
     {
         PairSubscriptionResult.Added => $"Watching vehicles {id1} and {id2}.",

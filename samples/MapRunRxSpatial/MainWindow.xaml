@@ -206,6 +206,7 @@
                             <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
                             <Button x:Name="PauseResume" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
                             <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Watch all pairs" Click="OnWatchAllPairsClick"/>
                             <Button Style="{StaticResource DemoButton}" Content="Clear pairs" Click="OnClearClick"/>
                         </WrapPanel>
                         <TextBlock x:Name="TrackedPairStatus" Style="{StaticResource GuidanceText}" Margin="0,6,0,0"/>
@@ -338,6 +339,8 @@
                                        Text="2. Pairs 10-12 and 15-16 are watched from Start: the offenders close enough to meet in the ICDE paper's Fig. 4c, mostly yellow."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="3. To watch more pairs, pick two vehicles with the sliders and press Watch pair."/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="4. Watch all pairs watches all 190 pairs of vehicles: the self join of ICDE 2017 section V.B, which continuously evaluates the distance between every pair of cars. Each vehicle then shows the most urgent colour of its 19 pairs, which is the colour for its nearest other vehicle. Gray means that no other vehicle is within the observe distance."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>

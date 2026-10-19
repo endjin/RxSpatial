@@ -112,6 +112,30 @@ internal sealed class MovingObjectManager
         WatchPendingPairs();
     }
 
+    /// <summary>The number of distinct pairs among the replayed vehicles: 190 for 20 vehicles.</summary>
+    public static int AllPairsCount => TrajectoryCount * (TrajectoryCount - 1) / 2;
+
+    /// <summary>
+    /// The self join of ICDE 2017 section V.B: watches the distance between every pair of
+    /// vehicles, without connection lines. Each pair is watched in both directions, so 20
+    /// vehicles need 380 observers. Already-watched pairs are skipped, and a pair whose
+    /// vehicles are not on the map yet is watched as soon as they appear, like the pre-set pairs.
+    /// </summary>
+    /// <returns>The number of pairs still waiting for their vehicles; 0 when all are watched.</returns>
+    public int WatchAllPairs()
+    {
+        List<VehiclePair> pairs = new(AllPairsCount);
+        for (int first = 0; first < TrajectoryCount; first++)
+        {
+            for (int second = first + 1; second < TrajectoryCount; second++)
+                pairs.Add(VehiclePair.Of(first, second));
+        }
+
+        // Replaces the pending pre-set pairs too, but they are a subset of these.
+        WatchPairsWhenOnMap(pairs, drawConnection: false);
+        return pendingPairs.Count;
+    }
+
     /// <summary>Stops watching every pair and area, including pairs not yet on the map.</summary>
     public void UnsubscribeAll()
     {
