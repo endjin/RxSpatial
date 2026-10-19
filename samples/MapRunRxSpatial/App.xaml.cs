@@ -28,6 +28,11 @@ public partial class App : Application
             RxSpatialOptions.Default = new RxSpatialOptions();
         }
 
+        // The demo requires visualized (synchronous) mode whatever the settings say: the
+        // WebView2 map facade must be driven from the UI thread, and buffered mode notifies
+        // zone observers from the thread pool.
+        RxSpatialOptions.Default.IsVisualized = true;
+
         base.OnStartup(e);
     }
 }

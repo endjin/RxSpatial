@@ -2,12 +2,66 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        Title="MapRun RxSpatial" Height="640" Width="1024" MinHeight="600" MinWidth="900" Loaded="OnLoaded">
+        Title="MapRun RxSpatial" Height="720" Width="1100" MinHeight="600" MinWidth="900" Loaded="OnLoaded">
+    <!-- Shared styles come first: a missing StaticResource key fails when the window is
+         created, not at build time. -->
+    <Window.Resources>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,8,0,2"/>
+        </Style>
+        <Style x:Key="Tick" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="DimGray"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+        <Style x:Key="DemoButton" TargetType="Button">
+            <Setter Property="MinWidth" Value="90"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Margin" Value="0,6,6,0"/>
+        </Style>
+        <!-- Every slider here selects an integer, so values snap to whole numbers. -->
+        <Style x:Key="DemoSlider" TargetType="Slider">
+            <Setter Property="IsSnapToTickEnabled" Value="True"/>
+            <Setter Property="TickFrequency" Value="1"/>
+        </Style>
+        <Style x:Key="GuidanceHeading" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        <Style x:Key="GuidanceText" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        <Style x:Key="LegendRow" TargetType="DockPanel">
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="LegendDot" TargetType="Ellipse">
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="Margin" Value="0,3,6,0"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="DockPanel.Dock" Value="Left"/>
+        </Style>
+        <Style x:Key="LegendLine" TargetType="Line">
+            <Setter Property="X1" Value="0"/>
+            <Setter Property="X2" Value="18"/>
+            <Setter Property="Y1" Value="8"/>
+            <Setter Property="Y2" Value="8"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="DockPanel.Dock" Value="Left"/>
+        </Style>
+    </Window.Resources>
+
     <Grid>
         <Grid.ColumnDefinitions>
             <!-- WebView2 is an HWND-hosted control that always renders above WPF content,
                  so the control panel sits beside the map instead of overlaying it. -->
-            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="320"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -19,259 +73,313 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
+            <!-- Keep the tab order: OnScenarioTabChanged maps tabs to scenarios by index. -->
             <TabControl Grid.Row="0" VerticalAlignment="Top" SelectionChanged="OnScenarioTabChanged">
-            <TabItem Margin="0" Opacity="1" Background="Linen">
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Background="Linen" Text="Intersect"/>
+                <TabItem Header="Inside area">
+                    <StackPanel Margin="6">
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=VehicleCountSlider, StringFormat='Vehicles: {0:0}'}"/>
+                        <Slider x:Name="VehicleCountSlider" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="20" ValueChanged="OnVehicleCountChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="20"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="10"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=VehicleSpeedSlider, StringFormat='Replay rate: {0:0} updates/s'}"/>
+                        <Slider x:Name="VehicleSpeedSlider" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="50"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="25"/>
+                        </DockPanel>
+
+                        <WrapPanel>
+                            <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
+                            <Button x:Name="PauseResume2" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Add area" Click="OnAddAreaClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Clear areas" Click="OnClearClick"/>
+                        </WrapPanel>
                     </StackPanel>
-                </TabItem.Header>
-                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Background="Transparent" Margin="0,0,-3,0">
-                    <Grid x:Name="Intersect" Visibility="Visible">
-                        <Grid Background="Linen" Opacity="1">
-                            <Border
-        			MinWidth="250"
-        			Background="Linen"
-                    Opacity="1"
-        			BorderBrush="OldLace"
-        			BorderThickness="2"
-        			CornerRadius="10,10,10,10"
-        			HorizontalAlignment="Center"
-        			VerticalAlignment="Center">
-                                <StackPanel>
-                                    <TextBlock Margin="5,15" x:Name="VehicleNum" Text=" Vehicle Number: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,5,0,0"
-                        		x:Name="VehicleCountSlider"
-                        		Minimum="1"
-                        		Maximum="20"
-                        		ValueChanged="OnVehicleCountChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="5" Text="1                        10                        20" FontWeight="Bold" FontFamily="Cambria" Width="163" />
-                                    <TextBlock Margin="5" x:Name="VehicleSpeed" Text=" Vehicle Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,5,0,0"
-                        		x:Name="VehicleSpeedSlider"
-                        		Minimum="1"
-                        		Maximum="100"
-                        		ValueChanged="OnVehicleSpeedChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="5" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
-                                    <Button x:Name="AddAreaButton" Margin="5" Content="Add Area" Background="{x:Null}" Click="OnAddAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="ClearAreaButton" Margin="5" Content="Clear Area" Background="{x:Null}" Click="OnClearClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="StartButton" Margin="5" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="PauseResume2" Height="20" Width="76" Content="Pause" Background="Linen"
-                Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="5"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </Grid>
-                </StackPanel>
-            </TabItem>
-            <TabItem Margin="0" Background="Linen">
-                <TabItem.Header>
-                    <StackPanel>
-                        <TextBlock Text="Dist" Background="Linen"/>
+                </TabItem>
+
+                <TabItem Header="Near area">
+                    <StackPanel Margin="6">
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=VehicleCountSlider1, StringFormat='Vehicles: {0:0}'}"/>
+                        <Slider x:Name="VehicleCountSlider1" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="20" ValueChanged="OnVehicleCountChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="20"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="10"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=VehicleSpeedSlider1, StringFormat='Replay rate: {0:0} updates/s'}"/>
+                        <Slider x:Name="VehicleSpeedSlider1" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="50"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="25"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=ObserveDistanceSlider, StringFormat='Observe distance: {0:N0} m'}"/>
+                        <Slider x:Name="ObserveDistanceSlider" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1 m"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="10 km"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="5 km"/>
+                        </DockPanel>
+
+                        <WrapPanel>
+                            <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
+                            <Button x:Name="PauseResume1" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Add area" Click="OnAddAreaClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Clear areas" Click="OnClearClick"/>
+                        </WrapPanel>
                     </StackPanel>
-                </TabItem.Header>
-                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Background="Transparent" Margin="0,0,-3,0">
-                    <Grid x:Name="Distance" Visibility="Visible">
-                        <Grid Background="Transparent" Opacity="1">
-                            <Border
-        			MinWidth="250"
-        			Background="Linen"
-                    Opacity="1"
-        			BorderBrush="OldLace"
-        			BorderThickness="2"
-        			CornerRadius="10,10,10,10"
- Margin="0">
-                                <StackPanel Margin="2">
-                                    <TextBlock Margin="5,30,15,0" x:Name="VehicleNum1" Text=" Vehicle Number: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="VehicleCountSlider1"
-                        		Minimum="1"
-                        		Maximum="20"
-                        		ValueChanged="OnVehicleCountChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="0,0,0,0" Text="1                        10                        20" FontWeight="Bold" FontFamily="Cambria" Width="163" />
-                                    <TextBlock Margin="5" x:Name="VehicleSpeed1" Text=" Vehicle Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="VehicleSpeedSlider1"
-                        		Minimum="1"
-                        		Maximum="100"
-                        		ValueChanged="OnVehicleSpeedChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="0" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
-                                    <TextBlock Margin="0,0,0,0" x:Name="ObserveDist" Text=" Observe Distance: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="ObserveDistanceSlider"
-                        		Minimum="1"
-                        		Maximum="10000"
-                        		ValueChanged="OnObserveDistanceChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="5" Text="1                        5k                     10k" FontWeight="Bold" FontFamily="Cambria" Width="162" />
-                                    <Button x:Name="AddAreaButton1" Margin="3" Content="Add Area" Background="{x:Null}" Click="OnAddAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="ClearAreaButton1" Margin="3" Content="Clear Area" Background="{x:Null}" Click="OnClearClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="StartButton1" Margin="85,3" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
-                                    <Button x:Name="PauseResume1" Height="20" Width="76" Content="Pause" Background="Linen"
-                Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="3"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </Grid>
-                </StackPanel>
-            </TabItem>
-            <TabItem Margin="0,0,0,0" Background="Linen">
-                <TabItem.Header>
-                    <StackPanel Background="Linen">
-                        <TextBlock Background="Linen" Text="RxRxDist"/>
+                </TabItem>
+
+                <TabItem Header="Near vehicle">
+                    <StackPanel Margin="6">
+                        <TextBlock Style="{StaticResource SectionLabel}" Text="Vehicles: all 20"/>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=VehicleSpeedSlider2, StringFormat='Replay rate: {0:0} updates/s'}"/>
+                        <Slider x:Name="VehicleSpeedSlider2" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="50"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="25"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=ObserveDistanceSlider1, StringFormat='Observe distance: {0:N0} m'}"/>
+                        <Slider x:Name="ObserveDistanceSlider1" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1 m"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="10 km"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="5 km"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=TrackedPairSlider1, StringFormat='First vehicle: {0:0}'}"/>
+                        <Slider x:Name="TrackedPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
+                            <TextBlock Style="{StaticResource Tick}"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=TrackedPairSlider2, StringFormat='Second vehicle: {0:0}'}"/>
+                        <Slider x:Name="TrackedPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
+                            <TextBlock Style="{StaticResource Tick}"/>
+                        </DockPanel>
+
+                        <WrapPanel>
+                            <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
+                            <Button x:Name="PauseResume" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Clear pairs" Click="OnClearClick"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="TrackedPairStatus" Style="{StaticResource GuidanceText}" Margin="0,6,0,0"/>
                     </StackPanel>
-                </TabItem.Header>
-                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Background="Transparent" Margin="0,0,-3,0">
-                    <Grid x:Name="RxRxDistance" Visibility="Visible">
-                        <Grid Background="Transparent" Opacity="1">
-                            <Border
-        			MinWidth="250"
-        			Background="Linen"
-                    Opacity="1"
-        			BorderBrush="OldLace"
-        			BorderThickness="2"
-        			CornerRadius="10,10,10,10"
- Margin="0">
-                                <StackPanel Margin="2">
-                                    <TextBlock Margin="8,30,0,0"
-            x:Name="FleetSizeText"
-            Text="Moving Object Number: 20" FontWeight="Bold" FontFamily="Cambria"/>
-                                    <TextBlock Margin="5" x:Name="VehicleSpeed2" Text=" Movement Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="VehicleSpeedSlider2"
-                        		Minimum="1"
-                        		Maximum="100"
-                        		ValueChanged="OnVehicleSpeedChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="0" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
-                                    <TextBlock Margin="0,0,0,0" x:Name="ObserveDist1" Text=" Observe Distance: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="ObserveDistanceSlider1"
-                        		Minimum="1"
-                        		Maximum="10000"
-                        		ValueChanged="OnObserveDistanceChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="0" Text="1                        5k                     10k" FontWeight="Bold" FontFamily="Cambria" Width="162" />
-                                    <TextBlock Margin="0,0,0,0" x:Name="TrackedObserverState"
-                                               Text="Observer Condition:" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="200">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="TrackedPairSlider1"
-                        		Minimum="0"
-                        		Maximum="19"
-                        		ValueChanged="OnTrackedPairChanged" Width="90" />
-                                        <Slider Margin="15,0,0,0"
-                        		x:Name="TrackedPairSlider2"
-                        		Minimum="0"
-                        		Maximum="19"
-                        		ValueChanged="OnTrackedPairChanged" Width="90" />
-                                    </StackPanel>
-                                    <TextBlock Margin="0" Text="0                          19      0                         19" FontWeight="Bold" FontFamily="Cambria" Width="200" />
-                                    <Button x:Name="AddObserverButton" Margin="5,1" Content="Add Observer" Background="{x:Null}" Click="OnAddTrackedPairClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
-                                    <Button x:Name="ClearObserversButton" Margin="5,1" Content="Clear Observers" Background="{x:Null}" Click="OnClearClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
-                                    <Button x:Name="StartButton2" Margin="85,1" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
-                                    <Button x:Name="PauseResume" Height="20" Width="76" Content="Pause" Background="Linen"
-                Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="1"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </Grid>
-                </StackPanel>
-            </TabItem>
-            <TabItem Margin="0,0,0,0" Background="Linen">
-                <TabItem.Header>
-                    <StackPanel Background="Linen">
-                        <TextBlock Background="Linen" Text="RxRxDistConn"/>
+                </TabItem>
+
+                <TabItem Header="Convoy link">
+                    <StackPanel Margin="6">
+                        <TextBlock Style="{StaticResource SectionLabel}" Text="Vehicles: all 20"/>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=VehicleSpeedSlider3, StringFormat='Replay rate: {0:0} updates/s'}"/>
+                        <Slider x:Name="VehicleSpeedSlider3" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="50"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="25"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=ObserveDistanceSlider2, StringFormat='Observe distance: {0:N0} m'}"/>
+                        <Slider x:Name="ObserveDistanceSlider2" Style="{StaticResource DemoSlider}"
+                                Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1 m"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="10 km"/>
+                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="5 km"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=ConnectionPairSlider1, StringFormat='First vehicle: {0:0}'}"/>
+                        <Slider x:Name="ConnectionPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
+                            <TextBlock Style="{StaticResource Tick}"/>
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionLabel}"
+                                   Text="{Binding Value, ElementName=ConnectionPairSlider2, StringFormat='Second vehicle: {0:0}'}"/>
+                        <Slider x:Name="ConnectionPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
+                            <TextBlock Style="{StaticResource Tick}"/>
+                        </DockPanel>
+
+                        <WrapPanel>
+                            <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
+                            <Button x:Name="PauseResume3" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Clear pairs" Click="OnClearClick"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="ConnectionPairStatus" Style="{StaticResource GuidanceText}" Margin="0,6,0,0"/>
                     </StackPanel>
-                </TabItem.Header>
-                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Background="Transparent" Margin="0,0,-3,0">
-                    <Grid x:Name="RxRxDistanceConnection" Visibility="Visible">
-                        <Grid Background="Transparent" Opacity="1">
-                            <Border
-        			MinWidth="250"
-        			Background="Linen"
-                    Opacity="1"
-        			BorderBrush="OldLace"
-        			BorderThickness="2"
-        			CornerRadius="10,10,10,10"
- Margin="0">
-                                <StackPanel Margin="2">
-                                    <TextBlock Margin="8,30,0,0"
-            x:Name="FleetSizeText2"
-            Text="Moving Object Number: 20" FontWeight="Bold" FontFamily="Cambria"/>
-                                    <TextBlock Margin="5" x:Name="VehicleSpeed3" Text=" Movement Speed: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="VehicleSpeedSlider3"
-                        		Minimum="1"
-                        		Maximum="100"
-                        		ValueChanged="OnVehicleSpeedChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="0" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
-                                    <TextBlock Margin="0,0,0,0" x:Name="ObserveDist2" Text=" Observe Distance: 1" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="164">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="ObserveDistanceSlider2"
-                        		Minimum="1"
-                        		Maximum="10000"
-                        		ValueChanged="OnObserveDistanceChanged" Width="165" />
-                                    </StackPanel>
-                                    <TextBlock Margin="0" Text="1                        5k                     10k" FontWeight="Bold" FontFamily="Cambria" Width="162" />
-                                    <TextBlock Margin="0,0,0,0" x:Name="ConnectionObserverState"
-                                               Text="Observer Condition:" FontWeight="Bold" FontFamily="Cambria" />
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Width="200">
-                                        <Slider Margin="0,0,0,0"
-                        		x:Name="ConnectionPairSlider1"
-                        		Minimum="0"
-                        		Maximum="19"
-                        		ValueChanged="OnConnectionPairChanged" Width="90" />
-                                        <Slider Margin="15,0,0,0"
-                        		x:Name="ConnectionPairSlider2"
-                        		Minimum="0"
-                        		Maximum="19"
-                        		ValueChanged="OnConnectionPairChanged" Width="90" />
-                                    </StackPanel>
-                                    <TextBlock Margin="0" Text="0                          19      0                         19" FontWeight="Bold" FontFamily="Cambria" Width="200" />
-                                    <Button x:Name="AddConnectionObserverButton" Margin="5,1" Content="Add Observer" Background="{x:Null}" Click="OnAddConnectionPairClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
-                                    <Button x:Name="ClearObserversButton1" Margin="5,1" Content="Clear Observers" Background="{x:Null}" Click="OnClearClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
-                                    <Button x:Name="StartButton3" Margin="85,1" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
-                                    <Button x:Name="PauseResume3" Height="20" Width="76" Content="Pause" Background="Linen"
-                Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="1"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </Grid>
-                </StackPanel>
-            </TabItem>
+                </TabItem>
             </TabControl>
 
             <!-- Fills the space left under the (per-tab, variable-height) TabControl and
-                 scrolls internally, so the text can never be clipped by the window edge. -->
+                 scrolls internally, so the text can never be clipped by the window edge.
+                 Only the active tab's guidance is Visible; the others are Collapsed. -->
             <Border Grid.Row="1" Background="Linen" BorderBrush="OldLace" BorderThickness="2"
                     CornerRadius="10" Margin="4,6,4,4" Padding="8,8,2,8">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0" FontSize="11.5">
                     <StackPanel>
-                        <TextBlock FontWeight="Bold" FontFamily="Cambria" Text="How to use" Margin="0,0,0,4"/>
-                        <TextBlock TextWrapping="Wrap" FontFamily="Cambria" FontSize="11.5">
-                            1. Set Vehicle Number (20 = whole fleet) and Vehicle Speed (try 25), then press Start.
-                            Vehicles replay recorded Seattle trajectories - nothing moves until Start is pressed.<LineBreak/><LineBreak/>
-                            2. Press Add Area, then click two corners on the map. Vehicles inside the orange
-                            geofence turn red via continuous RxIntersect queries on the RUM-tree spatial index.<LineBreak/><LineBreak/>
-                            3. The Dist tab colours vehicles by distance band to your areas. The RxRxDist tabs
-                            track two moving vehicles against each other: pick their IDs with the twin sliders
-                            and press Add Observer - their connection line changes as they approach.
-                        </TextBlock>
+                        <StackPanel x:Name="GuidanceInsideArea">
+                            <TextBlock Style="{StaticResource GuidanceHeading}"
+                                       Text="Inside area - an offender enters a restricted zone (RxIntersect)"/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="1. Set Vehicles (markers are numbered 0-19) and Replay rate (try 25), then press Start. Vehicles replay recorded Seattle GPS trajectories; nothing moves until you press Start."/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="2. Press Add area and click two corners on the map. Every vehicle gets a continuous RxIntersect query against each orange area."/>
+                            <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
+                                <TextBlock TextWrapping="Wrap" Text="Blue - not inside any area."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
+                                <TextBlock TextWrapping="Wrap" Text="Red - inside an area (alert)."/>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceText}" Text="Clear areas removes every area and its queries."/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="GuidanceNearArea" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource GuidanceHeading}"
+                                       Text="Near area - an offender approaches a restricted zone (RxDistance)"/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="1. Set Vehicles and Replay rate, press Start, then Add area as on the first tab."/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="2. Raise Observe distance. It starts at 1 m, so vehicles stay blue until you move it; try 2,000 m."/>
+                            <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
+                                <TextBlock TextWrapping="Wrap" Text="Blue - farther than the observe distance."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
+                                <TextBlock TextWrapping="Wrap" Text="Green - within the observe distance (watching)."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F" Stroke="#333333" StrokeThickness="1"/>
+                                <TextBlock TextWrapping="Wrap" Text="Yellow - closer than 4/7 of it (warning)."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
+                                <TextBlock TextWrapping="Wrap" Text="Red - inside the area (alert)."/>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="This tab uses the List index: it needs every vehicle's distance on every update, which a spatial index would prune away."/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="GuidanceNearVehicle" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource GuidanceHeading}"
+                                       Text="Near vehicle - two offenders who must not meet (RxRxDistance)"/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="1. Press Start. This tab always replays all 20 vehicles."/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="2. Pick two vehicles with the sliders and press Watch pair; repeat for more pairs. Try 3 and 6: the pair turns gray at once (watched, out of range)."/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="3. Raise Observe distance; try 3,500 m."/>
+                            <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
+                                <TextBlock TextWrapping="Wrap" Text="Blue - not watched."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#757575"/>
+                                <TextBlock TextWrapping="Wrap" Text="Gray - watched, farther apart than the observe distance."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
+                                <TextBlock TextWrapping="Wrap" Text="Green - within the observe distance."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F" Stroke="#333333" StrokeThickness="1"/>
+                                <TextBlock TextWrapping="Wrap" Text="Yellow - closer than 4/7 of it (meet-up warning)."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
+                                <TextBlock TextWrapping="Wrap" Text="Red - closer than 1/7 of it: minimum safe distance (alert)."/>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="A vehicle in several pairs shows its most urgent colour. Clear pairs stops all watching. List index, as on Near area."/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="GuidanceConvoyLink" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource GuidanceHeading}"
+                                       Text="Convoy link - vehicles sharing data while they stay in range (RxRxDistance with a connection line)"/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="1. Press Start (all 20 vehicles), pick two vehicles and press Watch pair. Try 3 and 6 with Observe distance 3,500 m; both ends of the pair move the line."/>
+                            <TextBlock Style="{StaticResource SectionLabel}" Text="Legend (marker and line)"/>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#757575"/>
+                                <Line Style="{StaticResource LegendLine}" Stroke="#757575" StrokeThickness="1" StrokeDashArray="2 3" Opacity="0.8"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Text="Gray marker, thin dotted line - watching each other, but too far apart to connect (beyond the observe distance)."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
+                                <Line Style="{StaticResource LegendLine}" Stroke="#2E7D32" StrokeThickness="2" Opacity="0.8"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Text="Green marker, thin solid line - connected near the limit; likely to drop if they drift apart."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F" Stroke="#333333" StrokeThickness="1"/>
+                                <Line Style="{StaticResource LegendLine}" Stroke="#F9A825" StrokeThickness="4" Opacity="0.9"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Text="Yellow marker, thick solid line - stable working distance (closer than 4/7 of the observe distance)."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
+                                <Line Style="{StaticResource LegendLine}" Stroke="#D32F2F" StrokeThickness="5"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Text="Red marker, thickest line - closer than 1/7 of the observe distance: the minimum safe distance is compromised."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
+                                <TextBlock TextWrapping="Wrap" Text="Blue - not watched."/>
+                            </DockPanel>
+                        </StackPanel>
+
+                        <!-- Shared footer: the live backend (set by ShowGuidance) and the reset rule. -->
+                        <TextBlock x:Name="BackendText" Style="{StaticResource SectionLabel}" TextWrapping="Wrap"/>
+                        <TextBlock Style="{StaticResource GuidanceText}"
+                                   Text="Switching tabs resets all controls, areas, pairs and vehicles."/>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

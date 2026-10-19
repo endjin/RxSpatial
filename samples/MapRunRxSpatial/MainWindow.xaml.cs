@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Markup;
 using RxSpatial;
 
 namespace MapRunRxSpatial;
@@ -26,6 +28,9 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        // WPF bindings format with en-US unless told otherwise; follow the OS culture so
+        // "Observe distance: {0:N0} m" groups digits the way the user expects.
+        Language = XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag);
         InitializeComponent();
         map = new MapLibreMap(mapView);
         map.MapClick += OnMapClick;
@@ -33,6 +38,7 @@ public partial class MainWindow : Window
         polygons = new PolygonManager(map);
         lines = new ConnectionLines(map);
         fleet = new MovingObjectManager(map, polygons, lines);
+        ShowGuidance(DemoParameters.ActiveScenario);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -139,62 +145,33 @@ public partial class MainWindow : Window
     }
 
     private void OnVehicleCountChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        DemoParameters.VehicleCount = (int)e.NewValue;
-        SetLabels($" Vehicle Number: {(int)e.NewValue}", VehicleNum, VehicleNum1);
-    }
+        => DemoParameters.VehicleCount = (int)e.NewValue;
 
     private void OnVehicleSpeedChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         DemoParameters.MovementIntervalMilliseconds = 1000 / (int)e.NewValue;
+
+        // Fires during InitializeComponent (Minimum coerces Value) before the fleet exists.
         if (fleet is not null && !isPaused)
             fleet.RestartTraffic();
-
-        SetLabels($" Vehicle Speed: {(int)e.NewValue}", VehicleSpeed, VehicleSpeed1);
-        SetLabels($" Movement Speed: {(int)e.NewValue}", VehicleSpeed2, VehicleSpeed3);
     }
 
     private void OnObserveDistanceChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        DemoParameters.ObserveDistance = e.NewValue;
-        SetLabels($" Observe Distance: {e.NewValue:F}", ObserveDist, ObserveDist1, ObserveDist2);
-    }
+        => DemoParameters.ObserveDistance = e.NewValue;
 
-    /// <summary>
-    /// One handler serves the equivalent sliders on every tab, and a value coerced during
-    /// InitializeComponent fires before the later tabs' labels exist — skip those.
-    /// </summary>
-    private static void SetLabels(string text, params TextBlock?[] labels)
+    /// <summary>Both pair tabs share this handler; the active scenario picks the controls.</summary>
+    private void OnWatchPairClick(object sender, RoutedEventArgs e)
     {
-        foreach (TextBlock? label in labels)
+        (Slider first, Slider second, TextBlock status, bool drawConnection) = DemoParameters.ActiveScenario switch
         {
-            if (label is not null)
-                label.Text = text;
-        }
-    }
+            Scenario.RxRxDistance => (TrackedPairSlider1, TrackedPairSlider2, TrackedPairStatus, false),
+            Scenario.RxRxDistanceConnection => (ConnectionPairSlider1, ConnectionPairSlider2, ConnectionPairStatus, true),
+            _ => throw new InvalidOperationException("Watch pair is only offered on the vehicle-pair tabs."),
+        };
 
-    private void OnTrackedPairChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        => TrackedObserverState.Text =
-            $"Observers:({(int)TrackedPairSlider1.Value},{(int)TrackedPairSlider2.Value}) SELECTED..";
-
-    private void OnConnectionPairChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        => ConnectionObserverState.Text =
-            $"Observers:({(int)ConnectionPairSlider1.Value},{(int)ConnectionPairSlider2.Value}) SELECTED..";
-
-    private void OnAddTrackedPairClick(object sender, RoutedEventArgs e)
-    {
-        int id1 = (int)TrackedPairSlider1.Value;
-        int id2 = (int)TrackedPairSlider2.Value;
-        TrackedObserverState.Text = DescribePairSubscription(
-            id1, id2, fleet.WatchPair(id1, id2, drawConnection: false));
-    }
-
-    private void OnAddConnectionPairClick(object sender, RoutedEventArgs e)
-    {
-        int id1 = (int)ConnectionPairSlider1.Value;
-        int id2 = (int)ConnectionPairSlider2.Value;
-        ConnectionObserverState.Text = DescribePairSubscription(
-            id1, id2, fleet.WatchPair(id1, id2, drawConnection: true));
+        int id1 = (int)first.Value;
+        int id2 = (int)second.Value;
+        status.Text = DescribePairSubscription(id1, id2, fleet.WatchPair(id1, id2, drawConnection));
     }
 
     private static string DescribePairSubscription(int id1, int id2, PairSubscriptionResult result) => result switch
@@ -232,17 +209,8 @@ public partial class MainWindow : Window
         isPaused = false;
         SetPauseResumeLabels("Pause");
 
-        VehicleNum.Text = " Vehicle Number: 1";
-        VehicleSpeed.Text = " Vehicle Speed: 1";
-        VehicleNum1.Text = " Vehicle Number: 1";
-        VehicleSpeed1.Text = " Vehicle Speed: 1";
-        ObserveDist.Text = " Observe Distance: 1";
-        VehicleSpeed2.Text = " Movement Speed: 1";
-        VehicleSpeed3.Text = " Movement Speed: 1";
-        ObserveDist1.Text = " Observe Distance: 1";
-        ObserveDist2.Text = " Observe Distance: 1";
-        TrackedObserverState.Text = "Observer Condition:";
-        ConnectionObserverState.Text = "Observer Condition:";
+        TrackedPairStatus.Text = string.Empty;
+        ConnectionPairStatus.Text = string.Empty;
 
         foreach (Slider slider in (Slider[])
             [
@@ -264,6 +232,7 @@ public partial class MainWindow : Window
         RxSpatialOptions.Default.PreferredDataStruct = scenario == Scenario.Intersect
             ? configuredBackend
             : RxGeographyDataStruct.List;
+        ShowGuidance(scenario);
 
         fleet.RestartTraffic();
         fleet.UnsubscribeAll();
@@ -272,6 +241,35 @@ public partial class MainWindow : Window
         lines.Clear();
         CancelAreaDrawing();
     }
+
+    /// <summary>
+    /// Shows the active tab's guidance and the backend its vehicles were built with. Call
+    /// only after <see cref="RxSpatialOptions.PreferredDataStruct"/> is assigned.
+    /// </summary>
+    private void ShowGuidance(Scenario scenario)
+    {
+        GuidanceInsideArea.Visibility = VisibleWhen(scenario == Scenario.Intersect);
+        GuidanceNearArea.Visibility = VisibleWhen(scenario == Scenario.Distance);
+        GuidanceNearVehicle.Visibility = VisibleWhen(scenario == Scenario.RxRxDistance);
+        GuidanceConvoyLink.Visibility = VisibleWhen(scenario == Scenario.RxRxDistanceConnection);
+
+        string backend = DescribeBackend(RxSpatialOptions.Default.PreferredDataStruct);
+        BackendText.Text = scenario == Scenario.Intersect
+            ? $"Spatial index: {backend} (appsettings.json)"
+            : $"Spatial index: {backend}";
+    }
+
+    // Collapsed, not Hidden: a hidden panel would still reserve its height.
+    private static Visibility VisibleWhen(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
+
+    private static string DescribeBackend(RxGeographyDataStruct backend) => backend switch
+    {
+        RxGeographyDataStruct.List => "List",
+        RxGeographyDataStruct.HashMap => "Grid",
+        RxGeographyDataStruct.RTree => "R*-tree",
+        RxGeographyDataStruct.RumTree => "RUM-tree",
+        _ => backend.ToString(),
+    };
 
     private void SetPauseResumeLabels(string label)
     {
