@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using RxSpatial.Benchmarks.Shared;
 using RxSpatial.Geo;
 
 namespace RxSpatial.Experiments;
@@ -68,13 +69,13 @@ internal static class ServiceTimeExperiment
             """));
 
         List<IReadOnlyList<object>> scaling = Scaling(context, route, fences);
-        context.Report.WriteCsv("service-scaling", ["threads", "fence_instances", "intersects_per_second", "speedup"], scaling);
+        context.Report.WriteCsv("service-scaling", ["threads", "fence_instances", "intersects_per_second", "speedup", "busy_cores"], scaling);
         context.Report.Section($"""
             ### Parallel scaling of `GeoOperations.Intersects`
 
-            Each thread loops `GeoOperations.Intersects` of its own route points against the fences for 2 s; "shared" threads use the same `GeoCircle` instances (as every moving object in the experiments does), "copies" give each thread its own copies. This bounds every multi-object experiment: the drainers of many moving objects run in parallel only as far as the shape maths does. (The immutable Geo shapes share no mutable state; SQL Server's spatial library, which the earlier runs used, did not scale this way.)
+            Each thread loops `GeoOperations.Intersects` of its own route points against the fences for 2 s; "shared" threads use the same `GeoCircle` instances (as every moving object in the experiments does), "copies" give each thread its own copies. This bounds every multi-object experiment: the drainers of many moving objects run in parallel only as far as the shape maths does. "Busy cores" is the process's CPU time over the wall-clock time, and the last row repeats the single-thread run: if it has drifted from the first, the machine slowed down during the table (power or thermal throttling) and the speed-ups are not comparable. Windows power throttling: {PowerThrottling.Describe()} — a throttled background process on a hybrid laptop slowed ~6.7× a few seconds into the run, which once made this table read ~1× at every thread count.
 
-            {Report.Table(["Threads", "Fence instances", "Intersects / s", "Speed-up vs 1 thread"], scaling)}
+            {Report.Table(["Threads", "Fence instances", "Intersects / s", "Speed-up vs 1 thread", "Busy cores"], scaling)}
             """);
         return meanMicroseconds;
     }
@@ -84,43 +85,52 @@ internal static class ServiceTimeExperiment
         int processors = Environment.ProcessorCount;
         int[] threadCounts = [.. new[] { 1, 2, 4, 8, processors }.Where(t => t <= processors).Distinct()];
         ExperimentContext.Log(FormattableString.Invariant($"service: Intersects scaling over {string.Join('/', threadCounts)} threads"));
+        GeoCircle[] shared = [.. fences];
         List<IReadOnlyList<object>> rows = [];
         double single = 0;
         foreach (int threads in threadCounts)
-            Add(threads.ToString(System.Globalization.CultureInfo.InvariantCulture), "shared", threads, _ => fences);
+            Add(threads.ToString(System.Globalization.CultureInfo.InvariantCulture), "shared", threads, _ => shared);
 
         Add(FormattableString.Invariant($"{processors}"), "copies", processors, _ =>
             [.. fences.Select(f => new GeoCircle(f.Center, f.RadiusMetres))]);
+        Add("1 (again)", "shared", 1, _ => shared);
         return rows;
 
-        void Add(string label, string kind, int threads, Func<int, IReadOnlyList<GeoCircle>> fencesFor)
+        void Add(string label, string kind, int threads, Func<int, GeoCircle[]> fencesFor)
         {
-            double rate = Throughput(threads, route, fencesFor);
+            (double rate, double busyCores) = Throughput(threads, route, fencesFor);
             if (single == 0)
                 single = rate;
 
-            rows.Add([label, kind, rate, rate / single]);
+            rows.Add([label, kind, rate, rate / single, busyCores]);
         }
     }
 
-    // Aggregate Intersects calls per second of `threads` threads looping for two seconds.
-    private static double Throughput(int threads, GeoShape[] route, Func<int, IReadOnlyList<GeoCircle>> fencesFor)
+    // Aggregate Intersects calls per second of `threads` threads looping for two seconds, and
+    // how many cores the process kept busy meanwhile.
+    private static (double Rate, double BusyCores) Throughput(int threads, GeoShape[] route, Func<int, GeoCircle[]> fencesFor)
     {
         TimeSpan duration = TimeSpan.FromSeconds(2);
         long total = 0;
         using Barrier barrier = new(threads);
         Thread[] workers = [.. Enumerable.Range(0, threads).Select(t => new Thread(() => Work(t)))];
+        using Process process = Process.GetCurrentProcess();
+        TimeSpan cpuBefore = process.TotalProcessorTime;
+        long wallBefore = Stopwatch.GetTimestamp();
         foreach (Thread worker in workers)
             worker.Start();
 
         foreach (Thread worker in workers)
             worker.Join();
 
-        return total / duration.TotalSeconds;
+        double wall = Stopwatch.GetElapsedTime(wallBefore).TotalSeconds;
+        process.Refresh();
+        double busyCores = (process.TotalProcessorTime - cpuBefore).TotalSeconds / wall;
+        return (total / duration.TotalSeconds, busyCores);
 
         void Work(int t)
         {
-            IReadOnlyList<GeoCircle> own = fencesFor(t);
+            GeoCircle[] own = fencesFor(t);
             long count = 0;
             barrier.SignalAndWait();
             long start = Stopwatch.GetTimestamp();
@@ -130,7 +140,7 @@ internal static class ServiceTimeExperiment
                 foreach (GeoCircle fence in own)
                     _ = GeoOperations.Intersects(fence, location);
 
-                count += own.Count;
+                count += own.Length;
             }
 
             Interlocked.Add(ref total, count);

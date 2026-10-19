@@ -11,4 +11,8 @@
     <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\PowerThrottling.cs" Link="Shared\PowerThrottling.cs" />
+  </ItemGroup>
+
 </Project>
