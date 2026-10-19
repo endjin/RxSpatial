@@ -1,11 +1,10 @@
-using System.Data.SqlTypes;
 using System.Globalization;
-using Microsoft.SqlServer.Types;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
-/// <summary>A named demo area: the backend geography, its map shape id and what it means.</summary>
-internal sealed class DemoPolygon(string name, string shapeId, SqlGeography geography, AreaKind kind)
+/// <summary>A named demo area: the backend shape, its map shape id and what it means.</summary>
+internal sealed class DemoPolygon(string name, string shapeId, GeoPolygon geography, AreaKind kind)
 {
     public string Name { get; } = name;
 
@@ -14,7 +13,7 @@ internal sealed class DemoPolygon(string name, string shapeId, SqlGeography geog
     /// <summary>Id of the visual shape on the MapLibre map.</summary>
     public string ShapeId { get; } = shapeId;
 
-    public SqlGeography Geography { get; } = geography;
+    public GeoPolygon Geography { get; } = geography;
 }
 
 /// <summary>Owns the demo's drawn areas (connection lines live in <see cref="ConnectionLines"/>).</summary>
@@ -29,28 +28,32 @@ internal sealed class PolygonManager(MapLibreMap map)
     private static string Key(int id) => id.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
-    /// Axis-aligned rectangle between two opposite corners, or null when the corners are
-    /// degenerate (sharing a latitude or longitude). The ring is wound counter-clockwise,
-    /// as SqlGeography's left-foot rule requires for an outer ring.
+    /// Axis-aligned rectangle between two opposite corners, or null when RxSpatial.Geo cannot
+    /// represent it: degenerate corners (sharing a latitude or longitude), or a rectangle wider
+    /// than <see cref="GeoShape.MaxExtent"/> (500 km), which only a far zoomed-out drag makes.
     /// </summary>
-    public static SqlGeography? CreatePolygon(GeoPoint point1, GeoPoint point2)
+    public static GeoPolygon? CreatePolygon(GeoPoint point1, GeoPoint point2)
     {
         if (point1.Latitude == point2.Latitude || point1.Longitude == point2.Longitude)
             return null;
 
-        double south = Math.Min(point1.Latitude, point2.Latitude);
-        double north = Math.Max(point1.Latitude, point2.Latitude);
-        double west = Math.Min(point1.Longitude, point2.Longitude);
-        double east = Math.Max(point1.Longitude, point2.Longitude);
-
-        string wkt = FormattableString.Invariant(
-            $"POLYGON(({west} {south},{east} {south},{east} {north},{west} {north},{west} {south}))");
-        return SqlGeography.STPolyFromText(new SqlChars(new SqlString(wkt)), 4326);
+        try
+        {
+            return GeoPolygon.Rectangle(
+                south: Math.Min(point1.Latitude, point2.Latitude),
+                west: Math.Min(point1.Longitude, point2.Longitude),
+                north: Math.Max(point1.Latitude, point2.Latitude),
+                east: Math.Max(point1.Longitude, point2.Longitude));
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
     }
 
     public DemoPolygon? AddPolygon(GeoPoint point1, GeoPoint point2, AreaKind kind)
     {
-        SqlGeography? geography = CreatePolygon(point1, point2);
+        GeoPolygon? geography = CreatePolygon(point1, point2);
         if (geography is null)
             return null;
 

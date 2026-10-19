@@ -7,7 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Markup;
 using RxSpatial;
-using RxSpatial.SqlServer;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
@@ -419,7 +419,7 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// A Geofence Spatial index button checked: rebuilds the vehicles on the new index (the
-    /// backend is baked into each RxSqlGeography at construction). The drawn areas stay, and
+    /// backend is baked into each RxGeography at construction). The drawn areas stay, and
     /// each recreated vehicle subscribes to them as it reappears on the next traffic tick;
     /// area drawing and the traffic timer are left alone.
     /// </summary>

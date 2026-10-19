@@ -1,4 +1,4 @@
-using Microsoft.SqlServer.Types;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
@@ -6,7 +6,7 @@ namespace MapRunRxSpatial;
 /// Overlap tab (<c>RxIntersection</c>): shades the part of the vehicle's reach inside a zone;
 /// an empty intersection removes the shading.
 /// </summary>
-internal sealed class ZoneOverlapObserver(string shapeId, VehicleMarker marker) : VehicleObserverBase<SqlGeography>(marker)
+internal sealed class ZoneOverlapObserver(string shapeId, VehicleMarker marker) : VehicleObserverBase<GeoShape>(marker)
 {
-    public override void OnNext(SqlGeography overlap) => Marker.UpdateZoneOverlap(shapeId, overlap);
+    public override void OnNext(GeoShape overlap) => Marker.UpdateZoneOverlap(shapeId, overlap);
 }

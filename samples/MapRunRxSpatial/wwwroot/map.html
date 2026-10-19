@@ -177,7 +177,6 @@
       reach: { color: '#455A64', pattern: null, fillOpacity: 0, lineWidth: 1.25, lineOpacity: 0.7 },
       lens: { color: '#00695C', pattern: 'dots-lens', fillOpacity: 0.9, tintOpacity: 0.12, lineWidth: 2, lineOpacity: 1 }
     };
-    const REACH_SEGMENTS = 64;
     const PREVIEW_ID = 'draw-preview';
     const MIN_DRAG_PX = 6;
 
@@ -274,18 +273,6 @@
         map.getSource('ov-' + kind)?.setData({ type: 'FeatureCollection', features: [...overlays[kind].values()] });
       }
       dirtyOverlays.clear();
-    }
-
-    // A circle of the given radius in metres, as a polygon (small-area approximation: a
-    // degree of longitude shrinks with the cosine of the latitude).
-    function circle(lon, lat, metres) {
-      const dLat = metres / 111320, dLon = dLat / Math.cos(lat * Math.PI / 180);
-      const ring = [];
-      for (let i = 0; i <= REACH_SEGMENTS; i++) {
-        const a = 2 * Math.PI * i / REACH_SEGMENTS;
-        ring.push([lon + dLon * Math.cos(a), lat + dLat * Math.sin(a)]);
-      }
-      return { type: 'Polygon', coordinates: [ring] };
     }
 
     // A lens's tips (the vertices farthest from its middle) are where the two reach circles
@@ -464,7 +451,8 @@
       }
       marker.getElement().querySelector('span').textContent = m.label;
       applyMarkerStyle(marker, m);
-      setOverlayFeature('reach', m.id, m.reach > 0 ? circle(m.lon, m.lat, m.reach) : null);
+      // The reach ring comes from C# (GeoOperations.ToVertices of the pushed GeoCircle).
+      setOverlayFeature('reach', m.id, m.reach ? { type: 'Polygon', coordinates: [m.reach] } : null);
     }
 
     function setMarkerColor(m) {

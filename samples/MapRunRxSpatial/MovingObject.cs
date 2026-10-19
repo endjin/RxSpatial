@@ -1,12 +1,11 @@
 using System.Reactive.Disposables;
-using Microsoft.SqlServer.Types;
 using RxSpatial;
-using RxSpatial.SqlServer;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
 /// <summary>
-/// One vehicle: an <see cref="RxSqlGeography"/> fed from a recorded trajectory, its map marker,
+/// One vehicle: an <see cref="RxGeography"/> fed from a recorded trajectory, its map marker,
 /// and the keyed continuous-query subscriptions attached to it. Area keys ("area:0") and pair
 /// keys ("pair:3-6") are prefixed so the two kinds can never collide.
 /// </summary>
@@ -25,21 +24,22 @@ internal sealed class MovingObject
     public MovingObject(int id, MapLibreMap map, ConnectionLines lines, OverlapShapes overlaps)
     {
         this.id = id;
-        Geography = new RxSqlGeography();
+        Geography = new RxGeography();
         marker = new VehicleMarker(id, map, lines, overlaps);
         movementObserver = new MarkerMovementObserver(marker, () => fix);
         movementObserver.Attach(Geography);
     }
 
     /// <summary>The moving object other vehicles subscribe against.</summary>
-    public RxSqlGeography Geography { get; }
+    public RxGeography Geography { get; }
 
     /// <summary>
     /// Pushes a position and, once every observer has seen it, raises a confinement breach if
     /// the vehicle has confinement areas and is inside none of them. On the Overlap tab the
-    /// pushed location is the vehicle's reach, the disc of <see cref="DemoParameters.Reach"/>
-    /// metres around <paramref name="position"/>, so the intersect and intersection queries
-    /// compare regions; the marker stays at <paramref name="position"/> itself.
+    /// pushed location is the vehicle's reach, the exact <see cref="GeoCircle"/> of
+    /// <see cref="DemoParameters.Reach"/> metres around <paramref name="position"/>, so the
+    /// intersect and intersection queries compare regions; the marker stays at
+    /// <paramref name="position"/> itself.
     /// </summary>
     /// <remarks>
     /// The breach cannot be an inverted intersect observer ("not intersecting, so red"): tree
@@ -47,16 +47,18 @@ internal sealed class MovingObject
     /// location, so a vehicle far outside a confinement area never hears from that area's
     /// observer at all. Instead each push is bracketed: the flag is cleared, the
     /// <see cref="ConfinementObserver"/>s set it if any area contains the vehicle, and the
-    /// decision is taken after <see cref="RxSqlGeography.OnNext"/> returns. That relies on the
+    /// decision is taken after <see cref="RxGeography.OnNext"/> returns. That relies on the
     /// demo's visualised mode (forced in <see cref="App"/>), which notifies location and zone
     /// observers synchronously inside OnNext, so the marker's reset to Blue has happened by then.
     /// </remarks>
-    public void PushLocation(SqlGeography position)
+    public void PushLocation(GeoPointShape position)
     {
-        double reach = DemoParameters.ActiveScenario == Scenario.RxRxIntersection ? DemoParameters.Reach : 0;
-        fix = new VehicleFix(new GeoPoint(position.Lat.Value, position.Long.Value), reach);
+        GeoCircle? reach = DemoParameters.ActiveScenario == Scenario.RxRxIntersection
+            ? new GeoCircle(position.Position, DemoParameters.Reach)
+            : null;
+        fix = new VehicleFix(position.Position, reach);
         insideConfinementThisPush = false;
-        Geography.OnNext(reach > 0 ? position.STBuffer(reach) : position);
+        Geography.OnNext(reach ?? (GeoShape)position);
         if (confinementKeys.Count > 0 && !insideConfinementThisPush)
             marker.ApplyColor(VehicleColor.Red);
     }
@@ -82,7 +84,7 @@ internal sealed class MovingObject
         }
     }
 
-    public void SubscribeDistance(string name, SqlGeography polygon)
+    public void SubscribeDistance(string name, GeoShape polygon)
     {
         string key = AreaKey(name);
         if (!subscriptions.ContainsKey(key))
@@ -104,7 +106,7 @@ internal sealed class MovingObject
     /// Watches this vehicle's relation to <paramref name="other"/> with the given query.
     /// Returns false if the pair is already watched.
     /// </summary>
-    public bool WatchPair(VehiclePair pair, RxSqlGeography other, PairQuery query)
+    public bool WatchPair(VehiclePair pair, RxGeography other, PairQuery query)
     {
         if (subscriptions.ContainsKey(pair.SubscriptionKey))
             return false;

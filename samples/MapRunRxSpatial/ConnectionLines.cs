@@ -1,3 +1,5 @@
+using RxSpatial.Geo;
+
 namespace MapRunRxSpatial;
 
 /// <summary>How a convoy connection line is drawn in each distance band.</summary>

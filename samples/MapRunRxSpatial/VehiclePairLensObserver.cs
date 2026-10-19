@@ -1,4 +1,4 @@
-using Microsoft.SqlServer.Types;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
@@ -7,7 +7,7 @@ namespace MapRunRxSpatial;
 /// reaches overlap; an empty intersection removes it. Both vehicles of the pair update the
 /// same shape.
 /// </summary>
-internal sealed class VehiclePairLensObserver(VehiclePair pair, VehicleMarker marker) : VehicleObserverBase<SqlGeography>(marker)
+internal sealed class VehiclePairLensObserver(VehiclePair pair, VehicleMarker marker) : VehicleObserverBase<GeoShape>(marker)
 {
-    public override void OnNext(SqlGeography lens) => Marker.UpdateLens(pair, lens);
+    public override void OnNext(GeoShape lens) => Marker.UpdateLens(pair, lens);
 }

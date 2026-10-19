@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
@@ -13,6 +14,13 @@ namespace MapRunRxSpatial;
 /// </summary>
 internal sealed class MapLibreMap(WebView2 webView)
 {
+    /// <summary>
+    /// Vertices of a drawn reach circle: as many as map.html drew itself before, which keeps
+    /// the twenty markers' messages small at 25 updates a second. The chord sag at the 3 km
+    /// maximum reach is under 4 m, finer than a pixel at the Overlap tab's zoom.
+    /// </summary>
+    private const int ReachSegments = 64;
+
     private readonly List<string> pending = [];
     private bool ready;
 
@@ -37,14 +45,16 @@ internal sealed class MapLibreMap(WebView2 webView)
     }
 
     /// <summary>
-    /// Places (or moves) a vehicle marker. A positive <paramref name="reach"/> also draws the
-    /// vehicle's reach circle of that radius in metres around it (the Overlap tab); 0 removes it.
+    /// Places (or moves) a vehicle marker. A non-null <paramref name="reach"/> also draws the
+    /// vehicle's reach circle (the Overlap tab); null removes it. The circle's outline comes
+    /// from <see cref="GeoOperations.ToVertices"/>, so it is exactly the disc the queries use.
     /// </summary>
-    public void SetMarker(string id, string label, double latitude, double longitude, MarkerStyle style, double reach)
+    public void SetMarker(string id, string label, GeoPoint position, MarkerStyle style, GeoCircle? reach)
         => Send(new
         {
-            cmd = "setMarker", id, label, lat = latitude, lon = longitude,
-            fill = style.Fill, border = style.Border, text = style.Text, shape = style.Shape, reach,
+            cmd = "setMarker", id, label, lat = position.Latitude, lon = position.Longitude,
+            fill = style.Fill, border = style.Border, text = style.Text, shape = style.Shape,
+            reach = reach is null ? null : Ring(GeoOperations.ToVertices(reach, ReachSegments)),
         });
 
     public void SetMarkerColor(string id, MarkerStyle style)
@@ -142,6 +152,20 @@ internal sealed class MapLibreMap(WebView2 webView)
             coordinates.Add([point.Longitude, point.Latitude]);
 
         return coordinates;
+    }
+
+    /// <summary>
+    /// A closed GeoJSON linear ring ([longitude, latitude], first point repeated last) through
+    /// <paramref name="vertices"/>, rounded to about 0.1 m to keep the web messages small.
+    /// </summary>
+    public static double[][] Ring(IReadOnlyList<GeoPoint> vertices)
+    {
+        double[][] ring = new double[vertices.Count + 1][];
+        for (int i = 0; i < vertices.Count; i++)
+            ring[i] = [Math.Round(vertices[i].Longitude, 6), Math.Round(vertices[i].Latitude, 6)];
+
+        ring[^1] = ring[0];
+        return ring;
     }
 
     private void Send(object command)

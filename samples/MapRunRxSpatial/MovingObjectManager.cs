@@ -1,8 +1,7 @@
 using System.Globalization;
 using System.IO;
 using System.Windows.Threading;
-using Microsoft.SqlServer.Types;
-using RxSpatial.SqlServer;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
@@ -46,10 +45,10 @@ internal sealed class MovingObjectManager
     public bool TrafficStarted { get; private set; }
 
     /// <summary>The south-west corner of the rectangle every recorded trajectory stays inside.</summary>
-    public GeoPoint TrajectorySouthWest { get; private set; } = new(double.MaxValue, double.MaxValue);
+    public GeoPoint TrajectorySouthWest { get; private set; }
 
     /// <summary>The north-east corner of the rectangle every recorded trajectory stays inside.</summary>
-    public GeoPoint TrajectoryNorthEast { get; private set; } = new(double.MinValue, double.MinValue);
+    public GeoPoint TrajectoryNorthEast { get; private set; }
 
     /// <summary>
     /// Raised (on the UI thread) when the last pair waiting for its vehicles is watched, so a
@@ -86,7 +85,7 @@ internal sealed class MovingObjectManager
             vehicle.SubscribeIntersect(area);
     }
 
-    public void SubscribeDistanceToNewPolygon(string name, SqlGeography polygon)
+    public void SubscribeDistanceToNewPolygon(string name, GeoShape polygon)
     {
         foreach (MovingObject vehicle in vehicles.Values)
             vehicle.SubscribeDistance(name, polygon);
@@ -193,7 +192,7 @@ internal sealed class MovingObjectManager
 
     /// <summary>
     /// Removes every vehicle so the next traffic tick recreates them - used when the
-    /// active tab changes the spatial backend, which is baked into each RxSqlGeography
+    /// active tab changes the spatial backend, which is baked into each RxGeography
     /// at construction.
     /// </summary>
     public void ClearAllVehicles()
@@ -213,6 +212,7 @@ internal sealed class MovingObjectManager
 
     private void LoadTrajectories()
     {
+        double south = double.MaxValue, west = double.MaxValue, north = double.MinValue, east = double.MinValue;
         for (int i = 0; i < TrajectoryCount; i++)
         {
             List<TrajectoryAction> actions = [];
@@ -228,16 +228,21 @@ internal sealed class MovingObjectManager
                 // The data files use '.' decimals; parsing must not depend on the OS locale.
                 double latitude = double.Parse(fields[3], CultureInfo.InvariantCulture);
                 double longitude = double.Parse(fields[4], CultureInfo.InvariantCulture);
-                TrajectorySouthWest = new GeoPoint(Math.Min(TrajectorySouthWest.Latitude, latitude), Math.Min(TrajectorySouthWest.Longitude, longitude));
-                TrajectoryNorthEast = new GeoPoint(Math.Max(TrajectoryNorthEast.Latitude, latitude), Math.Max(TrajectoryNorthEast.Longitude, longitude));
+                south = Math.Min(south, latitude);
+                west = Math.Min(west, longitude);
+                north = Math.Max(north, latitude);
+                east = Math.Max(east, longitude);
                 actions.Add(new TrajectoryAction(
                     i,
                     ParseOperation(fields[2]),
-                    SqlGeography.Point(latitude, longitude, 4326)));
+                    new GeoPointShape(latitude, longitude)));
             }
 
             trajectories[i] = new TrajectoryCursor(actions);
         }
+
+        TrajectorySouthWest = new GeoPoint(south, west);
+        TrajectoryNorthEast = new GeoPoint(north, east);
     }
 
     private static TrajectoryOperation ParseOperation(string status) => status switch
@@ -300,7 +305,7 @@ internal sealed class MovingObjectManager
         }
     }
 
-    private void AddVehicle(int id, SqlGeography location)
+    private void AddVehicle(int id, GeoPointShape location)
     {
         // A trajectory can replay an add for a vehicle that already exists; treat it
         // as a position update instead of crashing on the duplicate dictionary key.
@@ -324,7 +329,7 @@ internal sealed class MovingObjectManager
         }
     }
 
-    private void MoveVehicle(int id, SqlGeography location)
+    private void MoveVehicle(int id, GeoPointShape location)
     {
         if (vehicles.TryGetValue(id, out MovingObject? vehicle))
             vehicle.PushLocation(location);
@@ -344,7 +349,7 @@ internal sealed class MovingObjectManager
         Delete,
     }
 
-    private sealed record TrajectoryAction(int Id, TrajectoryOperation Operation, SqlGeography? Location);
+    private sealed record TrajectoryAction(int Id, TrajectoryOperation Operation, GeoPointShape? Location);
 
     /// <summary>Replays a vehicle's action list, looping past the initial "newpoint" action.</summary>
     private sealed class TrajectoryCursor(List<TrajectoryAction> actions)

@@ -18,8 +18,9 @@ internal static class DistanceBands
     /// <summary>Below this fraction two vehicles breach the minimum safe distance.</summary>
     public const double TooCloseFraction = 1.0 / 7;
 
-    // RxSpatial reports NaN when SQL Server cannot compute a distance (different SRIDs, an
-    // empty geography). Every comparison with NaN is false, so without the explicit check NaN
+    // RxSpatial reports NaN when it cannot compute a distance (an empty shape, or a nearly
+    // antipodal pair the geodesic solver cannot converge on; the RxSql* facades also for
+    // different SRIDs). Every comparison with NaN is false, so without the explicit check NaN
     // would skip TooClose and OutOfRange and land in NearLimit (green). An unknown distance
     // is not "near": it is OutOfRange.
 

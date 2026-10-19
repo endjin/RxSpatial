@@ -1,6 +1,5 @@
 using System.Globalization;
-using Microsoft.SqlServer.Types;
-using RxSpatial.SqlServer;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
@@ -20,21 +19,21 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lin
     private bool visible;
 
     /// <summary>Redraws the pair's shared line between this vehicle and the other one.</summary>
-    public void UpdateConnectionLine(VehiclePair pair, SqlGeography otherLocation, DistanceBand band)
+    public void UpdateConnectionLine(VehiclePair pair, GeoPoint otherPosition, DistanceBand band)
     {
         pairs.Add(pair);
-        lines.Update(pair, position, new GeoPoint(otherLocation.Lat.Value, otherLocation.Long.Value), band);
+        lines.Update(pair, position, otherPosition, band);
     }
 
     /// <summary>Redraws (or removes, when it is empty) the pair's lens.</summary>
-    public void UpdateLens(VehiclePair pair, SqlGeography lens)
+    public void UpdateLens(VehiclePair pair, GeoShape lens)
     {
         lensPairs.Add(pair);
         overlaps.UpdateLens(pair, lens);
     }
 
     /// <summary>Redraws (or removes, when it is empty) the part of this vehicle's reach inside a zone.</summary>
-    public void UpdateZoneOverlap(string shapeId, SqlGeography overlap)
+    public void UpdateZoneOverlap(string shapeId, GeoShape overlap)
     {
         zoneOverlapIds.Add(shapeId);
         overlaps.UpdateZoneOverlap(shapeId, overlap);
@@ -56,7 +55,7 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lin
     }
 
     /// <summary>
-    /// Moves the marker (and its reach circle, if any) and resets it to Blue. RxSqlGeography
+    /// Moves the marker (and its reach circle, if any) and resets it to Blue. RxGeography
     /// notifies location observers before query observers, so this runs first and the queries
     /// then raise the colour again.
     /// </summary>
@@ -65,13 +64,7 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lin
         position = fix.Centre;
         color = VehicleColor.Blue;
         visible = true;
-        map.SetMarker(
-            markerId,
-            id.ToString(CultureInfo.InvariantCulture),
-            position.Latitude,
-            position.Longitude,
-            color.Style,
-            fix.Reach);
+        map.SetMarker(markerId, id.ToString(CultureInfo.InvariantCulture), position, color.Style, fix.Reach);
     }
 
     public void Remove()

@@ -1,5 +1,5 @@
 using RxSpatial;
-using RxSpatial.SqlServer;
+using RxSpatial.Geo;
 
 namespace MapRunRxSpatial;
 
@@ -7,7 +7,7 @@ namespace MapRunRxSpatial;
 /// Like <see cref="VehiclePairDistanceObserver"/>, but also draws the pair's connection line,
 /// styled by the distance band. The line is redrawn in every band, so it never goes stale.
 /// </summary>
-internal sealed class VehiclePairConnectionObserver(VehiclePair pair, RxSqlGeography other, VehicleMarker marker)
+internal sealed class VehiclePairConnectionObserver(VehiclePair pair, RxGeography other, VehicleMarker marker)
     : VehicleObserverBase<double>(marker)
 {
     public override void OnNext(double distance)
@@ -15,7 +15,10 @@ internal sealed class VehiclePairConnectionObserver(VehiclePair pair, RxSqlGeogr
         DistanceBand band = DistanceBands.ForPair(distance, DemoParameters.ObserveDistance);
         Marker.ApplyColor(DistanceBands.ToColor(band, VehicleColor.Gray));
 
-        // An RxRx result is only produced once both vehicles have a location.
-        Marker.UpdateConnectionLine(pair, other.Location!, band);
+        // An RxRx result is only produced once both vehicles have a location, and Convoy link
+        // pushes bare points (only the Overlap tab pushes reach discs), so the other end is a
+        // GeoPointShape.
+        if (other.Location is GeoPointShape otherPoint)
+            Marker.UpdateConnectionLine(pair, otherPoint.Position, band);
     }
 }
