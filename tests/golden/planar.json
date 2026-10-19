@@ -1,0 +1,656 @@
+{
+  "schema": "rxspatial-golden/1",
+  "space": "planar",
+  "source": "Microsoft.SqlServer.Types 17.0.1000.7 SqlGeometry, SRID 0; coordinate units",
+  "notes": "Golden values recorded from SQL Server by tests/RxSpatial.Tests/Golden/GoldenValueRecorder.cs (set RXSPATIAL_RECORD_GOLDEN=1 and run the tests to re-record). Schema: see GoldenFile.cs. Circles are Point.STBuffer(radius): SQL Server approximates them with a 128-vertex polygon.",
+  "cases": [
+    {
+      "id": "point-point/3-4-5",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "x": 0,
+        "y": 0
+      },
+      "b": {
+        "type": "point",
+        "x": 3,
+        "y": 4
+      },
+      "sql": {
+        "distance": 5,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/diagonal",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "x": 150,
+        "y": 150
+      },
+      "b": {
+        "type": "point",
+        "x": 350,
+        "y": 350
+      },
+      "sql": {
+        "distance": 282.842712474619,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/same",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "x": 500,
+        "y": 500
+      },
+      "b": {
+        "type": "point",
+        "x": 500,
+        "y": 500
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "circle-area/5",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 5
+      },
+      "sql": {
+        "area": 78.50827892386796
+      }
+    },
+    {
+      "id": "circle-area/20",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 20
+      },
+      "sql": {
+        "area": 1256.1324627818874
+      }
+    },
+    {
+      "id": "circle-area/50",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 50
+      },
+      "sql": {
+        "area": 7850.827892386773
+      }
+    },
+    {
+      "id": "circle-area/250",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 250
+      },
+      "sql": {
+        "area": 196270.6973096698
+      }
+    },
+    {
+      "id": "polygon-area/bay",
+      "category": "polygon-area",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "sql": {
+        "area": 10000
+      }
+    },
+    {
+      "id": "point-polygon/100,500",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "point",
+        "x": 100,
+        "y": 500
+      },
+      "sql": {
+        "distance": 350,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/300,500",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "point",
+        "x": 300,
+        "y": 500
+      },
+      "sql": {
+        "distance": 150,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/400,500",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "point",
+        "x": 400,
+        "y": 500
+      },
+      "sql": {
+        "distance": 50,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/500,500",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "point",
+        "x": 500,
+        "y": 500
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-polygon/50,50",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "point",
+        "x": 50,
+        "y": 50
+      },
+      "sql": {
+        "distance": 565.685424949238,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/600,700",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "point",
+        "x": 600,
+        "y": 700
+      },
+      "sql": {
+        "distance": 158.11388300841898,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/450,500",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "point",
+        "x": 450,
+        "y": 500
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "circle-polygon/50,50,r5",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "circle",
+        "x": 50,
+        "y": 50,
+        "radius": 5
+      },
+      "sql": {
+        "distance": 560.685424949238,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-polygon/500,500,r5",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "circle",
+        "x": 500,
+        "y": 500,
+        "radius": 5
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 78.50827892383677,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-polygon/350,350,r250",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "circle",
+        "x": 350,
+        "y": 350,
+        "radius": 250
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 8864.909944968502,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-polygon/560,500,r20",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "circle",
+        "x": 560,
+        "y": 500,
+        "radius": 20
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 245.50634054664988,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-polygon/600,500,r20",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "circle",
+        "x": 600,
+        "y": 500,
+        "radius": 20
+      },
+      "sql": {
+        "distance": 30.000000000000114,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/0,0/r50",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 50
+      },
+      "b": {
+        "type": "point",
+        "x": 0,
+        "y": 0
+      },
+      "clearance": -50,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/40,0/r50",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 50
+      },
+      "b": {
+        "type": "point",
+        "x": 40,
+        "y": 0
+      },
+      "clearance": -10,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/51,0/r50",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 50
+      },
+      "b": {
+        "type": "point",
+        "x": 51,
+        "y": 0
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.000000000000142,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-circle/500,500-510,500/r20",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "x": 500,
+        "y": 500,
+        "radius": 20
+      },
+      "b": {
+        "type": "circle",
+        "x": 510,
+        "y": 500,
+        "radius": 20
+      },
+      "clearance": -30,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 860.4188685443369,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-circle/100,100-500,500/r20",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "x": 100,
+        "y": 100,
+        "radius": 20
+      },
+      "b": {
+        "type": "circle",
+        "x": 500,
+        "y": 500,
+        "radius": 20
+      },
+      "clearance": 525.685424949238,
+      "sql": {
+        "distance": 525.6854249492382,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-circle/500,500-530,530/r50",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "x": 500,
+        "y": 500,
+        "radius": 50
+      },
+      "b": {
+        "type": "circle",
+        "x": 530,
+        "y": 530,
+        "radius": 50
+      },
+      "clearance": -57.57359312880715,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 3740.0309302482056,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-circle/0,0-99,0/r50",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 50
+      },
+      "b": {
+        "type": "circle",
+        "x": 99,
+        "y": 0,
+        "radius": 50
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 9.12260183994269,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-circle/0,0-10,0/r50",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "x": 0,
+        "y": 0,
+        "radius": 50
+      },
+      "b": {
+        "type": "circle",
+        "x": 10,
+        "y": 0,
+        "radius": 50
+      },
+      "clearance": -90,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 6852.694652145476,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "polygon-polygon/overlap",
+      "category": "polygon-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "rectangle",
+        "minX": 500,
+        "minY": 500,
+        "maxX": 600,
+        "maxY": 600
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 2500,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "polygon-polygon/apart",
+      "category": "polygon-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "rectangle",
+        "minX": 600,
+        "minY": 700,
+        "maxX": 650,
+        "maxY": 800
+      },
+      "sql": {
+        "distance": 158.11388300841898,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "polygon-polygon/contained",
+      "category": "polygon-polygon",
+      "a": {
+        "type": "rectangle",
+        "minX": 450,
+        "minY": 450,
+        "maxX": 550,
+        "maxY": 550
+      },
+      "b": {
+        "type": "rectangle",
+        "minX": 475,
+        "minY": 475,
+        "maxX": 525,
+        "maxY": 525
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 2500,
+        "intersectionType": "Polygon"
+      }
+    }
+  ]
+}

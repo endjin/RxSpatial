@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Test-only geodesic oracle (Karney's algorithms); never a runtime dependency. -->
+    <PackageReference Include="GeographicLib.NET" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Shouldly" />
@@ -16,6 +18,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
     <ProjectReference Include="..\..\src\RxSpatial.Index\RxSpatial.Index.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SQL Server golden values (tests/golden), read by the fidelity tests on any OS. -->
+    <None Include="..\golden\*.json" Link="golden\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

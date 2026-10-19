@@ -1,0 +1,3628 @@
+{
+  "schema": "rxspatial-golden/1",
+  "space": "geodetic",
+  "source": "Microsoft.SqlServer.Types 17.0.1000.7 SqlGeography, SRID 4326; metres and square metres",
+  "notes": "Golden values recorded from SQL Server by tests/RxSpatial.Tests/Golden/GoldenValueRecorder.cs (set RXSPATIAL_RECORD_GOLDEN=1 and run the tests to re-record). Schema: see GoldenFile.cs. Circles are Point.STBuffer(radius): SQL Server approximates them with a 128-vertex polygon.",
+  "cases": [
+    {
+      "id": "point-point/10m/az0",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.620589941858746,
+        "lon": -122.3493
+      },
+      "sql": {
+        "distance": 10.000000000624528,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10m/az37",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62057183073442,
+        "lon": -122.3492199404278
+      },
+      "sql": {
+        "distance": 10.000000001911074,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10m/az90",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62049999992287,
+        "lon": -122.34916696998339
+      },
+      "sql": {
+        "distance": 10.000000000164652,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10m/az135",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62043640146235,
+        "lon": -122.34920593368723
+      },
+      "sql": {
+        "distance": 10.00000000023687,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10m/az225",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62043640146235,
+        "lon": -122.34939406631277
+      },
+      "sql": {
+        "distance": 10.00000000054969,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/100m/az0",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62139941852364,
+        "lon": -122.3493
+      },
+      "sql": {
+        "distance": 100.00000000120703,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/100m/az37",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.621218304789195,
+        "lon": -122.34849939440839
+      },
+      "sql": {
+        "distance": 100.00000000235548,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/100m/az90",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62049999228698,
+        "lon": -122.34796969983397
+      },
+      "sql": {
+        "distance": 100.00000000501626,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/100m/az135",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61986401112083,
+        "lon": -122.34835934713945
+      },
+      "sql": {
+        "distance": 100.00000000275406,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/100m/az225",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61986401112083,
+        "lon": -122.35024065286055
+      },
+      "sql": {
+        "distance": 100.00000000322905,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/1000m/az0",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.629494178859844,
+        "lon": -122.3493
+      },
+      "sql": {
+        "distance": 1000.0000020413238,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/1000m/az37",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.627682792360496,
+        "lon": -122.34129295696798
+      },
+      "sql": {
+        "distance": 1000.0000020525422,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/1000m/az90",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62049922869713,
+        "lon": -122.33599699846889
+      },
+      "sql": {
+        "distance": 1000.0000020745745,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/1000m/az135",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.614139760992536,
+        "lon": -122.3398944979927
+      },
+      "sql": {
+        "distance": 1000.0000020565468,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/1000m/az225",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.614139760992536,
+        "lon": -122.3587055020073
+      },
+      "sql": {
+        "distance": 1000.0000020564128,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/5000m/az0",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.66547075260713,
+        "lon": -122.3493
+      },
+      "sql": {
+        "distance": 5000.00025683441,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/5000m/az37",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.65640827856532,
+        "lon": -122.30924283288849
+      },
+      "sql": {
+        "distance": 5000.0002567603,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/5000m/az90",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62048071743255,
+        "lon": -122.28278500799738
+      },
+      "sql": {
+        "distance": 5000.000256631202,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/5000m/az135",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.58869102819938,
+        "lon": -122.30229529044557
+      },
+      "sql": {
+        "distance": 5000.000256732676,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/5000m/az225",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.58869102819938,
+        "lon": -122.39630470955443
+      },
+      "sql": {
+        "distance": 5000.00025673292,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10000m/az0",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.710441151017235,
+        "lon": -122.3493
+      },
+      "sql": {
+        "distance": 9999.999999859625,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10000m/az37",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.69230232714892,
+        "lon": -122.26913071215871
+      },
+      "sql": {
+        "distance": 9999.999999991114,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10000m/az90",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.620422869784164,
+        "lon": -122.21627011382532
+      },
+      "sql": {
+        "distance": 10000.000000220667,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10000m/az135",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.55686264114143,
+        "lon": -122.25534752329199
+      },
+      "sql": {
+        "distance": 10000.000000038526,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/10000m/az225",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.55686264114143,
+        "lon": -122.44325247670801
+      },
+      "sql": {
+        "distance": 10000.000000038548,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/50000m/az0",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 48.07019159411316,
+        "lon": -122.3493
+      },
+      "sql": {
+        "distance": 49999.99999825738,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/50000m/az37",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.97893802699811,
+        "lon": -121.94624059261187
+      },
+      "sql": {
+        "distance": 49999.9999994124,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/50000m/az90",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.618571787796974,
+        "lon": -121.68416622114432
+      },
+      "sql": {
+        "distance": 50000.000001424516,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/50000m/az135",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.30154189510113,
+        "lon": -121.8818035727321
+      },
+      "sql": {
+        "distance": 49999.99999981183,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-point/50000m/az225",
+      "category": "point-point",
+      "a": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.30154189510113,
+        "lon": -122.8167964272679
+      },
+      "sql": {
+        "distance": 49999.99999981138,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-area/50m",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 50
+      },
+      "sql": {
+        "area": 7850.827490437776
+      }
+    },
+    {
+      "id": "circle-area/100m",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 100
+      },
+      "sql": {
+        "area": 31403.309962026775
+      }
+    },
+    {
+      "id": "circle-area/500m",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "sql": {
+        "area": 785082.7478797138
+      }
+    },
+    {
+      "id": "circle-area/2000m",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "sql": {
+        "area": 12561323.67531681
+      }
+    },
+    {
+      "id": "circle-area/5000m",
+      "category": "circle-area",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 5000
+      },
+      "sql": {
+        "area": 78508262.79526949
+      }
+    },
+    {
+      "id": "polygon-area/zone",
+      "category": "polygon-area",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "sql": {
+        "area": 6018874.956352234
+      }
+    },
+    {
+      "id": "polygon-area/overlapping",
+      "category": "polygon-area",
+      "a": {
+        "type": "rectangle",
+        "south": 47.61,
+        "west": -122.35,
+        "north": 47.63,
+        "east": -122.3
+      },
+      "sql": {
+        "area": 8357811.575813293
+      }
+    },
+    {
+      "id": "polygon-area/contained",
+      "category": "polygon-area",
+      "a": {
+        "type": "rectangle",
+        "south": 47.605,
+        "west": -122.36,
+        "north": 47.61,
+        "east": -122.34
+      },
+      "sql": {
+        "area": 835978.5561580658
+      }
+    },
+    {
+      "id": "polygon-area/containing",
+      "category": "polygon-area",
+      "a": {
+        "type": "rectangle",
+        "south": 47.5,
+        "west": -122.45,
+        "north": 47.75,
+        "east": -122.2
+      },
+      "sql": {
+        "area": 522312948.3871765
+      }
+    },
+    {
+      "id": "polygon-area/apart",
+      "category": "polygon-area",
+      "a": {
+        "type": "rectangle",
+        "south": 47.64,
+        "west": -122.3,
+        "north": 47.65,
+        "east": -122.28
+      },
+      "sql": {
+        "area": 1670772.6661548615
+      }
+    },
+    {
+      "id": "point-circle/route/47.7,-122.4",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.7,
+        "lon": -122.4
+      },
+      "clearance": 9124.591562799353,
+      "sql": {
+        "distance": 9124.656266892196,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/route/47.66,-122.37",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.66,
+        "lon": -122.37
+      },
+      "clearance": 4159.058501890037,
+      "sql": {
+        "distance": 4159.062859728132,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/route/47.63,-122.355",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.63,
+        "lon": -122.355
+      },
+      "clearance": 639.8235263530505,
+      "sql": {
+        "distance": 639.8418928155671,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/route/47.6205,-122.3493",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "clearance": -500,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/route/47.625,-122.3493",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.625,
+        "lon": -122.3493
+      },
+      "clearance": 0.3234090499307172,
+      "sql": {
+        "distance": 0.34560357504164946,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/route/47.6205,-122.356",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.356
+      },
+      "clearance": 3.6457311191639405,
+      "sql": {
+        "distance": 3.658159632035379,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/route/47.62,-122.36",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62,
+        "lon": -122.36
+      },
+      "clearance": 306.25239535046376,
+      "sql": {
+        "distance": 306.39478417669557,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-5m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62461319527023,
+        "lon": -122.3467798373493
+      },
+      "clearance": -5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-5m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622203591771964,
+        "lon": -122.34321606872587
+      },
+      "clearance": -5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-5m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61879608509606,
+        "lon": -122.34321646403616
+      },
+      "clearance": -5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-5m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61638674641278,
+        "lon": -122.3467802326596
+      },
+      "clearance": -5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-5m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61638674641278,
+        "lon": -122.3518197673404
+      },
+      "clearance": -5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-5m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61879608509606,
+        "lon": -122.35538353596384
+      },
+      "clearance": -5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-5m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622203591771964,
+        "lon": -122.35538393127413
+      },
+      "clearance": -5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-5m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62461319527023,
+        "lon": -122.3518201626507
+      },
+      "clearance": -5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-2m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624638123548586,
+        "lon": -122.34676456243086
+      },
+      "clearance": -2,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-2m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62221391558538,
+        "lon": -122.34317919520998
+      },
+      "clearance": -2,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-2m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61878575735402,
+        "lon": -122.34317959532645
+      },
+      "clearance": -2,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-2m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61636181742541,
+        "lon": -122.34676496254733
+      },
+      "clearance": -2,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-2m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61636181742541,
+        "lon": -122.35183503745267
+      },
+      "clearance": -2,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-2m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61878575735402,
+        "lon": -122.35542040467355
+      },
+      "clearance": -2,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-2m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62221391558538,
+        "lon": -122.35542080479001
+      },
+      "clearance": -2,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-2m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624638123548586,
+        "lon": -122.35183543756914
+      },
+      "clearance": -2,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-1m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62464643297424,
+        "lon": -122.34675947078816
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-1m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622217356853874,
+        "lon": -122.3431669040348
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-1m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.618782314770705,
+        "lon": -122.34316730575978
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-1m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61635350776247,
+        "lon": -122.34675987251313
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-1m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61635350776247,
+        "lon": -122.35184012748687
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-1m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.618782314770705,
+        "lon": -122.35543269424022
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-1m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622217356853874,
+        "lon": -122.3554330959652
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-1m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62464643297424,
+        "lon": -122.35184052921184
+      },
+      "clearance": -1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.5m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624650587686965,
+        "lon": -122.3467569249662
+      },
+      "clearance": -0.5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.5m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62221907748763,
+        "lon": -122.34316075844661
+      },
+      "clearance": -0.5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.5m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61878059347856,
+        "lon": -122.34316116097705
+      },
+      "clearance": -0.5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.5m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.616349352930904,
+        "lon": -122.34675732749663
+      },
+      "clearance": -0.5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.5m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.616349352930904,
+        "lon": -122.35184267250337
+      },
+      "clearance": -0.5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.5m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61878059347856,
+        "lon": -122.35543883902295
+      },
+      "clearance": -0.5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.5m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62221907748763,
+        "lon": -122.35543924155338
+      },
+      "clearance": -0.5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.5m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624650587686965,
+        "lon": -122.3518430750338
+      },
+      "clearance": -0.5,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.25m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624652665043314,
+        "lon": -122.34675565205507
+      },
+      "clearance": -0.25,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.25m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62221993780438,
+        "lon": -122.34315768565236
+      },
+      "clearance": -0.25,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.25m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877973283235,
+        "lon": -122.34315808858582
+      },
+      "clearance": -0.25,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.25m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6163472755151,
+        "lon": -122.34675605498853
+      },
+      "clearance": -0.25,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.25m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6163472755151,
+        "lon": -122.35184394501147
+      },
+      "clearance": -0.25,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.25m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877973283235,
+        "lon": -122.35544191141418
+      },
+      "clearance": -0.25,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.25m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62221993780438,
+        "lon": -122.35544231434764
+      },
+      "clearance": -0.25,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.25m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624652665043314,
+        "lon": -122.35184434794493
+      },
+      "clearance": -0.25,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.1m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624653911457116,
+        "lon": -122.34675488830834
+      },
+      "clearance": -0.1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.1m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6222204539944,
+        "lon": -122.34315584197576
+      },
+      "clearance": -0.1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.1m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6187792164446,
+        "lon": -122.34315624515115
+      },
+      "clearance": -0.1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.1m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.616346029065625,
+        "lon": -122.34675529148373
+      },
+      "clearance": -0.1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.1m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.616346029065625,
+        "lon": -122.35184470851627
+      },
+      "clearance": -0.1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.1m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6187792164446,
+        "lon": -122.35544375484885
+      },
+      "clearance": -0.1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.1m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6222204539944,
+        "lon": -122.35544415802424
+      },
+      "clearance": -0.1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/-0.1m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624653911457116,
+        "lon": -122.35184511169166
+      },
+      "clearance": -0.1,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.1m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624655573342174,
+        "lon": -122.34675386997931
+      },
+      "clearance": 0.1,
+      "sql": {
+        "distance": 0.12109450459750745,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.1m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6222211422477,
+        "lon": -122.34315338374024
+      },
+      "clearance": 0.1,
+      "sql": {
+        "distance": 0.11516751803271304,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.1m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877852792754,
+        "lon": -122.3431537872383
+      },
+      "clearance": 0.1,
+      "sql": {
+        "distance": 0.11503256548891581,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.1m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61634436713297,
+        "lon": -122.34675427347737
+      },
+      "clearance": 0.1,
+      "sql": {
+        "distance": 0.1209613371443068,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.1m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61634436713297,
+        "lon": -122.35184572652263
+      },
+      "clearance": 0.1,
+      "sql": {
+        "distance": 0.12109711749853819,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.1m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877852792754,
+        "lon": -122.3554462127617
+      },
+      "clearance": 0.1,
+      "sql": {
+        "distance": 0.11516667352102884,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.1m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6222211422477,
+        "lon": -122.35544661625975
+      },
+      "clearance": 0.1,
+      "sql": {
+        "distance": 0.11502863838932165,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.1m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624655573342174,
+        "lon": -122.35184613002069
+      },
+      "clearance": 0.1,
+      "sql": {
+        "distance": 0.12095730676267141,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.25m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624656819755955,
+        "lon": -122.3467531062325
+      },
+      "clearance": 0.25,
+      "sql": {
+        "distance": 0.2710547309420939,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.25m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622221658437645,
+        "lon": -122.34315154006356
+      },
+      "clearance": 0.25,
+      "sql": {
+        "distance": 0.2651277422686533,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.25m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877801153971,
+        "lon": -122.34315194380369
+      },
+      "clearance": 0.25,
+      "sql": {
+        "distance": 0.26499283227984,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.25m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61634312068346,
+        "lon": -122.34675350997264
+      },
+      "clearance": 0.25,
+      "sql": {
+        "distance": 0.27092160637517465,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.25m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61634312068346,
+        "lon": -122.35184649002736
+      },
+      "clearance": 0.25,
+      "sql": {
+        "distance": 0.27105734577614904,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.25m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877801153971,
+        "lon": -122.35544805619631
+      },
+      "clearance": 0.25,
+      "sql": {
+        "distance": 0.26512689888037105,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.25m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622221658437645,
+        "lon": -122.35544845993644
+      },
+      "clearance": 0.25,
+      "sql": {
+        "distance": 0.26498890349491916,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.25m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624656819755955,
+        "lon": -122.3518468937675
+      },
+      "clearance": 0.25,
+      "sql": {
+        "distance": 0.27091757381364595,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.5m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624658897112255,
+        "lon": -122.34675183332106
+      },
+      "clearance": 0.5,
+      "sql": {
+        "distance": 0.5209884404952441,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.5m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62222251875415,
+        "lon": -122.343148467269
+      },
+      "clearance": 0.5,
+      "sql": {
+        "distance": 0.5150614500584674,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.5m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877715089326,
+        "lon": -122.34314887141278
+      },
+      "clearance": 0.5,
+      "sql": {
+        "distance": 0.5149266094551649,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.5m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61634104326761,
+        "lon": -122.34675223746486
+      },
+      "clearance": 0.5,
+      "sql": {
+        "distance": 0.5208553870074957,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.5m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61634104326761,
+        "lon": -122.35184776253514
+      },
+      "clearance": 0.5,
+      "sql": {
+        "distance": 0.5209910563789818,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.5m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877715089326,
+        "lon": -122.35545112858722
+      },
+      "clearance": 0.5,
+      "sql": {
+        "distance": 0.5150606065681307,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.5m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62222251875415,
+        "lon": -122.355451532731
+      },
+      "clearance": 0.5,
+      "sql": {
+        "distance": 0.5149226784767806,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/0.5m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624658897112255,
+        "lon": -122.35184816667893
+      },
+      "clearance": 0.5,
+      "sql": {
+        "distance": 0.5208513512720004,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/1m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62466305182481,
+        "lon": -122.3467492874979
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.0208558591939343,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/1m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62222423938692,
+        "lon": -122.3431423216796
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.0149288654396709,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/1m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877542960012,
+        "lon": -122.34314272663126
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.0147941615218576,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/1m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61633688843588,
+        "lon": -122.34674969244956
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.020722945101825,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/1m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61633688843588,
+        "lon": -122.35185030755044
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.020858477895231,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/1m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61877542960012,
+        "lon": -122.35545727336874
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.0149280197021682,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/1m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62222423938692,
+        "lon": -122.3554576783204
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.014790227692307,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/1m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62466305182481,
+        "lon": -122.3518507125021
+      },
+      "clearance": 1,
+      "sql": {
+        "distance": 1.0207189057058232,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/2m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62467136124973,
+        "lon": -122.34674419585035
+      },
+      "clearance": 2,
+      "sql": {
+        "distance": 2.0205906981584674,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/2m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622227680651456,
+        "lon": -122.34313003049958
+      },
+      "clearance": 2,
+      "sql": {
+        "distance": 2.0146636936833526,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/2m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.618771987012856,
+        "lon": -122.34313043706942
+      },
+      "clearance": 2,
+      "sql": {
+        "distance": 2.014529267615198,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/2m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61632857877224,
+        "lon": -122.3467446024202
+      },
+      "clearance": 2,
+      "sql": {
+        "distance": 2.020458063479581,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/2m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61632857877224,
+        "lon": -122.3518553975798
+      },
+      "clearance": 2,
+      "sql": {
+        "distance": 2.0205933220427004,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/2m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.618771987012856,
+        "lon": -122.35546956293058
+      },
+      "clearance": 2,
+      "sql": {
+        "distance": 2.0146628493766845,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/2m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622227680651456,
+        "lon": -122.35546996950042
+      },
+      "clearance": 2,
+      "sql": {
+        "distance": 2.014525324250962,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/2m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.62467136124973,
+        "lon": -122.35185580414965
+      },
+      "clearance": 2,
+      "sql": {
+        "distance": 2.02045401670634,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/5m/az22.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624696289523094,
+        "lon": -122.34672892089803
+      },
+      "clearance": 5,
+      "sql": {
+        "distance": 5.019795215992513,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/5m/az67.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622238004437186,
+        "lon": -122.34309315694983
+      },
+      "clearance": 5,
+      "sql": {
+        "distance": 5.0138681854835925,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/5m/az112.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61876165924313,
+        "lon": -122.3430935683936
+      },
+      "clearance": 5,
+      "sql": {
+        "distance": 5.013734585506973,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/5m/az157.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61630364977986,
+        "lon": -122.3467293323418
+      },
+      "clearance": 5,
+      "sql": {
+        "distance": 5.019663420389174,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/5m/az202.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61630364977986,
+        "lon": -122.3518706676582
+      },
+      "clearance": 5,
+      "sql": {
+        "distance": 5.01979785611778,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/5m/az247.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.61876165924313,
+        "lon": -122.3555064316064
+      },
+      "clearance": 5,
+      "sql": {
+        "distance": 5.013867334521008,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/5m/az292.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.622238004437186,
+        "lon": -122.35550684305016
+      },
+      "clearance": 5,
+      "sql": {
+        "distance": 5.013730620557932,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-circle/boundary/5m/az337.5",
+      "category": "point-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 500
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.624696289523094,
+        "lon": -122.35187107910197
+      },
+      "clearance": 5,
+      "sql": {
+        "distance": 5.01965934857348,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-circle/lens/500m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.622541484030364,
+        "lon": -122.34337323863083,
+        "radius": 2000
+      },
+      "clearance": -3500.000000000802,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 10566953.90837143,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-circle/lens/1000m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.62458266111939,
+        "lon": -122.33744601579525,
+        "radius": 2000
+      },
+      "clearance": -2999.9999999997226,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 8604229.295841873,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-circle/lens/2000m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.628664094291814,
+        "lon": -122.3255901857263,
+        "radius": 2000
+      },
+      "clearance": -2000.0000000000225,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 4910138.930846296,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-circle/lens/3000m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.632744299154204,
+        "lon": -122.3137325097962,
+        "radius": 2000
+      },
+      "clearance": -999.9999999994752,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 1810975.2936636508,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-circle/lens/3900m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.63641543302515,
+        "lon": -122.30305902325077,
+        "radius": 2000
+      },
+      "clearance": -99.99999999996817,
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 58705.66208234429,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-circle/lens/3999m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.63681919698109,
+        "lon": -122.3018848484523,
+        "radius": 2000
+      },
+      "clearance": -0.9999999999768079,
+      "sql": {
+        "distance": 0.0876404781444551,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-circle/lens/4001m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.63682735370455,
+        "lon": -122.30186112756287,
+        "radius": 2000
+      },
+      "clearance": 0.9999999998190106,
+      "sql": {
+        "distance": 2.0875991898418005,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-circle/lens/4100m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.63723110537134,
+        "lon": -122.30068693430772,
+        "radius": 2000
+      },
+      "clearance": 99.99999999967349,
+      "sql": {
+        "distance": 101.0855641481673,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-circle/apart/4500m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.60664332857044,
+        "lon": -122.29306155788849,
+        "radius": 2000
+      },
+      "clearance": 499.99999999988995,
+      "sql": {
+        "distance": 500.25482806963976,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-circle/apart/6000m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.6020183057296,
+        "lon": -122.27432201521233,
+        "radius": 2000
+      },
+      "clearance": 2000.0000000001555,
+      "sql": {
+        "distance": 2000.0920712032694,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-circle/apart/10000m",
+      "category": "circle-circle",
+      "a": {
+        "type": "circle",
+        "lat": 47.6205,
+        "lon": -122.3493,
+        "radius": 2000
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.58966993242741,
+        "lon": -122.2243660578397,
+        "radius": 2000
+      },
+      "clearance": 5999.999999999936,
+      "sql": {
+        "distance": 6000.050564059199,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-polygon/centre",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.609,
+        "lon": -122.35,
+        "radius": 2000
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 6018874.956353653,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-polygon/north-edge",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.621,
+        "lon": -122.35,
+        "radius": 2000
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 4382247.901789308,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-polygon/east-straddling",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.609,
+        "lon": -122.32,
+        "radius": 2000
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 2323140.368323695,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-polygon/north-grazing",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.634,
+        "lon": -122.35,
+        "radius": 2000
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 272099.32981711626,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "circle-polygon/outside",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.639,
+        "lon": -122.32,
+        "radius": 2000
+      },
+      "sql": {
+        "distance": 453.3489087894913,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "circle-polygon/needle-north",
+      "category": "circle-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "circle",
+        "lat": 47.66,
+        "lon": -122.35,
+        "radius": 2000
+      },
+      "sql": {
+        "distance": 2669.5243852193166,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "polygon-polygon/overlapping",
+      "category": "polygon-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "rectangle",
+        "south": 47.61,
+        "west": -122.35,
+        "north": 47.63,
+        "east": -122.3
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 1337328.8159565227,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "polygon-polygon/contained",
+      "category": "polygon-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "rectangle",
+        "south": 47.605,
+        "west": -122.36,
+        "north": 47.61,
+        "east": -122.34
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 835978.5561580689,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "polygon-polygon/containing",
+      "category": "polygon-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "rectangle",
+        "south": 47.5,
+        "west": -122.45,
+        "north": 47.75,
+        "east": -122.2
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 6018874.956353653,
+        "intersectionType": "Polygon"
+      }
+    },
+    {
+      "id": "polygon-polygon/apart",
+      "category": "polygon-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "rectangle",
+        "south": 47.64,
+        "west": -122.3,
+        "north": 47.65,
+        "east": -122.28
+      },
+      "sql": {
+        "distance": 3326.712732976357,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/3.6km-north",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.65,
+        "lon": -122.35
+      },
+      "sql": {
+        "distance": 3557.6692156345325,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/2.3km-east",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.609,
+        "lon": -122.3
+      },
+      "sql": {
+        "distance": 2255.624600779641,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/north-east-corner",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.64,
+        "lon": -122.3
+      },
+      "sql": {
+        "distance": 3326.7127329763794,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/needle",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.6205,
+        "lon": -122.3493
+      },
+      "sql": {
+        "distance": 277.7642747869,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    },
+    {
+      "id": "point-polygon/inside",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.609,
+        "lon": -122.35
+      },
+      "sql": {
+        "distance": 0,
+        "intersects": true,
+        "intersectionArea": 0,
+        "intersectionType": "Point"
+      }
+    },
+    {
+      "id": "point-polygon/south-west-corner",
+      "category": "point-polygon",
+      "a": {
+        "type": "rectangle",
+        "south": 47.6,
+        "west": -122.37,
+        "north": 47.618,
+        "east": -122.33
+      },
+      "b": {
+        "type": "point",
+        "lat": 47.59,
+        "lon": -122.38
+      },
+      "sql": {
+        "distance": 1342.300654086922,
+        "intersects": false,
+        "intersectionArea": 0,
+        "intersectionType": "Empty"
+      }
+    }
+  ]
+}
