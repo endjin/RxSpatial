@@ -9,7 +9,7 @@ namespace RxSpatial.Geo;
 public static class PlanarOperations
 {
     /// <summary>
-    /// The default number of segments for a full circle, in <see cref="ToVertices"/> and in
+    /// The default number of segments for a full circle, in <see cref="ToVertices(PlanarShape, int)"/> and in
     /// the arcs of intersection results: the number SQL Server's <c>STBuffer</c> uses.
     /// </summary>
     public const int DefaultSegments = 128;
@@ -124,13 +124,55 @@ public static class PlanarOperations
     {
         ArgumentNullException.ThrowIfNull(shape);
         ArgumentOutOfRangeException.ThrowIfLessThan(segments, 3);
-        return shape switch
+        PlanarPoint[] outline = new PlanarPoint[VertexCount(shape, segments)];
+        WriteVertices(shape, outline);
+        return outline;
+    }
+
+    /// <summary>
+    /// Writes the shape's outline (see <see cref="ToVertices(PlanarShape, int)"/>) into
+    /// <paramref name="destination"/> without allocating, for callers that redraw a shape on
+    /// every update.
+    /// </summary>
+    /// <returns>The number of vertices written: 0 for <see cref="PlanarEmpty"/>, 1 for a point, the polygon's vertex count, or <paramref name="segments"/> for a circle.</returns>
+    /// <exception cref="ArgumentNullException">The shape is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="segments"/> is less than 3.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than the outline.</exception>
+    public static int ToVertices(PlanarShape shape, Span<PlanarPoint> destination, int segments = DefaultSegments)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+        ArgumentOutOfRangeException.ThrowIfLessThan(segments, 3);
+        int count = VertexCount(shape, segments);
+        if (destination.Length < count)
+            throw new ArgumentException($"The outline has {count} vertices; the destination holds {destination.Length}.", nameof(destination));
+
+        WriteVertices(shape, destination[..count]);
+        return count;
+    }
+
+    private static int VertexCount(PlanarShape shape, int segments) => shape switch
+    {
+        PlanarPointShape => 1,
+        PlanarCircle => segments,
+        PlanarPolygon polygon => polygon.Ring.Length,
+        _ => 0,
+    };
+
+    // destination is exactly the outline's length.
+    private static void WriteVertices(PlanarShape shape, Span<PlanarPoint> destination)
+    {
+        switch (shape)
         {
-            PlanarPointShape p => [p.Position],
-            PlanarCircle c => ConvexMath.CircleVertices(c.Center, c.Radius, segments),
-            PlanarPolygon polygon => polygon.Ring.ToArray(),
-            _ => [],
-        };
+            case PlanarPointShape p:
+                destination[0] = p.Position;
+                break;
+            case PlanarCircle c:
+                ConvexMath.CircleVertices(c.Center, c.Radius, destination);
+                break;
+            case PlanarPolygon polygon:
+                polygon.Ring.CopyTo(destination);
+                break;
+        }
     }
 
     /// <summary>Swaps the pair so that the first has the lower <see cref="ShapeKind"/>.</summary>

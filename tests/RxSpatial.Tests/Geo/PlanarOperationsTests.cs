@@ -120,6 +120,22 @@ public class PlanarOperationsTests
     }
 
     [TestMethod]
+    public void ToVertices_IntoSpan_WritesTheSameOutline_AndChecksTheDestination()
+    {
+        PlanarPoint[] buffer = new PlanarPoint[70];
+        PlanarShape[] shapes = [new PlanarCircle(new(0, 0), 2), Bay, new PlanarPointShape(1, 2), PlanarEmpty.Instance];
+        foreach (PlanarShape shape in shapes)
+        {
+            int count = PlanarOperations.ToVertices(shape, buffer, 64);
+            buffer[..count].ShouldBe(PlanarOperations.ToVertices(shape, 64));
+        }
+
+        Should.Throw<ArgumentException>(() => PlanarOperations.ToVertices(new PlanarCircle(new(0, 0), 2), new PlanarPoint[63], 64));
+        Should.Throw<ArgumentOutOfRangeException>(() => PlanarOperations.ToVertices(Bay, buffer, 2));
+        Should.Throw<ArgumentNullException>(() => PlanarOperations.ToVertices(null!, buffer));
+    }
+
+    [TestMethod]
     public void Construction_ValidatesAndOrients()
     {
         PlanarPolygon clockwise = PlanarPolygon.FromVertices([new(0, 0), new(0, 1), new(1, 1), new(1, 0)]);

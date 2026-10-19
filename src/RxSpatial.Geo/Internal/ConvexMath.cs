@@ -397,17 +397,15 @@ internal static class ConvexMath
             ring.RemoveAt(ring.Count - 1);
     }
 
-    /// <summary>The vertices of a circle, counter-clockwise from due east.</summary>
-    public static PlanarPoint[] CircleVertices(PlanarPoint center, double radius, int segments)
+    /// <summary>Writes the vertices of a circle, counter-clockwise from due east, one per element of <paramref name="destination"/>.</summary>
+    public static void CircleVertices(PlanarPoint center, double radius, Span<PlanarPoint> destination)
     {
-        PlanarPoint[] vertices = new PlanarPoint[segments];
+        int segments = destination.Length;
         for (int i = 0; i < segments; i++)
         {
             (double sin, double cos) = Math.SinCos(2 * Math.PI * i / segments);
-            vertices[i] = new(center.X + (radius * cos), center.Y + (radius * sin));
+            destination[i] = new(center.X + (radius * cos), center.Y + (radius * sin));
         }
-
-        return vertices;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

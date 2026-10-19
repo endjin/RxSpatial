@@ -4,7 +4,7 @@ namespace RxSpatial.Geo;
 
 /// <summary>
 /// A disc: every point within <see cref="Radius"/> of <see cref="Center"/>. It is an exact
-/// shape, not a polygon; <see cref="PlanarOperations.ToVertices"/> polygonises it for drawing.
+/// shape, not a polygon; <see cref="PlanarOperations.ToVertices(PlanarShape, int)"/> polygonises it for drawing.
 /// </summary>
 public sealed class PlanarCircle : PlanarShape
 {

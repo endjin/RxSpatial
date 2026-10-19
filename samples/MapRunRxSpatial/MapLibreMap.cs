@@ -47,7 +47,7 @@ internal sealed class MapLibreMap(WebView2 webView)
     /// <summary>
     /// Places (or moves) a vehicle marker. A non-null <paramref name="reach"/> also draws the
     /// vehicle's reach circle (the Overlap tab); null removes it. The circle's outline comes
-    /// from <see cref="GeoOperations.ToVertices"/>, so it is exactly the disc the queries use.
+    /// from <see cref="GeoOperations.ToVertices(GeoShape, int)"/>, so it is exactly the disc the queries use.
     /// </summary>
     public void SetMarker(string id, string label, GeoPoint position, MarkerStyle style, GeoCircle? reach)
         => Send(new

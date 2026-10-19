@@ -293,6 +293,22 @@ public class GeoOperationsTests
         GeoOperations.ToVertices(new GeoPointShape(Needle)).ShouldBe([Needle]);
     }
 
+    [TestMethod]
+    public void ToVertices_IntoSpan_WritesTheSameOutline_AndChecksTheDestination()
+    {
+        GeoPoint[] buffer = new GeoPoint[70];
+        GeoShape[] shapes = [Fence, Zone, new GeoPointShape(Needle), GeoEmpty.Instance];
+        foreach (GeoShape shape in shapes)
+        {
+            int count = GeoOperations.ToVertices(shape, buffer, 64);
+            buffer[..count].ShouldBe(GeoOperations.ToVertices(shape, 64));
+        }
+
+        Should.Throw<ArgumentException>(() => GeoOperations.ToVertices(Fence, new GeoPoint[63], 64));
+        Should.Throw<ArgumentOutOfRangeException>(() => GeoOperations.ToVertices(Fence, buffer, 2));
+        Should.Throw<ArgumentNullException>(() => GeoOperations.ToVertices(null!, buffer));
+    }
+
     internal static GeoPoint At(GeoPoint from, double azimuth, double distance)
     {
         Geodesic.WGS84.Direct(from.Latitude, from.Longitude, azimuth, distance, out double lat, out double lon);

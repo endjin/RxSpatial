@@ -36,7 +36,7 @@ namespace RxSpatial.Geo;
 public static class GeoOperations
 {
     /// <summary>
-    /// The default number of segments for a full circle, in <see cref="ToVertices"/> and in
+    /// The default number of segments for a full circle, in <see cref="ToVertices(GeoShape, int)"/> and in
     /// the arcs of intersection results: the number SQL Server's <c>STBuffer</c> uses.
     /// </summary>
     public const int DefaultSegments = 128;
@@ -65,6 +65,13 @@ public static class GeoOperations
 
     private const int StackVertices = 128;
 
+    /// <summary>
+    /// How far, in metres, a polygon's vertices and a position may lie from the polygon's plane
+    /// origin for that plane to shortlist edges and decide circle reach: within it, a plane's
+    /// distances are within (100 km / R)² ≈ 2.5e-4 of the true ones.
+    /// </summary>
+    private const double ShortlistReach = 50_000;
+
     /// <summary>The square of the ellipsoid's smallest radius of curvature, for conservative bow estimates.</summary>
     private const double EarthRadiusSquared = 6_335_439.0 * 6_335_439.0;
 
@@ -85,9 +92,7 @@ public static class GeoOperations
             (GeoPointShape p, GeoCircle c) => c.Bounds.Contains(p.Position) && WithinReach(c.Center, p.Position, c.RadiusMetres),
             (GeoPointShape p, GeoPolygon polygon) => polygon.Bounds.Contains(p.Position) && polygon.Contains(p.Position),
             (GeoCircle c1, GeoCircle c2) => c1.Bounds.Overlaps(c2.Bounds) && WithinReach(c1.Center, c2.Center, c1.RadiusMetres + c2.RadiusMetres),
-            (GeoCircle c, GeoPolygon polygon) => c.Bounds.Overlaps(polygon.Bounds)
-                && (polygon.Contains(c.Center)
-                    || DistanceToPolygon(polygon, c.Center) <= c.RadiusMetres),
+            (GeoCircle c, GeoPolygon polygon) => c.Bounds.Overlaps(polygon.Bounds) && CircleReachesPolygon(c, polygon),
             (GeoPolygon p1, GeoPolygon p2) => p1.Bounds.Overlaps(p2.Bounds) && PolygonsOverlap(p1, p2),
             _ => throw Unreachable(a, b),
         };
@@ -191,24 +196,61 @@ public static class GeoOperations
     {
         ArgumentNullException.ThrowIfNull(shape);
         ArgumentOutOfRangeException.ThrowIfLessThan(segments, 3);
+        GeoPoint[] outline = new GeoPoint[VertexCount(shape, segments)];
+        WriteVertices(shape, segments, outline);
+        return outline;
+    }
+
+    /// <summary>
+    /// Writes the shape's outline (see <see cref="ToVertices(GeoShape, int)"/>) into
+    /// <paramref name="destination"/> without allocating, for callers that redraw a shape on
+    /// every update.
+    /// </summary>
+    /// <returns>The number of vertices written: 0 for <see cref="GeoEmpty"/>, 1 for a point, the polygon's vertex count, or <paramref name="segments"/> for a circle.</returns>
+    /// <exception cref="ArgumentNullException">The shape is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="segments"/> is less than 3.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than the outline.</exception>
+    public static int ToVertices(GeoShape shape, Span<GeoPoint> destination, int segments = DefaultSegments)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+        ArgumentOutOfRangeException.ThrowIfLessThan(segments, 3);
+        int count = VertexCount(shape, segments);
+        if (destination.Length < count)
+            throw new ArgumentException($"The outline has {count} vertices; the destination holds {destination.Length}.", nameof(destination));
+
+        WriteVertices(shape, segments, destination);
+        return count;
+    }
+
+    private static int VertexCount(GeoShape shape, int segments) => shape switch
+    {
+        GeoPointShape => 1,
+        GeoCircle => segments,
+        GeoPolygon polygon => polygon.VertexSpan.Length,
+        _ => 0,
+    };
+
+    private static void WriteVertices(GeoShape shape, int segments, Span<GeoPoint> destination)
+    {
         switch (shape)
         {
             case GeoPointShape p:
-                return [p.Position];
+                destination[0] = p.Position;
+                break;
             case GeoCircle c:
-                GeoPoint[] ring = new GeoPoint[segments];
+                // Every vertex starts from the centre: work out its reduced latitude once.
+                ReducedPoint center = new(c.Center);
                 for (int i = 0; i < segments; i++)
                 {
                     // Azimuths run clockwise from north; counter-clockwise from east is 90° − θ.
                     double azimuth = (Math.PI / 2) - (2 * Math.PI * i / segments);
-                    ring[i] = Wgs84.DirectRadians(c.Center, azimuth, c.RadiusMetres);
+                    destination[i] = Wgs84.DirectRadians(center, azimuth, c.RadiusMetres);
                 }
 
-                return ring;
+                break;
             case GeoPolygon polygon:
-                return polygon.VertexSpan.ToArray();
-            default:
-                return [];
+                polygon.VertexSpan.CopyTo(destination);
+                break;
         }
     }
 
@@ -254,27 +296,116 @@ public static class GeoOperations
     /// distances from the position are exact.
     /// </summary>
     private static double DistanceToPolygon(GeoPolygon polygon, GeoPoint point)
-    {
-        if (polygon.Contains(point))
-            return 0;
+        => polygon.Contains(point, out PlanarPoint local) ? 0 : DistanceFromOutside(polygon, point, local);
 
-        LocalPlane plane = new(point);
+    /// <summary>
+    /// Whether a circle reaches a polygon: <c>DistanceToPolygon(polygon, c.Center) &lt;= r</c>,
+    /// decided in the polygon's own plane when that is clear of the radius by more than the
+    /// plane can be wrong (see <see cref="TryPlaneDistance"/>), which spares projecting every
+    /// vertex into the centre's plane. Same answer as the exact test.
+    /// </summary>
+    private static bool CircleReachesPolygon(GeoCircle c, GeoPolygon polygon)
+    {
+        if (polygon.Contains(c.Center, out PlanarPoint local))
+            return true;
+
+        if (TryPlaneDistance(polygon, local, out double approximate, out double slack))
+        {
+            if (approximate - slack > c.RadiusMetres)
+                return false;
+            if (approximate + slack < c.RadiusMetres)
+                return true;
+        }
+
+        return DistanceFromOutside(polygon, c.Center, local) <= c.RadiusMetres;
+    }
+
+    /// <summary>
+    /// The plane distance from <paramref name="local"/> (a position projected into the
+    /// polygon's plane) to the polygon's nearest edge, and a slack that bounds how far that can
+    /// differ from the exact distance (and from the same distance measured in the position's own
+    /// plane): the distortion of both planes, at most (s/R)² relative within
+    /// <see cref="ShortlistReach"/>, plus the bow of the geodesic edges in both. False where
+    /// that bound is not established (a large polygon, a far position, or one within the slack
+    /// of the boundary), and then the callers measure every edge.
+    /// </summary>
+    private static bool TryPlaneDistance(GeoPolygon polygon, PlanarPoint local, out double distance, out double slack)
+    {
+        distance = double.NaN;
+        slack = double.NaN;
+        double fromOrigin = local.Length;
+        if (!(polygon.Reach <= ShortlistReach && fromOrigin <= ShortlistReach))
+            return false; // NaN fails too
+
+        ReadOnlySpan<PlanarPoint> ring = polygon.Ring;
+        double nearest = double.PositiveInfinity;
+        for (int i = 0, j = ring.Length - 1; i < ring.Length; j = i++)
+            nearest = Math.Min(nearest, ConvexMath.ClosestOnSegment(ring[j], ring[i], local).DistanceTo(local));
+
+        // In the position's plane the edges are up to |local| + reach away and bow by at most
+        // 2ρL²/R², as in the polygon's own EdgeBow; 1e-3 relative is ~16× the (s/R)² distortion
+        // at 100 km, and 1 cm covers the exact path's own millimetre refinement threshold.
+        double longest = polygon.LongestEdge;
+        double pointBow = 2 * (fromOrigin + polygon.Reach) * longest * longest / EarthRadiusSquared;
+        double bound = (2 * (polygon.EdgeBow + pointBow)) + (1e-3 * nearest) + 0.01;
+        if (!(nearest > bound + 1))
+            return false; // near the boundary: the exact path also decides touching
+
+        distance = nearest;
+        slack = bound;
+        return true;
+    }
+
+    /// <summary>
+    /// The distance from a position outside the polygon (see
+    /// <see cref="GeoPolygon.Contains(GeoPoint, out PlanarPoint)"/>, which gives
+    /// <paramref name="local"/>). The polygon is projected into a plane centred on the
+    /// position, where distances from the position are exact, and the nearest edge is refined
+    /// on the true geodesic when its bow could matter. Where <see cref="TryPlaneDistance"/>
+    /// bounds the polygon plane's error, only the edges it cannot rule out (those within twice
+    /// the slack of the nearest) are projected and measured, in the same order: the nearest
+    /// edge, and so the result, is the one measuring every edge would give.
+    /// </summary>
+    private static double DistanceFromOutside(GeoPolygon polygon, GeoPoint point, PlanarPoint local)
+    {
         ReadOnlySpan<GeoPoint> vertices = polygon.VertexSpan;
+        ReadOnlySpan<PlanarPoint> ring = polygon.Ring;
+        bool shortlist = TryPlaneDistance(polygon, local, out double nearest, out double slack);
+        double limit = nearest + (2 * slack);
         PlanarPoint[]? rented = null;
         Span<PlanarPoint> projected = vertices.Length <= StackVertices
             ? stackalloc PlanarPoint[StackVertices]
             : (rented = ArrayPool<PlanarPoint>.Shared.Rent(vertices.Length));
         try
         {
-            projected = Project(plane, vertices, projected);
-            if (ConvexMath.Contains(projected, default, BoundaryTolerance))
-                return 0;
+            projected = projected[..vertices.Length];
+            ReducedPoint origin = shortlist ? new(point) : default;
+            if (shortlist)
+            {
+                // Projected on demand; a projection within ShortlistReach always converges, so NaN marks "not yet".
+                projected.Fill(new(double.NaN, double.NaN));
+            }
+            else
+            {
+                new LocalPlane(point).Project(vertices, projected);
+                if (ConvexMath.Contains(projected, default, BoundaryTolerance))
+                    return 0;
+            }
 
             double best = double.PositiveInfinity;
             int nearestEdge = 0;
             PlanarPoint foot = default;
             for (int i = 0, j = projected.Length - 1; i < projected.Length; j = i++)
             {
+                if (shortlist)
+                {
+                    if (ConvexMath.ClosestOnSegment(ring[j], ring[i], local).DistanceTo(local) > limit)
+                        continue;
+
+                    ProjectOnDemand(projected, vertices, origin, j);
+                    ProjectOnDemand(projected, vertices, origin, i);
+                }
+
                 PlanarPoint candidate = ConvexMath.ClosestOnSegment(projected[j], projected[i], default);
                 double distance = candidate.Length;
                 if (double.IsNaN(distance))
@@ -305,6 +436,12 @@ public static class GeoOperations
         {
             if (rented is not null)
                 ArrayPool<PlanarPoint>.Shared.Return(rented);
+        }
+
+        static void ProjectOnDemand(Span<PlanarPoint> projected, ReadOnlySpan<GeoPoint> vertices, in ReducedPoint origin, int index)
+        {
+            if (double.IsNaN(projected[index].X))
+                projected[index] = LocalPlane.Project(origin, vertices[index]);
         }
     }
 
@@ -411,9 +548,7 @@ public static class GeoOperations
     private static Span<PlanarPoint> Project(LocalPlane plane, ReadOnlySpan<GeoPoint> vertices, Span<PlanarPoint> buffer)
     {
         Span<PlanarPoint> projected = buffer[..vertices.Length];
-        for (int i = 0; i < vertices.Length; i++)
-            projected[i] = plane.Project(vertices[i]);
-
+        plane.Project(vertices, projected);
         return projected;
     }
 

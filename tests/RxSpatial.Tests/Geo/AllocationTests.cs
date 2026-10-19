@@ -69,6 +69,33 @@ public class AllocationTests
     }
 
     [TestMethod]
+    public void ToVertices_IntoSpan_AllocatesNothing()
+    {
+        GeoCircle reach = new(Needle, 2_000);
+        GeoPolygon zone = GeoPolygon.Rectangle(47.600, -122.370, 47.618, -122.330);
+        PlanarCircle pallet = new(new(500, 500), 50);
+        GeoPoint[] outline = new GeoPoint[128];
+        PlanarPoint[] planarOutline = new PlanarPoint[128];
+        int sink = 0;
+        void Run()
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                sink += GeoOperations.ToVertices(reach, outline, 64);
+                sink += GeoOperations.ToVertices(zone, outline);
+                sink += PlanarOperations.ToVertices(pallet, planarOutline);
+            }
+        }
+
+        Run();
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Run();
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        allocated.ShouldBe(0, $"sink {sink}");
+    }
+
+    [TestMethod]
     [DynamicData(nameof(PlanarPairs))]
     public void PlanarHotPaths_AllocateNothing(PlanarShape a, PlanarShape b)
     {
