@@ -16,8 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- SqlServerSpatial native library and the high-resolution clock P/Invoke
-         make this assembly Windows-only at runtime. -->
+    <!-- The SqlServerSpatial native library
+         makes this assembly Windows-only at runtime. -->
     <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
       <_Parameter1>windows</_Parameter1>
     </AssemblyAttribute>

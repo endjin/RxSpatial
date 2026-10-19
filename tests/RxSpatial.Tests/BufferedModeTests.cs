@@ -62,14 +62,6 @@ public class BufferedModeTests
     }
 
     [TestMethod]
-    public void HighResolutionClock_IsAvailableOnWindows_AndTracksUtcNow()
-    {
-        HighResolutionDateTime.IsAvailable.ShouldBeTrue();
-        DateTime now = HighResolutionDateTime.UtcNow;
-        (DateTime.UtcNow - now).Duration().ShouldBeLessThan(TimeSpan.FromSeconds(5));
-    }
-
-    [TestMethod]
     public void OverloadException_PreservesMessageAndInnerException()
     {
         InvalidOperationException inner = new("inner");
