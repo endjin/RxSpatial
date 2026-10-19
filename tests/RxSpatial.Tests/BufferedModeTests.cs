@@ -47,7 +47,10 @@ public class BufferedModeTests
             events.ShouldBe([false, true]);
         }
 
-        vehicle.AverageLatency.ShouldBeGreaterThanOrEqualTo(0);
+        // Total, fractional milliseconds: a sub-millisecond push still records a positive
+        // latency, where the 2016 component-milliseconds metric read it as 0.
+        vehicle.AverageLatency.ShouldBeGreaterThan(0);
+        vehicle.AverageLatency.ShouldBeLessThan(10_000);
 
         int EventCount()
         {

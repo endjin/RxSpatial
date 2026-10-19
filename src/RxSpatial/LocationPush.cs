@@ -10,10 +10,12 @@ internal sealed class LocationPush<TShape>(TShape content)
     public TShape Content { get; } = content;
 
     /// <summary>
-    /// Component (not total) milliseconds of the processing time — preserved exactly as the
-    /// latency metric used for the papers' measurements.
+    /// Milliseconds from entering the push buffer to the end of processing — the latency
+    /// measure of the ICDE 2017 paper (§VI). Total, fractional milliseconds: the 2016 code
+    /// recorded the integer <see cref="TimeSpan.Milliseconds"/> component, which read every
+    /// sub-millisecond update as 0 and wrapped latencies over a second.
     /// </summary>
-    public double Latency => (endTime - startTime).Milliseconds;
+    public double Latency => (endTime - startTime).TotalMilliseconds;
 
     public void FinishProcessing() => endTime = HighResolutionDateTime.UtcNow;
 }

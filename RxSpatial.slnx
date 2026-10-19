@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj" />
+    <Project Path="benchmarks/RxSpatial.Experiments/RxSpatial.Experiments.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/MapRunRxSpatial/MapRunRxSpatial.csproj" />
