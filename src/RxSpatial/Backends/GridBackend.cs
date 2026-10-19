@@ -1,11 +1,13 @@
 using System.Text;
 using Microsoft.SqlServer.Types;
+using RxSpatial.Index;
 
 namespace RxSpatial.Backends;
 
 /// <summary>
-/// Spatial-hash backend: a fixed lat/long grid over the configured coverage region. Point
-/// observers occupy one cell; region observers occupy every cell their envelope covers.
+/// Spatial-hash backend: a fixed grid over the configured coverage region. Every observer
+/// occupies the block of cells its bounding rectangle covers — one cell for a point, every
+/// covered cell for a region.
 /// </summary>
 internal sealed class GridBackend<T> : ISpatialBackend<T>
     where T : notnull
@@ -17,27 +19,21 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
     private readonly Dictionary<T, CellBlock> placements = [];
     private readonly Dictionary<T, IDisposable> trackers = [];
     private readonly ListBackend<T>[,] cells;
-    private readonly int latitudeCells;
-    private readonly int longitudeCells;
-    private readonly double originLatitude;  // coverage region lower-left corner
-    private readonly double originLongitude;
-    private readonly double latitudeStep;
-    private readonly double longitudeStep;
+    private readonly GridLayout layout;
+    private readonly double xStep;
+    private readonly double yStep;
 
-    public GridBackend(GridOptions options)
+    public GridBackend(GridLayout layout)
     {
-        latitudeCells = options.LatitudeCells;
-        longitudeCells = options.LongitudeCells;
-        originLatitude = options.CoverageRegion.LowerLeftLatitude;
-        originLongitude = options.CoverageRegion.LowerLeftLongitude;
-        latitudeStep = (options.CoverageRegion.UpperRightLatitude - originLatitude) / latitudeCells;
-        longitudeStep = (options.CoverageRegion.UpperRightLongitude - originLongitude) / longitudeCells;
+        this.layout = layout;
+        xStep = (layout.Extent.MaxX - layout.Extent.MinX) / layout.XCells;
+        yStep = (layout.Extent.MaxY - layout.Extent.MinY) / layout.YCells;
 
-        cells = new ListBackend<T>[latitudeCells, longitudeCells];
-        for (int i = 0; i < latitudeCells; i++)
+        cells = new ListBackend<T>[layout.YCells, layout.XCells];
+        for (int row = 0; row < layout.YCells; row++)
         {
-            for (int j = 0; j < longitudeCells; j++)
-                cells[i, j] = [];
+            for (int column = 0; column < layout.XCells; column++)
+                cells[row, column] = [];
         }
     }
 
@@ -66,31 +62,29 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
 
     public List<T> GetObserversInZone(SqlGeography location)
     {
-        if (location.STGeometryType().Value == "Point")
-        {
-            return cells[LatitudeSlotOf(location), LongitudeSlotOf(location)];
-        }
+        CellBlock block = CellBlockOf(SpatialBounds.OfGeography(location));
+        if (block.IsSingleCell)
+            return cells[block.RowMin, block.ColumnMin];
 
         List<T> result = [];
-        CellBlock block = EnvelopeBlockOf(location);
-        for (int i = block.LatitudeMin; i <= block.LatitudeMax; i++)
+        for (int row = block.RowMin; row <= block.RowMax; row++)
         {
-            for (int j = block.LongitudeMin; j <= block.LongitudeMax; j++)
-                result.AddRange(cells[i, j]);
+            for (int column = block.ColumnMin; column <= block.ColumnMax; column++)
+                result.AddRange(cells[row, column]);
         }
 
         return result;
     }
 
-    /// <summary>Cell occupancy counts, one row per latitude slot — diagnostic snapshot.</summary>
+    /// <summary>Cell occupancy counts, one row per Y (latitude) slot — diagnostic snapshot.</summary>
     public override string ToString()
     {
         StringBuilder builder = new();
-        for (int i = 0; i < latitudeCells; i++)
+        for (int row = 0; row < layout.YCells; row++)
         {
-            for (int j = 0; j < longitudeCells; j++)
+            for (int column = 0; column < layout.XCells; column++)
             {
-                builder.Append(cells[i, j].Count);
+                builder.Append(cells[row, column].Count);
                 builder.Append(" | ");
             }
 
@@ -108,23 +102,12 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
 
     private void Insert(SqlGeography location, T observer)
     {
-        CellBlock block;
-        if (location.STGeometryType().Value == "Point")
+        // A point occupies one cell; a region (e.g. a geofence) every cell its rectangle covers.
+        CellBlock block = CellBlockOf(SpatialBounds.OfGeography(location));
+        for (int row = block.RowMin; row <= block.RowMax; row++)
         {
-            int latitudeSlot = LatitudeSlotOf(location);
-            int longitudeSlot = LongitudeSlotOf(location);
-            block = new CellBlock(latitudeSlot, latitudeSlot, longitudeSlot, longitudeSlot);
-        }
-        else
-        {
-            // Region observers (e.g. geofences) are registered in every cell their envelope covers.
-            block = EnvelopeBlockOf(location);
-        }
-
-        for (int i = block.LatitudeMin; i <= block.LatitudeMax; i++)
-        {
-            for (int j = block.LongitudeMin; j <= block.LongitudeMax; j++)
-                cells[i, j].Add(observer);
+            for (int column = block.ColumnMin; column <= block.ColumnMax; column++)
+                cells[row, column].Add(observer);
         }
 
         placements[observer] = block;
@@ -136,41 +119,29 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
         if (!placements.Remove(observer, out CellBlock block))
             return false;
 
-        for (int i = block.LatitudeMin; i <= block.LatitudeMax; i++)
+        for (int row = block.RowMin; row <= block.RowMax; row++)
         {
-            for (int j = block.LongitudeMin; j <= block.LongitudeMax; j++)
-                cells[i, j].Remove(observer);
+            for (int column = block.ColumnMin; column <= block.ColumnMax; column++)
+                cells[row, column].Remove(observer);
         }
 
         return true;
     }
 
-    private CellBlock EnvelopeBlockOf(SqlGeography location)
-    {
-        SqlGeometry envelope = SqlGeometry.STGeomFromWKB(location.STAsBinary(), location.STSrid.Value).STEnvelope();
-        SqlGeometry lowerLeft = envelope.STPointN(1);
-        SqlGeography corner1 = SqlGeography.STGeomFromText(lowerLeft.MakeValid().STAsText(), lowerLeft.STSrid.Value);
-        SqlGeometry upperRight = envelope.STPointN(3);
-        SqlGeography corner2 = SqlGeography.STGeomFromText(upperRight.MakeValid().STAsText(), lowerLeft.STSrid.Value);
+    private CellBlock CellBlockOf(Rect bounds)
+        => new(RowOf(bounds.MinY), RowOf(bounds.MaxY), ColumnOf(bounds.MinX), ColumnOf(bounds.MaxX));
 
-        int latitudeA = LatitudeSlotOf(corner1);
-        int longitudeA = LongitudeSlotOf(corner1);
-        int latitudeB = LatitudeSlotOf(corner2);
-        int longitudeB = LongitudeSlotOf(corner2);
+    private int RowOf(double y)
+        => Math.Clamp((int)((y - layout.Extent.MinY) / yStep), 0, layout.YCells - 1);
 
-        return new CellBlock(
-            Math.Min(latitudeA, latitudeB), Math.Max(latitudeA, latitudeB),
-            Math.Min(longitudeA, longitudeB), Math.Max(longitudeA, longitudeB));
-    }
-
-    private int LatitudeSlotOf(SqlGeography location)
-        => Math.Clamp((int)((location.Lat.Value - originLatitude) / latitudeStep), 0, latitudeCells - 1);
-
-    private int LongitudeSlotOf(SqlGeography location)
-        => Math.Clamp((int)((location.Long.Value - originLongitude) / longitudeStep), 0, longitudeCells - 1);
+    private int ColumnOf(double x)
+        => Math.Clamp((int)((x - layout.Extent.MinX) / xStep), 0, layout.XCells - 1);
 
     /// <summary>The inclusive rectangle of grid slots an observer occupies.</summary>
-    private readonly record struct CellBlock(int LatitudeMin, int LatitudeMax, int LongitudeMin, int LongitudeMax);
+    private readonly record struct CellBlock(int RowMin, int RowMax, int ColumnMin, int ColumnMax)
+    {
+        public bool IsSingleCell => RowMin == RowMax && ColumnMin == ColumnMax;
+    }
 
     // Tracks a moving observer and updates its grid cell on every location push.
     private sealed class LocationTracker(GridBackend<T> grid, T observer) : IObserver<SqlGeography>

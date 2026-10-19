@@ -47,29 +47,7 @@ internal sealed class TreeBackend<T> : ISpatialBackend<T>
     /// <summary>Number of indexed observers — diagnostic snapshot.</summary>
     public override string ToString() => index.Count.ToString(CultureInfo.InvariantCulture);
 
-    private static Rect BoundsOf(SqlGeography location)
-    {
-        if (location.STGeometryType().Value == "Point")
-        {
-            // Fast path for bare position pushes; also avoids the WKB round-trip.
-            double x = location.Long.Value;
-            double y = location.Lat.Value;
-            return new Rect(x, y, x, y);
-        }
-
-        // SQL Server's STEnvelope returns degenerate shapes for degenerate extents:
-        // a Point for points, a LineString for axis-aligned lines, else a Polygon.
-        SqlGeometry envelope = SqlGeometry.STGeomFromWKB(location.STAsBinary(), location.STSrid.Value).STEnvelope();
-        return envelope.STGeometryType().Value switch
-        {
-            "Point" => CornersToRect(envelope, envelope),
-            "LineString" => CornersToRect(envelope.STPointN(1), envelope.STPointN(2)),
-            _ => CornersToRect(envelope.STPointN(1), envelope.STPointN(3)),
-        };
-    }
-
-    private static Rect CornersToRect(SqlGeometry a, SqlGeometry b)
-        => new(a.STX.Value, a.STY.Value, b.STX.Value, b.STY.Value);
+    private static Rect BoundsOf(SqlGeography location) => SpatialBounds.OfGeography(location);
 
     // Tracks a moving observer and updates its indexed position on every location push.
     private sealed class LocationTracker(ISpatialIndex<T> index, T observer) : IObserver<SqlGeography>

@@ -146,7 +146,7 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
     private static ISpatialBackend<IObserver<SqlGeography>> CreateBackend(RxSpatialOptions options)
         => options.PreferredDataStruct switch
         {
-            RxGeographyDataStruct.HashMap => new GridBackend<IObserver<SqlGeography>>(options.Grid),
+            RxGeographyDataStruct.HashMap => new GridBackend<IObserver<SqlGeography>>(GridLayout.From(options.Grid)),
             RxGeographyDataStruct.RTree => new TreeBackend<IObserver<SqlGeography>>(RxGeographyDataStruct.RTree, options),
             RxGeographyDataStruct.RumTree => new TreeBackend<IObserver<SqlGeography>>(RxGeographyDataStruct.RumTree, options),
             _ => new ListBackend<IObserver<SqlGeography>>(),
