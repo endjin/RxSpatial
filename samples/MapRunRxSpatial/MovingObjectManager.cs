@@ -5,6 +5,15 @@ using Microsoft.SqlServer.Types;
 
 namespace MapRunRxSpatial;
 
+/// <summary>The outcome of <see cref="MovingObjectManager.WatchPair"/>.</summary>
+internal enum PairSubscriptionResult
+{
+    Added,
+    SameVehicle,
+    NotOnMap,
+    AlreadyWatched,
+}
+
 /// <summary>
 /// Replays the recorded vehicle trajectories on a timer and keeps the fleet subscribed to
 /// the active scenario's continuous queries.
@@ -17,13 +26,15 @@ internal sealed class MovingObjectManager
     private readonly TrajectoryCursor[] trajectories = new TrajectoryCursor[TrajectoryCount];
     private readonly MapLibreMap map;
     private readonly PolygonManager polygons;
+    private readonly ConnectionLines lines;
     private DispatcherTimer? timer;
     private int previousVehicleCount = -1;
 
-    public MovingObjectManager(MapLibreMap map, PolygonManager polygons)
+    public MovingObjectManager(MapLibreMap map, PolygonManager polygons, ConnectionLines lines)
     {
         this.map = map;
         this.polygons = polygons;
+        this.lines = lines;
         LoadTrajectories();
     }
 
@@ -63,24 +74,28 @@ internal sealed class MovingObjectManager
             vehicle.SubscribeDistance(name, polygon);
     }
 
-    public bool SubscribeRxRxDistance(int id1, int id2)
+    /// <summary>
+    /// Watches the distance between two vehicles in both directions (an RxRx observer fires
+    /// only when its own vehicle moves), optionally drawing the pair's shared connection line.
+    /// </summary>
+    public PairSubscriptionResult WatchPair(int id1, int id2, bool drawConnection)
     {
-        // Membership checks rather than count-based bounds: ids need not stay
-        // contiguous if a trajectory deletes a vehicle mid-playback.
-        return vehicles.TryGetValue(id1, out MovingObject? first)
-            && vehicles.TryGetValue(id2, out MovingObject? second)
-            && first.SubscribeRxRxDistance(SubscriptionKey(id2), second.Geography);
-    }
+        if (id1 == id2)
+            return PairSubscriptionResult.SameVehicle;
 
-    public bool SubscribeRxRxDistanceConnection(int id1, int id2)
-    {
-        return vehicles.TryGetValue(id1, out MovingObject? first)
-            && vehicles.TryGetValue(id2, out MovingObject? second)
-            && first.SubscribeRxRxDistanceConnection(SubscriptionKey(id2), second.Geography);
-    }
+        // Membership checks rather than count-based bounds: a vehicle is missing only before
+        // Start, since every trajectory begins with a "newpoint" action.
+        if (!vehicles.TryGetValue(id1, out MovingObject? first)
+            || !vehicles.TryGetValue(id2, out MovingObject? second))
+            return PairSubscriptionResult.NotOnMap;
 
-    /// <summary>Subscriptions are named after the tracked vehicle's id, locale-independently.</summary>
-    private static string SubscriptionKey(int id) => id.ToString(CultureInfo.InvariantCulture);
+        VehiclePair pair = VehiclePair.Of(id1, id2);
+        if (!first.WatchPair(pair, second.Geography, drawConnection))
+            return PairSubscriptionResult.AlreadyWatched;
+
+        second.WatchPair(pair, first.Geography, drawConnection);
+        return PairSubscriptionResult.Added;
+    }
 
     public void UnsubscribeAll()
     {
@@ -190,7 +205,7 @@ internal sealed class MovingObjectManager
             return;
         }
 
-        MovingObject vehicle = new(id, map, polygons);
+        MovingObject vehicle = new(id, map, lines);
         vehicle.PushLocation(location);
         vehicles.Add(id, vehicle);
         foreach (DemoPolygon polygon in polygons.Polygons)

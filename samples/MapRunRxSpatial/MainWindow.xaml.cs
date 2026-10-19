@@ -11,6 +11,7 @@ public partial class MainWindow : Window
 
     private readonly MapLibreMap map;
     private readonly PolygonManager polygons;
+    private readonly ConnectionLines lines;
     private readonly MovingObjectManager fleet;
 
     // The configured backend (RUM-tree by default) drives the intersect scenario; the
@@ -30,7 +31,8 @@ public partial class MainWindow : Window
         map.MapClick += OnMapClick;
         map.MapMouseMove += OnMapMouseMove;
         polygons = new PolygonManager(map);
-        fleet = new MovingObjectManager(map, polygons);
+        lines = new ConnectionLines(map);
+        fleet = new MovingObjectManager(map, polygons, lines);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -61,10 +63,12 @@ public partial class MainWindow : Window
         corner2 = null;
     }
 
-    private void OnClearAreaClick(object sender, RoutedEventArgs e)
+    /// <summary>Clears areas and watched pairs alike (Clear areas / Clear pairs).</summary>
+    private void OnClearClick(object sender, RoutedEventArgs e)
     {
         fleet.UnsubscribeAll();
         polygons.ClearAllPolygons();
+        lines.Clear();
         CancelAreaDrawing();
     }
 
@@ -182,7 +186,7 @@ public partial class MainWindow : Window
         int id1 = (int)TrackedPairSlider1.Value;
         int id2 = (int)TrackedPairSlider2.Value;
         TrackedObserverState.Text = DescribePairSubscription(
-            id1, id2, () => fleet.SubscribeRxRxDistance(id1, id2) && fleet.SubscribeRxRxDistance(id2, id1));
+            id1, id2, fleet.WatchPair(id1, id2, drawConnection: false));
     }
 
     private void OnAddConnectionPairClick(object sender, RoutedEventArgs e)
@@ -190,19 +194,17 @@ public partial class MainWindow : Window
         int id1 = (int)ConnectionPairSlider1.Value;
         int id2 = (int)ConnectionPairSlider2.Value;
         ConnectionObserverState.Text = DescribePairSubscription(
-            id1, id2, () => fleet.SubscribeRxRxDistanceConnection(id1, id2)
-                && fleet.SubscribeRxRxDistanceConnection(id2, id1));
+            id1, id2, fleet.WatchPair(id1, id2, drawConnection: true));
     }
 
-    private static string DescribePairSubscription(int id1, int id2, Func<bool> subscribe)
+    private static string DescribePairSubscription(int id1, int id2, PairSubscriptionResult result) => result switch
     {
-        if (id1 == id2)
-            return $"Observer Condition:({id1},{id2}) Invalid!";
-
-        return subscribe()
-            ? $"Observer Condition:({id1},{id2}) ADD!"
-            : "Observer Condition:WaitTraffic/Duplicate";
-    }
+        PairSubscriptionResult.Added => $"Watching vehicles {id1} and {id2}.",
+        PairSubscriptionResult.SameVehicle => "Choose two different vehicles.",
+        PairSubscriptionResult.NotOnMap => $"Press Start first - vehicles {id1} and {id2} are not on the map yet.",
+        PairSubscriptionResult.AlreadyWatched => $"Vehicles {id1} and {id2} are already being watched.",
+        _ => throw new ArgumentOutOfRangeException(nameof(result), result, "Unknown pair subscription result."),
+    };
 
     private void OnScenarioTabChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -267,6 +269,7 @@ public partial class MainWindow : Window
         fleet.UnsubscribeAll();
         fleet.ClearAllVehicles();
         polygons.ClearAllPolygons();
+        lines.Clear();
         CancelAreaDrawing();
     }
 

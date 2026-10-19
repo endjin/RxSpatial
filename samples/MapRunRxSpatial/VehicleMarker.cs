@@ -1,27 +1,22 @@
 using System.Globalization;
 using Microsoft.SqlServer.Types;
-using RxSpatial;
 
 namespace MapRunRxSpatial;
 
-/// <summary>Drives one vehicle's marker (and its optional connection line) on the map.</summary>
-internal sealed class VehicleMarker(int id, MapLibreMap map, PolygonManager polygons)
+/// <summary>Drives one vehicle's marker (and the connection lines of its watched pairs) on the map.</summary>
+internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lines)
 {
     private readonly string markerId = $"obj-{id}";
+    private readonly HashSet<VehiclePair> pairs = [];
     private VehicleColor color = VehicleColor.Blue;
     private GeoPoint position;
     private bool visible;
-    private int lineId = -1;
 
-    public void UpdateConnectionLine(RxGeography other, bool dashed, int strokeThickness)
+    /// <summary>Redraws the pair's shared line between this vehicle and the other one.</summary>
+    public void UpdateConnectionLine(VehiclePair pair, SqlGeography otherLocation, DistanceBand band)
     {
-        SqlGeography otherLocation = other.Location!;
-        lineId = polygons.UpdateLine(
-            lineId,
-            new GeoPoint(otherLocation.Lat.Value, otherLocation.Long.Value),
-            position,
-            dashed,
-            strokeThickness);
+        pairs.Add(pair);
+        lines.Update(pair, position, new GeoPoint(otherLocation.Lat.Value, otherLocation.Long.Value), band);
     }
 
     /// <summary>
@@ -68,12 +63,12 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, PolygonManager poly
     {
         visible = false;
         map.RemoveMarker(markerId);
-        if (lineId != -1)
-        {
-            // Also remove this vehicle's RxRx connection line, or it would linger
-            // on the map after the vehicle is gone.
-            polygons.RemoveLine(lineId);
-            lineId = -1;
-        }
+
+        // Also remove this vehicle's connection lines, or they would linger on the map
+        // after the vehicle is gone.
+        foreach (VehiclePair pair in pairs)
+            lines.Remove(pair);
+
+        pairs.Clear();
     }
 }

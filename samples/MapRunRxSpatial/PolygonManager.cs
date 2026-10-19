@@ -4,43 +4,24 @@ using Microsoft.SqlServer.Types;
 
 namespace MapRunRxSpatial;
 
-/// <summary>A named demo area or line: the backend geography plus its map shape id.</summary>
-internal sealed class DemoPolygon(string name, string? shapeId, SqlGeography geography)
+/// <summary>A named demo area: the backend geography plus its map shape id.</summary>
+internal sealed class DemoPolygon(string name, string shapeId, SqlGeography geography)
 {
     public string Name { get; } = name;
 
-    /// <summary>Id of the visual shape on the MapLibre map (null until drawn).</summary>
-    public string? ShapeId { get; set; } = shapeId;
+    /// <summary>Id of the visual shape on the MapLibre map.</summary>
+    public string ShapeId { get; } = shapeId;
 
     public SqlGeography Geography { get; } = geography;
 }
 
-/// <summary>Owns the demo's drawn areas and the RxRx connection lines.</summary>
+/// <summary>Owns the demo's drawn areas (connection lines live in <see cref="ConnectionLines"/>).</summary>
 internal sealed class PolygonManager(MapLibreMap map)
 {
     private readonly Dictionary<string, DemoPolygon> polygons = [];
-    private readonly Dictionary<string, DemoPolygon> lines = [];
     private int polygonCounter;
-    private int lineCounter;
 
     public IEnumerable<DemoPolygon> Polygons => polygons.Values;
-
-    public DemoPolygon? CreateLine(GeoPoint point1, GeoPoint point2, out GeoPoint[]? points)
-    {
-        points = null;
-
-        // Only a zero-length line is degenerate; axis-aligned connection lines are valid.
-        if (point1 == point2)
-            return null;
-
-        // WKT must use '.' decimals regardless of the OS locale.
-        string wkt = FormattableString.Invariant(
-            $"LINESTRING({point1.Longitude} {point1.Latitude},{point2.Longitude} {point2.Latitude})");
-        SqlGeography line = SqlGeography.STLineFromText(new SqlChars(new SqlString(wkt)), 4326);
-
-        points = [point1, point2];
-        return new DemoPolygon(Key(polygonCounter), null, line);
-    }
 
     /// <summary>Dictionary keys are formed from ids, so they must not follow the OS locale.</summary>
     private static string Key(int id) => id.ToString(CultureInfo.InvariantCulture);
@@ -63,27 +44,6 @@ internal sealed class PolygonManager(MapLibreMap map)
         string wkt = FormattableString.Invariant(
             $"POLYGON(({west} {south},{east} {south},{east} {north},{west} {north},{west} {south}))");
         return SqlGeography.STPolyFromText(new SqlChars(new SqlString(wkt)), 4326);
-    }
-
-    public void RemoveLine(int lineId)
-    {
-        if (lines.Remove(Key(lineId), out DemoPolygon? line))
-            map.RemoveShape(line.ShapeId!);
-    }
-
-    public int UpdateLine(int previousLineId, GeoPoint point1, GeoPoint point2, bool dashed, int strokeThickness)
-    {
-        RemoveLine(previousLineId);
-        DemoPolygon? line = CreateLine(point1, point2, out GeoPoint[]? points);
-        if (line is not null)
-        {
-            lineCounter++;
-            line.ShapeId = $"line-{lineCounter}";
-            lines.Add(Key(lineCounter), line);
-            map.SetLine(line.ShapeId, points!, "red", strokeThickness, dashed, 0.7);
-        }
-
-        return lineCounter;
     }
 
     public DemoPolygon? AddPolygon(GeoPoint point1, GeoPoint point2)
@@ -113,13 +73,8 @@ internal sealed class PolygonManager(MapLibreMap map)
     public void ClearAllPolygons()
     {
         foreach (DemoPolygon polygon in polygons.Values)
-            map.RemoveShape(polygon.ShapeId!);
+            map.RemoveShape(polygon.ShapeId);
 
         polygons.Clear();
-
-        foreach (DemoPolygon line in lines.Values)
-            map.RemoveShape(line.ShapeId!);
-
-        lines.Clear();
     }
 }

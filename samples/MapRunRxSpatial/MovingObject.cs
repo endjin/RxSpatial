@@ -1,3 +1,4 @@
+using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
 using RxSpatial;
 
@@ -5,7 +6,8 @@ namespace MapRunRxSpatial;
 
 /// <summary>
 /// One vehicle: an <see cref="RxGeography"/> fed from a recorded trajectory, its map marker,
-/// and the named continuous-query subscriptions attached to it.
+/// and the keyed continuous-query subscriptions attached to it. Area keys ("area:0") and pair
+/// keys ("pair:3-6") are prefixed so the two kinds can never collide.
 /// </summary>
 internal sealed class MovingObject
 {
@@ -13,10 +15,10 @@ internal sealed class MovingObject
     private readonly VehicleMarker marker;
     private readonly MarkerMovementObserver movementObserver;
 
-    public MovingObject(int id, MapLibreMap map, PolygonManager polygons)
+    public MovingObject(int id, MapLibreMap map, ConnectionLines lines)
     {
         Geography = new RxGeography();
-        marker = new VehicleMarker(id, map, polygons);
+        marker = new VehicleMarker(id, map, lines);
         movementObserver = new MarkerMovementObserver(marker);
         movementObserver.Attach(Geography);
     }
@@ -28,31 +30,31 @@ internal sealed class MovingObject
 
     public void SubscribeIntersect(string name, SqlGeography polygon)
     {
-        if (!subscriptions.ContainsKey(name))
-            subscriptions.Add(name, Geography.RxIntersect(polygon, new IntersectObserver(marker)));
+        string key = AreaKey(name);
+        if (!subscriptions.ContainsKey(key))
+            subscriptions.Add(key, Geography.RxIntersect(polygon, new IntersectObserver(marker)));
     }
 
     public void SubscribeDistance(string name, SqlGeography polygon)
     {
-        if (!subscriptions.ContainsKey(name))
-            subscriptions.Add(name, Geography.RxDistance(polygon, new DistanceObserver(marker)));
+        string key = AreaKey(name);
+        if (!subscriptions.ContainsKey(key))
+            subscriptions.Add(key, Geography.RxDistance(polygon, new DistanceObserver(marker)));
     }
 
-    public bool SubscribeRxRxDistance(string name, RxGeography other)
+    /// <summary>
+    /// Watches the distance from this vehicle to <paramref name="other"/>, optionally drawing
+    /// the pair's connection line. Returns false if the pair is already watched.
+    /// </summary>
+    public bool WatchPair(VehiclePair pair, RxGeography other, bool drawConnection)
     {
-        if (subscriptions.ContainsKey(name))
+        if (subscriptions.ContainsKey(pair.SubscriptionKey))
             return false;
 
-        subscriptions.Add(name, Geography.RxRxDistance(other, new RxRxDistanceObserver(marker)));
-        return true;
-    }
-
-    public bool SubscribeRxRxDistanceConnection(string name, RxGeography other)
-    {
-        if (subscriptions.ContainsKey(name))
-            return false;
-
-        subscriptions.Add(name, Geography.RxRxDistance(other, new RxRxDistanceConnectionObserver(other, marker)));
+        IObserver<SqlDouble> observer = drawConnection
+            ? new VehiclePairConnectionObserver(pair, other, marker)
+            : new VehiclePairDistanceObserver(marker);
+        subscriptions.Add(pair.SubscriptionKey, Geography.RxRxDistance(other, observer));
         return true;
     }
 
@@ -69,4 +71,6 @@ internal sealed class MovingObject
         UnsubscribeAll();
         movementObserver.OnCompleted();
     }
+
+    private static string AreaKey(string name) => "area:" + name;
 }

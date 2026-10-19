@@ -58,7 +58,7 @@
                                     </StackPanel>
                                     <TextBlock Margin="5" Text="1                        50                     100" FontWeight="Bold" FontFamily="Cambria" Width="160" />
                                     <Button x:Name="AddAreaButton" Margin="5" Content="Add Area" Background="{x:Null}" Click="OnAddAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="ClearAreaButton" Margin="5" Content="Clear Area" Background="{x:Null}" Click="OnClearAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
+                                    <Button x:Name="ClearAreaButton" Margin="5" Content="Clear Area" Background="{x:Null}" Click="OnClearClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
                                     <Button x:Name="StartButton" Margin="5" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
                                     <Button x:Name="PauseResume2" Height="20" Width="76" Content="Pause" Background="Linen"
                 Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="5"/>
@@ -114,7 +114,7 @@
                                     </StackPanel>
                                     <TextBlock Margin="5" Text="1                        5k                     10k" FontWeight="Bold" FontFamily="Cambria" Width="162" />
                                     <Button x:Name="AddAreaButton1" Margin="3" Content="Add Area" Background="{x:Null}" Click="OnAddAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
-                                    <Button x:Name="ClearAreaButton1" Margin="3" Content="Clear Area" Background="{x:Null}" Click="OnClearAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
+                                    <Button x:Name="ClearAreaButton1" Margin="3" Content="Clear Area" Background="{x:Null}" Click="OnClearClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76" />
                                     <Button x:Name="StartButton1" Margin="85,3" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
                                     <Button x:Name="PauseResume1" Height="20" Width="76" Content="Pause" Background="Linen"
                 Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="3"/>
@@ -179,7 +179,7 @@
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="0                          19      0                         19" FontWeight="Bold" FontFamily="Cambria" Width="200" />
                                     <Button x:Name="AddObserverButton" Margin="5,1" Content="Add Observer" Background="{x:Null}" Click="OnAddTrackedPairClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
-                                    <Button x:Name="ClearObserversButton" Margin="5,1" Content="Clear Observers" Background="{x:Null}" Click="OnClearAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
+                                    <Button x:Name="ClearObserversButton" Margin="5,1" Content="Clear Observers" Background="{x:Null}" Click="OnClearClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
                                     <Button x:Name="StartButton2" Margin="85,1" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
                                     <Button x:Name="PauseResume" Height="20" Width="76" Content="Pause" Background="Linen"
                 Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="1"/>
@@ -244,7 +244,7 @@
                                     </StackPanel>
                                     <TextBlock Margin="0" Text="0                          19      0                         19" FontWeight="Bold" FontFamily="Cambria" Width="200" />
                                     <Button x:Name="AddConnectionObserverButton" Margin="5,1" Content="Add Observer" Background="{x:Null}" Click="OnAddConnectionPairClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
-                                    <Button x:Name="ClearObserversButton1" Margin="5,1" Content="Clear Observers" Background="{x:Null}" Click="OnClearAreaClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
+                                    <Button x:Name="ClearObserversButton1" Margin="5,1" Content="Clear Observers" Background="{x:Null}" Click="OnClearClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="110" />
                                     <Button x:Name="StartButton3" Margin="85,1" Content="Start" Background="{x:Null}" Click="OnStartClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Width="76"/>
                                     <Button x:Name="PauseResume3" Height="20" Width="76" Content="Pause" Background="Linen"
                 Click="OnPauseResumeClick" FontWeight="Bold" BorderThickness ="2" BorderBrush="Gray" Margin="1"/>
