@@ -1,5 +1,4 @@
 using System.Data.SqlTypes;
-using Microsoft.SqlServer.Types;
 
 namespace RxSpatial;
 
@@ -10,14 +9,9 @@ namespace RxSpatial;
 internal static class SpatialDistance
 {
     /// <summary>
-    /// The distance in metres between two geographies, or <see cref="double.NaN"/> when
-    /// <see cref="SqlGeography.STDistance"/> returns <see cref="SqlDouble.Null"/> (e.g.
-    /// different SRIDs or an empty geography). Mapping Null to NaN, rather than dropping
-    /// it, keeps one notification per location update.
+    /// An <c>STDistance</c> result as a <see cref="double"/>, or <see cref="double.NaN"/> when
+    /// it is <see cref="SqlDouble.Null"/> (e.g. different SRIDs or an empty shape). Mapping
+    /// Null to NaN, rather than dropping it, keeps one notification per location update.
     /// </summary>
-    public static double Between(SqlGeography from, SqlGeography to)
-    {
-        SqlDouble distance = from.STDistance(to);
-        return distance.IsNull ? double.NaN : distance.Value;
-    }
+    public static double ToDouble(SqlDouble distance) => distance.IsNull ? double.NaN : distance.Value;
 }

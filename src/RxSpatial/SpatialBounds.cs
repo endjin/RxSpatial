@@ -4,25 +4,11 @@ using RxSpatial.Index;
 namespace RxSpatial;
 
 /// <summary>
-/// Bounding rectangles of SQL Server spatial instances, as the <see cref="Rect"/> the grid and
-/// tree backends index by. The one place that turns an envelope into a rectangle.
+/// The one place that turns a SQL Server envelope into the <see cref="Rect"/> the grid and
+/// tree backends index by, for geographies and geometries alike.
 /// </summary>
 internal static class SpatialBounds
 {
-    /// <summary>The bounding rectangle of a geography: X is longitude, Y is latitude.</summary>
-    public static Rect OfGeography(SqlGeography location)
-    {
-        if (location.STGeometryType().Value == "Point")
-        {
-            // Fast path for bare position pushes; also avoids the WKB round-trip.
-            double x = location.Long.Value;
-            double y = location.Lat.Value;
-            return new Rect(x, y, x, y);
-        }
-
-        return OfEnvelope(SqlGeometry.STGeomFromWKB(location.STAsBinary(), location.STSrid.Value).STEnvelope());
-    }
-
     /// <summary>The rectangle spanned by an <c>STEnvelope()</c> result.</summary>
     public static Rect OfEnvelope(SqlGeometry envelope)
         // SQL Server's STEnvelope returns degenerate shapes for degenerate extents:

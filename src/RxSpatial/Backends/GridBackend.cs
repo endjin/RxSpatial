@@ -1,5 +1,4 @@
 using System.Text;
-using Microsoft.SqlServer.Types;
 using RxSpatial.Index;
 
 namespace RxSpatial.Backends;
@@ -9,7 +8,9 @@ namespace RxSpatial.Backends;
 /// occupies the block of cells its bounding rectangle covers — one cell for a point, every
 /// covered cell for a region.
 /// </summary>
-internal sealed class GridBackend<T> : ISpatialBackend<T>
+internal sealed class GridBackend<TShape, TOps, T> : ISpatialBackend<TShape, T>
+    where TShape : class
+    where TOps : struct, ISpatialOperations<TShape>
     where T : notnull
 {
     // Every observer's occupied cell block is recorded, region observers included, so that
@@ -18,7 +19,7 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
     // region accumulate in every cell it had ever visited.)
     private readonly Dictionary<T, CellBlock> placements = [];
     private readonly Dictionary<T, IDisposable> trackers = [];
-    private readonly ListBackend<T>[,] cells;
+    private readonly ListBackend<TShape, T>[,] cells;
     private readonly GridLayout layout;
     private readonly double xStep;
     private readonly double yStep;
@@ -29,7 +30,7 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
         xStep = (layout.Extent.MaxX - layout.Extent.MinX) / layout.XCells;
         yStep = (layout.Extent.MaxY - layout.Extent.MinY) / layout.YCells;
 
-        cells = new ListBackend<T>[layout.YCells, layout.XCells];
+        cells = new ListBackend<TShape, T>[layout.YCells, layout.XCells];
         for (int row = 0; row < layout.YCells; row++)
         {
             for (int column = 0; column < layout.XCells; column++)
@@ -37,7 +38,7 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
         }
     }
 
-    public void Subscribe(T observer, RxGeography source)
+    public void Subscribe(T observer, IMovingObject<TShape> source)
     {
         // Preserved behaviour: source.Location is null until the moving object's first OnNext
         // push; subscribing before it has reported a location fails, as it always has.
@@ -48,7 +49,7 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
         trackers[observer] = source.Subscribe(new LocationTracker(this, observer));
     }
 
-    public void Subscribe(T observer, SqlGeography location) => UpdateLocation(location, observer);
+    public void Subscribe(T observer, TShape location) => UpdateLocation(location, observer);
 
     public bool Remove(T observer)
     {
@@ -60,9 +61,9 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
 
     public bool Contains(T observer) => placements.ContainsKey(observer);
 
-    public List<T> GetObserversInZone(SqlGeography location)
+    public List<T> GetObserversInZone(TShape location)
     {
-        CellBlock block = CellBlockOf(SpatialBounds.OfGeography(location));
+        CellBlock block = CellBlockOf(TOps.BoundsOf(location));
         if (block.IsSingleCell)
             return cells[block.RowMin, block.ColumnMin];
 
@@ -94,16 +95,16 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
         return builder.ToString();
     }
 
-    private void UpdateLocation(SqlGeography location, T observer)
+    private void UpdateLocation(TShape location, T observer)
     {
         Evict(observer);
         Insert(location, observer);
     }
 
-    private void Insert(SqlGeography location, T observer)
+    private void Insert(TShape location, T observer)
     {
         // A point occupies one cell; a region (e.g. a geofence) every cell its rectangle covers.
-        CellBlock block = CellBlockOf(SpatialBounds.OfGeography(location));
+        CellBlock block = CellBlockOf(TOps.BoundsOf(location));
         for (int row = block.RowMin; row <= block.RowMax; row++)
         {
             for (int column = block.ColumnMin; column <= block.ColumnMax; column++)
@@ -144,9 +145,9 @@ internal sealed class GridBackend<T> : ISpatialBackend<T>
     }
 
     // Tracks a moving observer and updates its grid cell on every location push.
-    private sealed class LocationTracker(GridBackend<T> grid, T observer) : IObserver<SqlGeography>
+    private sealed class LocationTracker(GridBackend<TShape, TOps, T> grid, T observer) : IObserver<TShape>
     {
-        public void OnNext(SqlGeography location) => grid.UpdateLocation(location, observer);
+        public void OnNext(TShape location) => grid.UpdateLocation(location, observer);
 
         public void OnCompleted()
         {

@@ -1,5 +1,3 @@
-using Microsoft.SqlServer.Types;
-
 namespace RxSpatial;
 
 /// <summary>
@@ -7,15 +5,16 @@ namespace RxSpatial;
 /// <paramref name="source"/> and the object whose pushes drive <see cref="OnNext"/>.
 /// Subclasses supply only the query itself.
 /// </summary>
-internal abstract class RxRxObserverBase<TResult>(RxGeography source, IObserver<TResult> observer)
-    : IObserver<SqlGeography>
+internal abstract class RxRxObserverBase<TShape, TResult>(IMovingObject<TShape> source, IObserver<TResult> observer)
+    : IObserver<TShape>
+    where TShape : class
 {
-    protected RxGeography Source { get; } = source;
+    protected IMovingObject<TShape> Source { get; } = source;
 
     protected IObserver<TResult> Observer { get; } = observer;
 
     /// <summary>Re-evaluates the query against the moving object's new location.</summary>
-    public abstract void OnNext(SqlGeography location);
+    public abstract void OnNext(TShape location);
 
     // A continuous query outlives the location stream it listens to: completion and errors
     // of the moving object are not propagated to the query's subscriber (original behaviour).

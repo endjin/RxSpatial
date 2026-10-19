@@ -1,10 +1,10 @@
-using Microsoft.SqlServer.Types;
-
 namespace RxSpatial;
 
-/// <summary>Continuous intersection test between a moving object and a stationary geography.</summary>
-internal sealed class RxIntersectObserver(SqlGeography anchor, IObserver<bool> observer)
-    : RxObserverBase<bool>(anchor, observer)
+/// <summary>Continuous intersection test between a moving object and a stationary shape.</summary>
+internal sealed class RxIntersectObserver<TShape, TOps>(TShape anchor, IObserver<bool> observer)
+    : RxObserverBase<TShape, bool>(anchor, observer)
+    where TShape : class
+    where TOps : struct, ISpatialOperations<TShape>
 {
-    public override void OnNext(SqlGeography location) => Observer.OnNext(Anchor.STIntersects(location).IsTrue);
+    public override void OnNext(TShape location) => Observer.OnNext(TOps.Intersects(Anchor, location));
 }

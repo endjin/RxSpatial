@@ -1,10 +1,10 @@
-using Microsoft.SqlServer.Types;
-
 namespace RxSpatial;
 
-/// <summary>Continuous distance query between a moving object and a stationary geography.</summary>
-internal sealed class RxDistanceObserver(SqlGeography anchor, IObserver<double> observer)
-    : RxObserverBase<double>(anchor, observer)
+/// <summary>Continuous distance query between a moving object and a stationary shape.</summary>
+internal sealed class RxDistanceObserver<TShape, TOps>(TShape anchor, IObserver<double> observer)
+    : RxObserverBase<TShape, double>(anchor, observer)
+    where TShape : class
+    where TOps : struct, ISpatialOperations<TShape>
 {
-    public override void OnNext(SqlGeography location) => Observer.OnNext(SpatialDistance.Between(Anchor, location));
+    public override void OnNext(TShape location) => Observer.OnNext(TOps.Distance(Anchor, location));
 }
