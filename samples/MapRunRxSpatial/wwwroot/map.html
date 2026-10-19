@@ -6,33 +6,70 @@
   <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
   <link href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
+    /* Overlays follow the WPF panel's Fluent (Windows 11) light theme: Segoe UI Variable,
+       8px corners, a light acrylic-like translucent white with a hairline stroke and a soft
+       two-layer shadow. */
+    :root {
+      --font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+      --surface: rgba(252, 252, 252, .86);
+      --surface-hover: rgba(240, 240, 240, .92);
+      --stroke: rgba(0, 0, 0, .08);
+      --shadow: 0 8px 16px rgba(0, 0, 0, .14), 0 0 2px rgba(0, 0, 0, .12);
+      --shadow-low: 0 2px 4px rgba(0, 0, 0, .14), 0 0 2px rgba(0, 0, 0, .12);
+      --text: rgba(0, 0, 0, .9);
+    }
     html, body, #map { margin: 0; padding: 0; height: 100%; }
+    body, .maplibregl-map { font-family: var(--font); }
     .vehicle-marker {
       display: flex; align-items: center; justify-content: center;
       width: 26px; height: 26px; border-radius: 50%;
       border: 2px solid #ffffff;
-      box-shadow: 0 1px 4px rgba(0,0,0,.45); cursor: default;
+      box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 3px 8px rgba(0,0,0,.22); cursor: default;
       z-index: 1; /* above the area labels */
     }
     .vehicle-marker span {
-      color: #fff; font: bold 11px sans-serif;
+      color: #fff; font: 600 11px var(--font);
     }
     .area-label {
-      background: #ffffff; color: #263238;
-      font: 600 11px/1 'Segoe UI', sans-serif;
-      padding: 3px 6px; border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.35);
+      background: var(--surface); color: var(--text);
+      -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
+      border: 1px solid var(--stroke);
+      font: 600 12px/1 var(--font);
+      padding: 4px 8px 5px; border-radius: 8px;
+      box-shadow: var(--shadow-low);
       pointer-events: none; white-space: nowrap;
     }
     #draw-hint {
-      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
       z-index: 2; display: none;
-      background: rgba(38, 50, 56, .92); color: #ffffff;
-      font: 13px 'Segoe UI', sans-serif;
-      padding: 6px 14px; border-radius: 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+      background: var(--surface); color: var(--text);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+      border: 1px solid var(--stroke);
+      font: 14px/20px var(--font);
+      padding: 8px 16px; border-radius: 8px;
+      box-shadow: var(--shadow);
       pointer-events: none; white-space: nowrap;
     }
+    /* MapLibre's zoom/compass group and the attribution, as Fluent flyout-style surfaces. */
+    .maplibregl-ctrl-bottom-right .maplibregl-ctrl { margin: 0 16px 16px 0; }
+    .maplibregl-ctrl-group:not(:empty) {
+      background: var(--surface);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+      border: 1px solid var(--stroke); border-radius: 8px;
+      box-shadow: var(--shadow-low); overflow: hidden;
+    }
+    .maplibregl-ctrl-group button { width: 32px; height: 32px; }
+    .maplibregl-ctrl-group button + button { border-top: 1px solid var(--stroke); }
+    .maplibregl-ctrl button:not(:disabled):hover { background-color: var(--surface-hover); }
+    .maplibregl-ctrl-attrib.maplibregl-compact,
+    .maplibregl-ctrl.maplibregl-ctrl-attrib {
+      background: var(--surface);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+      border: 1px solid var(--stroke); border-radius: 8px;
+      box-shadow: var(--shadow-low);
+      font: 12px/20px var(--font); color: var(--text);
+    }
+    .maplibregl-ctrl-attrib a { color: rgba(0, 0, 0, .62); }
     /* Draw mode: a crosshair over the whole map, vehicle markers included. */
     body.drawing .maplibregl-canvas-container,
     body.drawing .maplibregl-canvas,

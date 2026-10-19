@@ -4,34 +4,292 @@
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         xmlns:rx="clr-namespace:RxSpatial;assembly=RxSpatial"
         Title="MapRun RxSpatial" Height="880" Width="1300" MinHeight="600" MinWidth="900"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
         WindowStartupLocation="CenterScreen" Loaded="OnLoaded" KeyDown="OnWindowKeyDown">
-    <!-- Shared styles come first: a missing StaticResource key fails when the window is
-         created, not at build time. -->
+    <!-- The Fluent theme (App.xaml ThemeMode) supplies the control styles and the theme brushes
+         used below, which are DynamicResource so they follow the theme dictionary. Shared
+         styles come first: a missing StaticResource key fails when the window is created, not
+         at build time. -->
     <Window.Resources>
-        <Style x:Key="SectionLabel" TargetType="TextBlock">
+        <!-- Surfaces -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,14,16,16"/>
+        </Style>
+
+        <!-- Typography: section title > field label and value > secondary text > ticks. -->
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,8,0,2"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <!-- A section after the first: its title row is spaced from the controls above. -->
+        <Style x:Key="SectionHeader" TargetType="DockPanel">
+            <Setter Property="Margin" Value="0,20,0,8"/>
+            <Setter Property="LastChildFill" Value="True"/>
+        </Style>
+        <Style x:Key="FirstSectionHeader" TargetType="DockPanel" BasedOn="{StaticResource SectionHeader}">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="FieldHeader" TargetType="DockPanel">
+            <Setter Property="Margin" Value="0,8,0,0"/>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        </Style>
+        <Style x:Key="FieldValue" TargetType="TextBlock" BasedOn="{StaticResource FieldLabel}">
+            <Setter Property="DockPanel.Dock" Value="Right"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
         </Style>
         <Style x:Key="Tick" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="Foreground" Value="DimGray"/>
-            <Setter Property="Margin" Value="0,0,0,2"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}"/>
         </Style>
-        <Style x:Key="DemoButton" TargetType="Button">
-            <Setter Property="MinWidth" Value="90"/>
-            <Setter Property="Padding" Value="8,2"/>
-            <Setter Property="Margin" Value="0,6,6,0"/>
+        <!-- Tick labels under a slider, tucked up to its track. -->
+        <Style x:Key="TickRow" TargetType="DockPanel">
+            <Setter Property="Margin" Value="0,-2,0,0"/>
         </Style>
-        <!-- An area button stays pressed while the map is in drawing mode for it. -->
-        <Style x:Key="DrawAreaButton" TargetType="ToggleButton">
-            <Setter Property="MinWidth" Value="90"/>
-            <Setter Property="Padding" Value="8,2"/>
-            <Setter Property="Margin" Value="0,6,6,0"/>
-            <Style.Triggers>
-                <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                </Trigger>
-            </Style.Triggers>
+        <!-- Only the end ticks: the right one must not fill the row. -->
+        <Style x:Key="TickRowEnds" TargetType="DockPanel" BasedOn="{StaticResource TickRow}">
+            <Setter Property="LastChildFill" Value="False"/>
+        </Style>
+        <Style x:Key="TickLeft" TargetType="TextBlock" BasedOn="{StaticResource Tick}">
+            <Setter Property="DockPanel.Dock" Value="Left"/>
+        </Style>
+        <Style x:Key="TickRight" TargetType="TextBlock" BasedOn="{StaticResource Tick}">
+            <Setter Property="DockPanel.Dock" Value="Right"/>
+        </Style>
+        <Style x:Key="TickCentre" TargetType="TextBlock" BasedOn="{StaticResource Tick}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="StatusText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+        </Style>
+
+        <!-- Every slider here selects an integer, so values snap to whole numbers. -->
+        <Style x:Key="DemoSlider" TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
+            <Setter Property="IsSnapToTickEnabled" Value="True"/>
+            <Setter Property="TickFrequency" Value="1"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+
+        <!-- Buttons share a one-row UniformGrid, so they are equally wide; the grid's negative
+             margin cancels the outer half of the 8px gutter. -->
+        <Style x:Key="ButtonRow" TargetType="UniformGrid">
+            <Setter Property="Rows" Value="1"/>
+            <Setter Property="Margin" Value="-4,16,-4,0"/>
+        </Style>
+        <Style x:Key="DemoButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="4,0"/>
+        </Style>
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="4,0"/>
+        </Style>
+        <!-- Clear areas / Clear pairs, at the right of their section's title. -->
+        <Style x:Key="SectionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="DockPanel.Dock" Value="Right"/>
+            <Setter Property="Padding" Value="10,3,10,4"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <!-- An area button stays pressed (accent fill) while the map is in drawing mode for it. -->
+        <Style x:Key="DrawAreaButton" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="4,0"/>
+        </Style>
+
+        <!-- Spatial index: a segmented control, one RadioButton per segment. The selected
+             segment is raised (control fill and elevation border) with an accent pill. -->
+        <Style x:Key="SegmentedTrack" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="2"/>
+        </Style>
+        <Style x:Key="Segment" TargetType="RadioButton">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource DefaultControlFocusVisualStyle}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Chip" Background="Transparent" BorderBrush="Transparent"
+                                BorderThickness="1" CornerRadius="4" Padding="4,5,4,7">
+                            <Grid>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Rectangle x:Name="Pill" Width="14" Height="3" RadiusX="1.5" RadiusY="1.5"
+                                           VerticalAlignment="Bottom" Margin="0,0,0,-6"
+                                           Fill="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Hidden"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chip" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Chip" Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+                                <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}"/>
+                                <Setter TargetName="Pill" Property="Visibility" Value="Visible"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Scenario tabs: a compact selector bar (text tabs with an accent underline pill)
+             whose four headers fit one row at the panel width. -->
+        <Style x:Key="ScenarioTabs" TargetType="TabControl">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Border BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1"
+                                    Padding="10,4,10,0">
+                                <StackPanel Orientation="Horizontal" IsItemsHost="True" KeyboardNavigation.TabIndex="1"/>
+                            </Border>
+                            <!-- The part name matters: UI Automation reaches the tab content through it. -->
+                            <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Row="1" ContentSource="SelectedContent"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource DefaultControlFocusVisualStyle}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Hover" CornerRadius="4" Margin="0,4,0,6" Background="Transparent"/>
+                            <ContentPresenter ContentSource="Header" Margin="10,10,10,13" RecognizesAccessKey="True"
+                                              HorizontalAlignment="Center"/>
+                            <Rectangle x:Name="Indicator" Width="16" Height="3" RadiusX="1.5" RadiusY="1.5"
+                                       VerticalAlignment="Bottom" Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                       Visibility="Hidden"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hover" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Guidance -->
+        <Style x:Key="GuidanceTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+        <!-- The query the tab demonstrates, as a code tag under the title. -->
+        <Style x:Key="QueryTag" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,1,6,2"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="QueryTagText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+        <Style x:Key="QueryTagRow" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="Margin" Value="0,6,0,14"/>
+        </Style>
+        <Style x:Key="GuidanceText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="LineHeight" Value="19"/>
+            <Setter Property="LineStackingStrategy" Value="BlockLineHeight"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+        <Style x:Key="GuidanceParagraph" TargetType="TextBlock" BasedOn="{StaticResource GuidanceText}">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style x:Key="GuidanceNote" TargetType="TextBlock" BasedOn="{StaticResource GuidanceParagraph}">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        </Style>
+        <!-- Paper citations and the colour names that key a legend row. -->
+        <Style x:Key="Citation" TargetType="Run">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        </Style>
+        <Style x:Key="Term" TargetType="Run">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="GuidanceSection" TargetType="TextBlock" BasedOn="{StaticResource SectionTitle}">
+            <Setter Property="Margin" Value="0,6,0,8"/>
+        </Style>
+
+        <!-- Numbered steps: an accent badge beside the step text. -->
+        <Style x:Key="Step" TargetType="DockPanel">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style x:Key="StepNumber" TargetType="ContentControl">
+            <Setter Property="DockPanel.Dock" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Border Width="20" Height="20" CornerRadius="10" Background="{DynamicResource AccentFillColorDefaultBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.FontSize="11" TextElement.FontWeight="SemiBold"
+                                              TextElement.Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Legend rows: a fixed swatch column, centred on the first text line. -->
+        <Style x:Key="LegendRow" TargetType="DockPanel">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="LegendSwatch" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="DockPanel.Dock" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Height" Value="19"/>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+        </Style>
+        <Style x:Key="LegendSwatchWide" TargetType="StackPanel" BasedOn="{StaticResource LegendSwatch}">
+            <Setter Property="Width" Value="44"/>
         </Style>
         <!-- Legend swatches matching the map's area styles (AREA_STYLES in wwwroot/map.html):
              restricted is a slate diagonal hatch with a solid outline, confinement a purple
@@ -44,57 +302,45 @@
             <GradientStop Color="Transparent" Offset="1"/>
         </LinearGradientBrush>
         <Style x:Key="AreaSwatch" TargetType="Rectangle">
-            <Setter Property="Width" Value="14"/>
-            <Setter Property="Height" Value="11"/>
-            <Setter Property="Margin" Value="0,2,6,0"/>
-            <Setter Property="VerticalAlignment" Value="Top"/>
-            <Setter Property="DockPanel.Dock" Value="Left"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="13"/>
+            <Setter Property="RadiusX" Value="2"/>
+            <Setter Property="RadiusY" Value="2"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
         </Style>
         <Style x:Key="RestrictedSwatch" TargetType="Rectangle" BasedOn="{StaticResource AreaSwatch}">
             <Setter Property="Fill" Value="{StaticResource RestrictedHatch}"/>
             <Setter Property="Stroke" Value="#37474F"/>
-            <Setter Property="StrokeThickness" Value="1.5"/>
         </Style>
         <Style x:Key="ConfinementSwatch" TargetType="Rectangle" BasedOn="{StaticResource AreaSwatch}">
             <Setter Property="Fill" Value="#0F6A1B9A"/>
             <Setter Property="Stroke" Value="#6A1B9A"/>
-            <Setter Property="StrokeThickness" Value="1.5"/>
             <Setter Property="StrokeDashArray" Value="2 1"/>
+            <Setter Property="RadiusX" Value="0"/>
+            <Setter Property="RadiusY" Value="0"/>
         </Style>
-        <!-- Every slider here selects an integer, so values snap to whole numbers. -->
-        <Style x:Key="DemoSlider" TargetType="Slider">
-            <Setter Property="IsSnapToTickEnabled" Value="True"/>
-            <Setter Property="TickFrequency" Value="1"/>
-        </Style>
-        <Style x:Key="GuidanceHeading" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
-        <Style x:Key="GuidanceText" TargetType="TextBlock">
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
-        <Style x:Key="LegendRow" TargetType="DockPanel">
-            <Setter Property="Margin" Value="0,0,0,4"/>
-        </Style>
+        <!-- Vehicle marker dots: the map's fill colour with a hairline ring, so light fills
+             (yellow) stay crisp on the card. -->
         <Style x:Key="LegendDot" TargetType="Ellipse">
-            <Setter Property="Width" Value="10"/>
-            <Setter Property="Height" Value="10"/>
-            <Setter Property="Margin" Value="0,3,6,0"/>
-            <Setter Property="VerticalAlignment" Value="Top"/>
-            <Setter Property="DockPanel.Dock" Value="Left"/>
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="Stroke" Value="#40000000"/>
+            <Setter Property="StrokeThickness" Value="1"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="3,0,0,0"/>
         </Style>
         <Style x:Key="LegendLine" TargetType="Line">
             <Setter Property="X1" Value="0"/>
-            <Setter Property="X2" Value="18"/>
-            <Setter Property="Y1" Value="8"/>
-            <Setter Property="Y2" Value="8"/>
-            <Setter Property="Width" Value="18"/>
-            <Setter Property="Height" Value="16"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
-            <Setter Property="VerticalAlignment" Value="Top"/>
-            <Setter Property="DockPanel.Dock" Value="Left"/>
+            <Setter Property="X2" Value="22"/>
+            <Setter Property="Y1" Value="9.5"/>
+            <Setter Property="Y2" Value="9.5"/>
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="19"/>
+            <Setter Property="Margin" Value="7,0,0,0"/>
+            <Setter Property="StrokeStartLineCap" Value="Round"/>
+            <Setter Property="StrokeEndLineCap" Value="Round"/>
         </Style>
     </Window.Resources>
 
@@ -102,7 +348,7 @@
         <Grid.ColumnDefinitions>
             <!-- WebView2 is an HWND-hosted control that always renders above WPF content,
                  so the control panel sits beside the map instead of overlaying it. -->
-            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="376"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -112,380 +358,492 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- Keep the tab order: OnScenarioTabChanged maps tabs to scenarios by index. -->
-            <TabControl Grid.Row="0" VerticalAlignment="Top" SelectionChanged="OnScenarioTabChanged">
+            <TabControl Grid.Row="0" Style="{StaticResource ScenarioTabs}" SelectionChanged="OnScenarioTabChanged">
                 <TabItem Header="Geofence">
-                    <StackPanel Margin="6">
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=VehicleCountSlider, StringFormat='Vehicles: {0:0}'}"/>
-                        <Slider x:Name="VehicleCountSlider" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="20" ValueChanged="OnVehicleCountChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="20"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="10"/>
-                        </DockPanel>
+                    <Border Style="{StaticResource Card}" Margin="12,12,12,0">
+                        <StackPanel>
+                            <DockPanel Style="{StaticResource FirstSectionHeader}">
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Traffic"/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=VehicleCountSlider, StringFormat='{}{0:0}'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Vehicles"/>
+                            </DockPanel>
+                            <Slider x:Name="VehicleCountSlider" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="20" ValueChanged="OnVehicleCountChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="20"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="10"/>
+                            </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=VehicleSpeedSlider, StringFormat='Replay rate: {0:0} updates/s'}"/>
-                        <Slider x:Name="VehicleSpeedSlider" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="50"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="25"/>
-                        </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=VehicleSpeedSlider, StringFormat='{}{0:0} updates/s'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Replay rate"/>
+                            </DockPanel>
+                            <Slider x:Name="VehicleSpeedSlider" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="50"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="25"/>
+                            </DockPanel>
 
-                        <WrapPanel>
-                            <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
-                            <Button x:Name="PauseResume2" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Clear areas" Click="OnClearClick"/>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <TextBlock Text="Draw:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,6,6,0"/>
-                            <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Restricted area"
-                                          Checked="OnRestrictedAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
-                            <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Confinement area"
-                                          Checked="OnConfinementAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
-                        </WrapPanel>
-                        <!-- ApplyControlDefaults checks the appsettings.json index; none is
-                             checked here, so XAML loading raises no Checked event. -->
-                        <WrapPanel Margin="0,4,0,0">
-                            <TextBlock Text="Spatial index:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,6,4,0"/>
-                            <RadioButton x:Name="IndexList" GroupName="SpatialIndex" Content="List" Margin="0,6,4,0"
-                                         VerticalContentAlignment="Center" Tag="{x:Static rx:RxGeographyDataStruct.List}" Checked="OnSpatialIndexChecked"/>
-                            <RadioButton x:Name="IndexGrid" GroupName="SpatialIndex" Content="Grid" Margin="0,6,4,0"
-                                         VerticalContentAlignment="Center" Tag="{x:Static rx:RxGeographyDataStruct.HashMap}" Checked="OnSpatialIndexChecked"/>
-                            <RadioButton x:Name="IndexRTree" GroupName="SpatialIndex" Content="R*-tree" Margin="0,6,4,0"
-                                         VerticalContentAlignment="Center" Tag="{x:Static rx:RxGeographyDataStruct.RTree}" Checked="OnSpatialIndexChecked"/>
-                            <RadioButton x:Name="IndexRumTree" GroupName="SpatialIndex" Content="RUM-tree" Margin="0,6,0,0"
-                                         VerticalContentAlignment="Center" Tag="{x:Static rx:RxGeographyDataStruct.RumTree}" Checked="OnSpatialIndexChecked"/>
-                        </WrapPanel>
-                    </StackPanel>
+                            <UniformGrid Style="{StaticResource ButtonRow}">
+                                <Button Style="{StaticResource PrimaryButton}" Content="Start" Click="OnStartClick"/>
+                                <Button x:Name="PauseResume2" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            </UniformGrid>
+
+                            <DockPanel Style="{StaticResource SectionHeader}">
+                                <Button Style="{StaticResource SectionButton}" Content="Clear areas" Click="OnClearClick"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Draw an area"/>
+                            </DockPanel>
+                            <UniformGrid Style="{StaticResource ButtonRow}" Margin="-4,0">
+                                <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Restricted area"
+                                              Checked="OnRestrictedAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
+                                <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Confinement area"
+                                              Checked="OnConfinementAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
+                            </UniformGrid>
+
+                            <!-- ApplyControlDefaults checks the appsettings.json index; none is
+                                 checked here, so XAML loading raises no Checked event. -->
+                            <DockPanel Style="{StaticResource SectionHeader}">
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Spatial index"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource SegmentedTrack}">
+                                <UniformGrid Rows="1">
+                                    <RadioButton x:Name="IndexList" Style="{StaticResource Segment}" GroupName="SpatialIndex" Content="List"
+                                                 Tag="{x:Static rx:RxGeographyDataStruct.List}" Checked="OnSpatialIndexChecked"/>
+                                    <RadioButton x:Name="IndexGrid" Style="{StaticResource Segment}" GroupName="SpatialIndex" Content="Grid"
+                                                 Tag="{x:Static rx:RxGeographyDataStruct.HashMap}" Checked="OnSpatialIndexChecked"/>
+                                    <RadioButton x:Name="IndexRTree" Style="{StaticResource Segment}" GroupName="SpatialIndex" Content="R*-tree"
+                                                 Tag="{x:Static rx:RxGeographyDataStruct.RTree}" Checked="OnSpatialIndexChecked"/>
+                                    <RadioButton x:Name="IndexRumTree" Style="{StaticResource Segment}" GroupName="SpatialIndex" Content="RUM-tree"
+                                                 Tag="{x:Static rx:RxGeographyDataStruct.RumTree}" Checked="OnSpatialIndexChecked"/>
+                                </UniformGrid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
                 </TabItem>
 
                 <TabItem Header="Near area">
-                    <StackPanel Margin="6">
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=VehicleCountSlider1, StringFormat='Vehicles: {0:0}'}"/>
-                        <Slider x:Name="VehicleCountSlider1" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="20" ValueChanged="OnVehicleCountChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="20"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="10"/>
-                        </DockPanel>
+                    <Border Style="{StaticResource Card}" Margin="12,12,12,0">
+                        <StackPanel>
+                            <DockPanel Style="{StaticResource FirstSectionHeader}">
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Traffic"/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=VehicleCountSlider1, StringFormat='{}{0:0}'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Vehicles"/>
+                            </DockPanel>
+                            <Slider x:Name="VehicleCountSlider1" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="20" ValueChanged="OnVehicleCountChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="20"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="10"/>
+                            </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=VehicleSpeedSlider1, StringFormat='Replay rate: {0:0} updates/s'}"/>
-                        <Slider x:Name="VehicleSpeedSlider1" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="50"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="25"/>
-                        </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=VehicleSpeedSlider1, StringFormat='{}{0:0} updates/s'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Replay rate"/>
+                            </DockPanel>
+                            <Slider x:Name="VehicleSpeedSlider1" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="50"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="25"/>
+                            </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=ObserveDistanceSlider, StringFormat='Observe distance: {0:N0} m'}"/>
-                        <Slider x:Name="ObserveDistanceSlider" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1 m"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="10 km"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="5 km"/>
-                        </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=ObserveDistanceSlider, StringFormat='{}{0:N0} m'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Observe distance"/>
+                            </DockPanel>
+                            <Slider x:Name="ObserveDistanceSlider" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1 m"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="10 km"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="5 km"/>
+                            </DockPanel>
 
-                        <WrapPanel>
-                            <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
-                            <Button x:Name="PauseResume1" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
-                            <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Add area"
-                                          Checked="OnRestrictedAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Clear areas" Click="OnClearClick"/>
-                        </WrapPanel>
-                    </StackPanel>
+                            <UniformGrid Style="{StaticResource ButtonRow}">
+                                <Button Style="{StaticResource PrimaryButton}" Content="Start" Click="OnStartClick"/>
+                                <Button x:Name="PauseResume1" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            </UniformGrid>
+
+                            <DockPanel Style="{StaticResource SectionHeader}">
+                                <Button Style="{StaticResource SectionButton}" Content="Clear areas" Click="OnClearClick"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Draw an area"/>
+                            </DockPanel>
+                            <UniformGrid Style="{StaticResource ButtonRow}" Margin="-4,0">
+                                <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Add area"
+                                              Checked="OnRestrictedAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
                 </TabItem>
 
                 <TabItem Header="Near vehicle">
-                    <StackPanel Margin="6">
-                        <TextBlock Style="{StaticResource SectionLabel}" Text="Vehicles: all 20"/>
+                    <Border Style="{StaticResource Card}" Margin="12,12,12,0">
+                        <StackPanel>
+                            <DockPanel Style="{StaticResource FirstSectionHeader}">
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Traffic"/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="All 20"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Vehicles"/>
+                            </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=VehicleSpeedSlider2, StringFormat='Replay rate: {0:0} updates/s'}"/>
-                        <Slider x:Name="VehicleSpeedSlider2" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="50"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="25"/>
-                        </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=VehicleSpeedSlider2, StringFormat='{}{0:0} updates/s'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Replay rate"/>
+                            </DockPanel>
+                            <Slider x:Name="VehicleSpeedSlider2" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="50"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="25"/>
+                            </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=ObserveDistanceSlider1, StringFormat='Observe distance: {0:N0} m'}"/>
-                        <Slider x:Name="ObserveDistanceSlider1" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1 m"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="10 km"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="5 km"/>
-                        </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=ObserveDistanceSlider1, StringFormat='{}{0:N0} m'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Observe distance"/>
+                            </DockPanel>
+                            <Slider x:Name="ObserveDistanceSlider1" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1 m"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="10 km"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="5 km"/>
+                            </DockPanel>
 
-                        <!-- The pair sliders sit side by side (as in the 2016 panel) so the
-                             guidance below keeps room for the whole legend. -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Style="{StaticResource SectionLabel}"
-                                           Text="{Binding Value, ElementName=TrackedPairSlider1, StringFormat='First vehicle: {0:0}'}"/>
-                                <Slider x:Name="TrackedPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
-                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
-                                    <TextBlock Style="{StaticResource Tick}"/>
-                                </DockPanel>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Style="{StaticResource SectionLabel}"
-                                           Text="{Binding Value, ElementName=TrackedPairSlider2, StringFormat='Second vehicle: {0:0}'}"/>
-                                <Slider x:Name="TrackedPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
-                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
-                                    <TextBlock Style="{StaticResource Tick}"/>
-                                </DockPanel>
-                            </StackPanel>
-                        </Grid>
+                            <UniformGrid Style="{StaticResource ButtonRow}">
+                                <Button Style="{StaticResource PrimaryButton}" Content="Start" Click="OnStartClick"/>
+                                <Button x:Name="PauseResume" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            </UniformGrid>
 
-                        <WrapPanel>
-                            <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
-                            <Button x:Name="PauseResume" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Watch all pairs" Click="OnWatchAllPairsClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Clear pairs" Click="OnClearClick"/>
-                        </WrapPanel>
-                        <TextBlock x:Name="TrackedPairStatus" Style="{StaticResource GuidanceText}" Margin="0,6,0,0"/>
-                    </StackPanel>
+                            <DockPanel Style="{StaticResource SectionHeader}">
+                                <Button Style="{StaticResource SectionButton}" Content="Clear pairs" Click="OnClearClick"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Watched pairs"/>
+                            </DockPanel>
+                            <!-- The pair sliders sit side by side (as in the 2016 panel) so the
+                                 guidance below keeps room for the whole legend. -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=TrackedPairSlider1, StringFormat='{}{0:0}'}"/>
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="First vehicle"/>
+                                    </DockPanel>
+                                    <Slider x:Name="TrackedPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                    <DockPanel Style="{StaticResource TickRowEnds}">
+                                        <TextBlock Style="{StaticResource TickLeft}" Text="0"/>
+                                        <TextBlock Style="{StaticResource TickRight}" Text="19"/>
+                                    </DockPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=TrackedPairSlider2, StringFormat='{}{0:0}'}"/>
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Second vehicle"/>
+                                    </DockPanel>
+                                    <Slider x:Name="TrackedPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                    <DockPanel Style="{StaticResource TickRowEnds}">
+                                        <TextBlock Style="{StaticResource TickLeft}" Text="0"/>
+                                        <TextBlock Style="{StaticResource TickRight}" Text="19"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Grid>
+
+                            <UniformGrid Style="{StaticResource ButtonRow}" Margin="-4,12,-4,0">
+                                <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
+                                <Button Style="{StaticResource DemoButton}" Content="Watch all pairs" Click="OnWatchAllPairsClick"/>
+                            </UniformGrid>
+                            <TextBlock x:Name="TrackedPairStatus" Style="{StaticResource StatusText}"/>
+                        </StackPanel>
+                    </Border>
                 </TabItem>
 
                 <TabItem Header="Convoy link">
-                    <StackPanel Margin="6">
-                        <TextBlock Style="{StaticResource SectionLabel}" Text="Vehicles: all 20"/>
+                    <Border Style="{StaticResource Card}" Margin="12,12,12,0">
+                        <StackPanel>
+                            <DockPanel Style="{StaticResource FirstSectionHeader}">
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Traffic"/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="All 20"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Vehicles"/>
+                            </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=VehicleSpeedSlider3, StringFormat='Replay rate: {0:0} updates/s'}"/>
-                        <Slider x:Name="VehicleSpeedSlider3" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="50"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="25"/>
-                        </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=VehicleSpeedSlider3, StringFormat='{}{0:0} updates/s'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Replay rate"/>
+                            </DockPanel>
+                            <Slider x:Name="VehicleSpeedSlider3" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="50"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="25"/>
+                            </DockPanel>
 
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Value, ElementName=ObserveDistanceSlider2, StringFormat='Observe distance: {0:N0} m'}"/>
-                        <Slider x:Name="ObserveDistanceSlider2" Style="{StaticResource DemoSlider}"
-                                Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="1 m"/>
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="10 km"/>
-                            <TextBlock Style="{StaticResource Tick}" HorizontalAlignment="Center" Text="5 km"/>
-                        </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=ObserveDistanceSlider2, StringFormat='{}{0:N0} m'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Observe distance"/>
+                            </DockPanel>
+                            <Slider x:Name="ObserveDistanceSlider2" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="10000" ValueChanged="OnObserveDistanceChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1 m"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="10 km"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="5 km"/>
+                            </DockPanel>
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Style="{StaticResource SectionLabel}"
-                                           Text="{Binding Value, ElementName=ConnectionPairSlider1, StringFormat='First vehicle: {0:0}'}"/>
-                                <Slider x:Name="ConnectionPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
-                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
-                                    <TextBlock Style="{StaticResource Tick}"/>
-                                </DockPanel>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Style="{StaticResource SectionLabel}"
-                                           Text="{Binding Value, ElementName=ConnectionPairSlider2, StringFormat='Second vehicle: {0:0}'}"/>
-                                <Slider x:Name="ConnectionPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Tick}" Text="0"/>
-                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Tick}" Text="19"/>
-                                    <TextBlock Style="{StaticResource Tick}"/>
-                                </DockPanel>
-                            </StackPanel>
-                        </Grid>
+                            <UniformGrid Style="{StaticResource ButtonRow}">
+                                <Button Style="{StaticResource PrimaryButton}" Content="Start" Click="OnStartClick"/>
+                                <Button x:Name="PauseResume3" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            </UniformGrid>
 
-                        <WrapPanel>
-                            <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
-                            <Button x:Name="PauseResume3" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Clear pairs" Click="OnClearClick"/>
-                        </WrapPanel>
-                        <TextBlock x:Name="ConnectionPairStatus" Style="{StaticResource GuidanceText}" Margin="0,6,0,0"/>
-                    </StackPanel>
+                            <DockPanel Style="{StaticResource SectionHeader}">
+                                <Button Style="{StaticResource SectionButton}" Content="Clear pairs" Click="OnClearClick"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Linked pairs"/>
+                            </DockPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=ConnectionPairSlider1, StringFormat='{}{0:0}'}"/>
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="First vehicle"/>
+                                    </DockPanel>
+                                    <Slider x:Name="ConnectionPairSlider1" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                    <DockPanel Style="{StaticResource TickRowEnds}">
+                                        <TextBlock Style="{StaticResource TickLeft}" Text="0"/>
+                                        <TextBlock Style="{StaticResource TickRight}" Text="19"/>
+                                    </DockPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=ConnectionPairSlider2, StringFormat='{}{0:0}'}"/>
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Second vehicle"/>
+                                    </DockPanel>
+                                    <Slider x:Name="ConnectionPairSlider2" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                    <DockPanel Style="{StaticResource TickRowEnds}">
+                                        <TextBlock Style="{StaticResource TickLeft}" Text="0"/>
+                                        <TextBlock Style="{StaticResource TickRight}" Text="19"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Grid>
+
+                            <UniformGrid Style="{StaticResource ButtonRow}" Margin="-4,12,-4,0">
+                                <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
+                            </UniformGrid>
+                            <TextBlock x:Name="ConnectionPairStatus" Style="{StaticResource StatusText}"/>
+                        </StackPanel>
+                    </Border>
                 </TabItem>
             </TabControl>
 
             <!-- Fills the space left under the (per-tab, variable-height) TabControl and
                  scrolls internally, so the text can never be clipped by the window edge.
                  Only the active tab's guidance is Visible; the others are Collapsed. -->
-            <Border Grid.Row="1" Background="Linen" BorderBrush="OldLace" BorderThickness="2"
-                    CornerRadius="10" Margin="4,6,4,4" Padding="8,8,2,8">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0" FontSize="11.5">
-                    <StackPanel>
+            <Border Grid.Row="1" Style="{StaticResource Card}" Margin="12" Padding="0">
+                <!-- The vertical margin keeps scrolled text off the card edge. -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,6">
+                    <StackPanel Margin="16,8,14,4">
                         <StackPanel x:Name="GuidanceGeofence">
-                            <TextBlock Style="{StaticResource GuidanceHeading}"
-                                       Text="Geofence - restricted and confinement zones (RxIntersect)"/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start. All 20 vehicles (numbered 0-19) replay recorded Seattle GPS trajectories at 25 updates/s, as in the DEBS 2016 Fig. 5 set-up; nothing moves until you press Start."/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="2. Press Restricted area or Confinement area, then drag a rectangle on the map; Esc or a right-click cancels. The button stays pressed while you draw, and the map pans as usual at other times. Every vehicle gets a continuous RxIntersect query against each area."/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="An offender must stay out of every restricted zone and inside a confinement zone, such as a city or county (ICDE 2017 Fig. 4a); a child must not leave a designated region (DEBS 2016 section 3.4). Being inside any one confinement area is enough."/>
-                            <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Geofence – restricted and confinement zones"/>
+                            <StackPanel Style="{StaticResource QueryTagRow}">
+                                <Border Style="{StaticResource QueryTag}"><TextBlock Style="{StaticResource QueryTagText}" Text="RxIntersect"/></Border>
+                            </StackPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start. All 20 vehicles (numbered 0-19) replay recorded Seattle GPS trajectories at 25 updates/s, as in the <Run Style="{StaticResource Citation}">DEBS 2016 Fig. 5</Run> set-up; nothing moves until you press Start.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Restricted area or Confinement area, then drag a rectangle on the map; Esc or a right-click cancels. The button stays pressed while you draw, and the map pans as usual at other times. Every vehicle gets a continuous RxIntersect query against each area.</TextBlock>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}">An offender must stay out of every restricted zone and inside a confinement zone, such as a city or county <Run Style="{StaticResource Citation}">(ICDE 2017 Fig. 4a)</Run>; a child must not leave a designated region <Run Style="{StaticResource Citation}">(DEBS 2016 section 3.4)</Run>. Being inside any one confinement area is enough.</TextBlock>
+                            <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Rectangle Style="{StaticResource RestrictedSwatch}"/>
-                                <TextBlock TextWrapping="Wrap" Text="Slate hatched area - restricted: a vehicle inside it turns red."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource RestrictedSwatch}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Slate hatched area</Run> – restricted: a vehicle inside it turns red.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Rectangle Style="{StaticResource ConfinementSwatch}"/>
-                                <TextBlock TextWrapping="Wrap" Text="Purple dashed outline - confinement: a vehicle outside every confinement area turns red."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource ConfinementSwatch}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Purple dashed outline</Run> – confinement: a vehicle outside every confinement area turns red.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
-                                <TextBlock TextWrapping="Wrap" Text="Blue - no alert."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue</Run> – no alert.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
-                                <TextBlock TextWrapping="Wrap" Text="Red - inside a restricted area or outside every confinement area (alert)."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red</Run> – inside a restricted area or outside every confinement area (alert).</TextBlock>
                             </DockPanel>
-                            <TextBlock Style="{StaticResource GuidanceText}" Text="Clear areas removes every area and its queries."/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="You can switch the spatial index while the demo runs: the alerts are the same on every index, because the queries are exact and the index only prunes which observers are evaluated. The papers compare the indexes on throughput and latency at scale (ICDE 2017 Figs. 6, 7 and 12), which 20 vehicles cannot show."/>
+                            <TextBlock Style="{StaticResource GuidanceNote}" Margin="0,6,0,10" Text="Clear areas removes every area and its queries."/>
+                            <TextBlock Style="{StaticResource GuidanceNote}">You can switch the spatial index while the demo runs: the alerts are the same on every index, because the queries are exact and the index only prunes which observers are evaluated. The papers compare the indexes on throughput and latency at scale <Run Style="{StaticResource Citation}">(ICDE 2017 Figs. 6, 7 and 12)</Run>, which 20 vehicles cannot show.</TextBlock>
                         </StackPanel>
 
                         <StackPanel x:Name="GuidanceNearArea" Visibility="Collapsed">
-                            <TextBlock Style="{StaticResource GuidanceHeading}"
-                                       Text="Near area - an offender approaches a restricted zone (RxDistance)"/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start, then press Add area and drag a rectangle on the map; Esc or a right-click cancels."/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="2. Observe distance is pre-set to 4,600 m, the family-locator set-up of DEBS 2016 Fig. 4. Move it to widen or narrow the bands."/>
-                            <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Near area – an offender approaches a restricted zone"/>
+                            <StackPanel Style="{StaticResource QueryTagRow}">
+                                <Border Style="{StaticResource QueryTag}"><TextBlock Style="{StaticResource QueryTagText}" Text="RxDistance"/></Border>
+                            </StackPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start, then press Add area and drag a rectangle on the map; Esc or a right-click cancels.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Observe distance is pre-set to 4,600 m, the family-locator set-up of <Run Style="{StaticResource Citation}">DEBS 2016 Fig. 4</Run>. Move it to widen or narrow the bands.</TextBlock>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Rectangle Style="{StaticResource RestrictedSwatch}"/>
-                                <TextBlock TextWrapping="Wrap" Text="Slate hatched area - the restricted area each vehicle's distance is measured to."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource RestrictedSwatch}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Slate hatched area</Run> – the restricted area each vehicle's distance is measured to.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
-                                <TextBlock TextWrapping="Wrap" Text="Blue - farther than the observe distance."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue</Run> – farther than the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
-                                <TextBlock TextWrapping="Wrap" Text="Green - within the observe distance (watching)."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green</Run> – within the observe distance (watching).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F" Stroke="#333333" StrokeThickness="1"/>
-                                <TextBlock TextWrapping="Wrap" Text="Yellow - closer than 4/7 of it (warning)."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow</Run> – closer than 4/7 of it (warning).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
-                                <TextBlock TextWrapping="Wrap" Text="Red - inside the area (alert)."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red</Run> – inside the area (alert).</TextBlock>
                             </DockPanel>
-                            <TextBlock Style="{StaticResource GuidanceText}"
+                            <TextBlock Style="{StaticResource GuidanceNote}" Margin="0,6,0,10"
                                        Text="This tab uses the List index: it needs every vehicle's distance on every update, which a spatial index would prune away."/>
                         </StackPanel>
 
                         <StackPanel x:Name="GuidanceNearVehicle" Visibility="Collapsed">
-                            <TextBlock Style="{StaticResource GuidanceHeading}"
-                                       Text="Near vehicle - two offenders who must not meet (RxRxDistance)"/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start. This tab always replays all 20 vehicles, with Observe distance pre-set to 5,000 m (SIGMOD 2016)."/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="2. Pairs 10-12 and 15-16 are watched from Start: the offenders close enough to meet in the ICDE paper's Fig. 4c, mostly yellow."/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="3. To watch more pairs, pick two vehicles with the sliders and press Watch pair."/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="4. Watch all pairs watches all 190 pairs of vehicles: the self join of ICDE 2017 section V.B, which continuously evaluates the distance between every pair of cars. Each vehicle then shows the most urgent colour of its 19 pairs, which is the colour for its nearest other vehicle. Gray means that no other vehicle is within the observe distance."/>
-                            <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Near vehicle – two offenders who must not meet"/>
+                            <StackPanel Style="{StaticResource QueryTagRow}">
+                                <Border Style="{StaticResource QueryTag}"><TextBlock Style="{StaticResource QueryTagText}" Text="RxRxDistance"/></Border>
+                            </StackPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start. This tab always replays all 20 vehicles, with Observe distance pre-set to 5,000 m <Run Style="{StaticResource Citation}">(SIGMOD 2016)</Run>.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Pairs 10-12 and 15-16 are watched from Start: the offenders close enough to meet in the <Run Style="{StaticResource Citation}">ICDE paper's Fig. 4c</Run>, mostly yellow.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="3"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">To watch more pairs, pick two vehicles with the sliders and press Watch pair.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="4"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Watch all pairs watches all 190 pairs of vehicles: the self join of <Run Style="{StaticResource Citation}">ICDE 2017 section V.B</Run>, which continuously evaluates the distance between every pair of cars. Each vehicle then shows the most urgent colour of its 19 pairs, which is the colour for its nearest other vehicle. Gray means that no other vehicle is within the observe distance.</TextBlock>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
-                                <TextBlock TextWrapping="Wrap" Text="Blue - not watched."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue</Run> – not watched.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#757575"/>
-                                <TextBlock TextWrapping="Wrap" Text="Gray - watched, farther apart than the observe distance."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#757575"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray</Run> – watched, farther apart than the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
-                                <TextBlock TextWrapping="Wrap" Text="Green - within the observe distance."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green</Run> – within the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F" Stroke="#333333" StrokeThickness="1"/>
-                                <TextBlock TextWrapping="Wrap" Text="Yellow - closer than 4/7 of it (meet-up warning)."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow</Run> – closer than 4/7 of it (meet-up warning).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
-                                <TextBlock TextWrapping="Wrap" Text="Red - closer than 1/7 of it: minimum safe distance (alert)."/>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red</Run> – closer than 1/7 of it: minimum safe distance (alert).</TextBlock>
                             </DockPanel>
-                            <TextBlock Style="{StaticResource GuidanceText}"
+                            <TextBlock Style="{StaticResource GuidanceNote}" Margin="0,6,0,10"
                                        Text="A vehicle in several pairs shows its most urgent colour. Clear pairs stops all watching, pre-set pairs included. List index, as on Near area."/>
                         </StackPanel>
 
                         <StackPanel x:Name="GuidanceConvoyLink" Visibility="Collapsed">
-                            <TextBlock Style="{StaticResource GuidanceHeading}"
-                                       Text="Convoy link - vehicles sharing data while they stay in range (RxRxDistance with a connection line)"/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start (all 20 vehicles). Pairs 4-18, 10-12 and 7-9 are watched from Start at an Observe distance of 8,000 m, as in the ICDE paper's Fig. 5 (DEBS 2016 Fig. 3): 4-18 mostly gray, 10-12 mostly yellow, 7-9 mostly green."/>
-                            <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="2. To link more pairs, pick two vehicles and press Watch pair; both ends of a pair move its line."/>
-                            <TextBlock Style="{StaticResource SectionLabel}" Text="Legend (marker and line)"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Convoy link – vehicles sharing data while they stay in range"/>
+                            <StackPanel Style="{StaticResource QueryTagRow}">
+                                <Border Style="{StaticResource QueryTag}"><TextBlock Style="{StaticResource QueryTagText}" Text="RxRxDistance"/></Border>
+                                <TextBlock Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="6,0,0,0" Text="with a connection line"/>
+                            </StackPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start (all 20 vehicles). Pairs 4-18, 10-12 and 7-9 are watched from Start at an Observe distance of 8,000 m, as in the <Run Style="{StaticResource Citation}">ICDE paper's Fig. 5 (DEBS 2016 Fig. 3)</Run>: 4-18 mostly gray, 10-12 mostly yellow, 7-9 mostly green.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">To link more pairs, pick two vehicles and press Watch pair; both ends of a pair move its line.</TextBlock>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend (marker and line)"/>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#757575"/>
-                                <Line Style="{StaticResource LegendLine}" Stroke="#424242" StrokeThickness="2" StrokeDashArray="2 3"/>
-                                <TextBlock TextWrapping="Wrap"
-                                           Text="Gray marker, dark dotted line - watching each other, but too far apart to connect (beyond the observe distance)."/>
+                                <StackPanel Style="{StaticResource LegendSwatchWide}">
+                                    <Ellipse Style="{StaticResource LegendDot}" Fill="#757575"/>
+                                    <Line Style="{StaticResource LegendLine}" Stroke="#424242" StrokeThickness="2" StrokeDashArray="1.5 2" StrokeDashCap="Round"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray marker, dark dotted line</Run> – watching each other, but too far apart to connect (beyond the observe distance).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
-                                <Line Style="{StaticResource LegendLine}" Stroke="#2E7D32" StrokeThickness="2" Opacity="0.8"/>
-                                <TextBlock TextWrapping="Wrap"
-                                           Text="Green marker, thin solid line - connected near the limit; likely to drop if they drift apart."/>
+                                <StackPanel Style="{StaticResource LegendSwatchWide}">
+                                    <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
+                                    <Line Style="{StaticResource LegendLine}" Stroke="#2E7D32" StrokeThickness="2" Opacity="0.8"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green marker, thin solid line</Run> – connected near the limit; likely to drop if they drift apart.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F" Stroke="#333333" StrokeThickness="1"/>
-                                <Line Style="{StaticResource LegendLine}" Stroke="#F9A825" StrokeThickness="4" Opacity="0.9"/>
-                                <TextBlock TextWrapping="Wrap"
-                                           Text="Yellow marker, thick solid line - stable working distance (closer than 4/7 of the observe distance)."/>
+                                <StackPanel Style="{StaticResource LegendSwatchWide}">
+                                    <Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F"/>
+                                    <Line Style="{StaticResource LegendLine}" Stroke="#F9A825" StrokeThickness="4" Opacity="0.9"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow marker, thick solid line</Run> – stable working distance (closer than 4/7 of the observe distance).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
-                                <Line Style="{StaticResource LegendLine}" Stroke="#D32F2F" StrokeThickness="5"/>
-                                <TextBlock TextWrapping="Wrap"
-                                           Text="Red marker, thickest line - closer than 1/7 of the observe distance: the minimum safe distance is compromised."/>
+                                <StackPanel Style="{StaticResource LegendSwatchWide}">
+                                    <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
+                                    <Line Style="{StaticResource LegendLine}" Stroke="#D32F2F" StrokeThickness="5"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red marker, thickest line</Run> – closer than 1/7 of the observe distance: the minimum safe distance is compromised.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
-                                <TextBlock TextWrapping="Wrap" Text="Blue - not watched."/>
+                                <StackPanel Style="{StaticResource LegendSwatchWide}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue</Run> – not watched.</TextBlock>
                             </DockPanel>
                         </StackPanel>
-
-                        <!-- Shared footer: the live backend (set by ShowGuidance) and the reset rule. -->
-                        <TextBlock x:Name="BackendText" Style="{StaticResource SectionLabel}" TextWrapping="Wrap"/>
-                        <TextBlock Style="{StaticResource GuidanceText}"
-                                   Text="Switching tabs restores the tab's pre-set controls and pairs, and removes every area, other pair and vehicle."/>
                     </StackPanel>
                 </ScrollViewer>
+            </Border>
+
+            <!-- Status area: the live backend (set by ShowGuidance) and the reset rule. -->
+            <Border Grid.Row="2" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0"
+                    Padding="16,10,16,12">
+                <StackPanel>
+                    <TextBlock x:Name="BackendText" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"
+                               Text="Switching tabs restores the tab's pre-set controls and pairs, and removes every area, other pair and vehicle."/>
+                </StackPanel>
             </Border>
         </Grid>
 

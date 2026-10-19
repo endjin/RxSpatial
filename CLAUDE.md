@@ -126,6 +126,13 @@ cost traded for scheduling that depends on pool state.
   stay and `AddVehicle` re-subscribes each recreated vehicle (after its first push). The
   handler acts only when `ActiveScenario` is Intersect, so `ApplyControlDefaults` checks the
   reset button *after* assigning `ActiveScenario`; `ResetScenario` sets the backend itself.
+- WPF demo theme: Fluent light via `ThemeMode="Light"` in App.xaml (Mica on Windows 11). The
+  API is `[Experimental("WPF0001")]` in code, but the XAML attribute raises no diagnostic, so
+  no suppression is needed — keep it in XAML. Fluent styles are app-level *implicit* styles:
+  a keyed `Style` must be `BasedOn="{StaticResource {x:Type Button}}"` (or `AccentButtonStyle`)
+  or the control silently falls back to the classic grey look. The custom `TabControl`
+  template must name its presenter `PART_SelectedContentHost`, or UI Automation cannot see
+  any tab content (every button "not found").
 - MapLibre zoom uses the 512px-tile convention (one level lower than Bing/Leaflet).
 - WPF demo colours: `RxGeography` notifies location observers before zone observers, so
   `VehicleMarker.MoveTo` resets the marker to Blue and each query observer may only *raise*
