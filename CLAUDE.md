@@ -9,7 +9,7 @@ modernised to .NET 10 / C# 14 / System.Reactive 7 in July 2026. House standards 
 
 ```shell
 dotnet build RxSpatial.slnx -c Release   # TreatWarningsAsErrors in Release; must stay warning-free
-dotnet test -c Release                   # 80 MSTest tests, ~1s (MTP runner, opted in via global.json "test" key)
+dotnet test -c Release                   # 89 MSTest tests, ~1s (MTP runner, opted in via global.json "test" key)
 dotnet run --project samples/RxSpatial.Examples -c Release   # end-to-end smoke: "All scenarios passed."
 dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*TreeIndexBenchmarks*"
 ```
@@ -62,6 +62,9 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
    pool (~2×), stringly-typed `[DataRow]`s became enums, and the standard is now enforced
    in-build (`AnalysisMode=Recommended` + CA1305/CA2000/CA5392/CA1852; exemptions justified
    in `.editorconfig`).
+9. WPF demo rework (Oct 2026; ef4f87f, 52921bf, a8efcb1): urgency-ordered colour bands with a
+   minimum safe distance, one connection line per pair, and a per-scenario control panel
+   (Inside area / Near area / Near vehicle / Convoy link) with legends and a backend footer.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
@@ -112,6 +115,15 @@ cost traded for scheduling that depends on pool state.
 - WPF: shared slider handlers fire during InitializeComponent (Minimum coerces Value) before
   later tabs' named elements exist — cross-tab control access must be null-tolerant.
 - MapLibre zoom uses the 512px-tile convention (one level lower than Bing/Leaflet).
+- WPF demo colours: `RxGeography` notifies location observers before zone observers, so
+  `VehicleMarker.MoveTo` resets the marker to Blue and each query observer may only *raise*
+  it (`VehicleColor` is ordered by urgency; most urgent wins whatever the notification order).
+  Bands come from `DistanceBands`; pairs go red below 1/7 of the observe distance.
+- WPF demo pairs: an RxRx observer fires only when its *own* vehicle moves, so both
+  directions of a pair are subscribed; the connection line is keyed by `VehiclePair` and
+  upserted by `ConnectionLines` (one MapLibre line per pair, not per observer).
+- The WPF demo requires `IsVisualized=true` (WebView2 must be driven from the UI thread and
+  buffered mode notifies from the pool); `App.OnStartup` forces it over appsettings.json.
 - Residual uncovered `RStarCore` lines are defensive-by-invariant (single-chain condense,
   roots keep ≥2 children, cleaning ring never empties) — don't chase them with tests.
 - Backends own the location-tracker subscription they open in `Subscribe(observer, source)`

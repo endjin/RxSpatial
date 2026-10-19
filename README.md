@@ -49,13 +49,22 @@ dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*"
 dotnet run --project samples/MapRunRxSpatial
 ```
 
-The demo runs its intersect scenario on the **RUM-tree backend by default** (see its `appsettings.json`); the distance-style tabs fall back to the list backend automatically, because spatial pruning would suppress their continuous distance streams. An in-app "How to use" panel repeats the steps below.
+The control panel has one tab per scenario — **Inside area** (`RxIntersect`), **Near area** (`RxDistance`), **Near vehicle** (`RxRxDistance`) and **Convoy link** (`RxRxDistance` with a connection line) — and each tab shows its own steps and colour legend. *Inside area* uses the spatial index configured in `appsettings.json` (the **RUM-tree by default**); the other tabs always use the List index, because spatial pruning would suppress their continuous distance streams. The panel footer shows the index in use.
 
-Nothing moves until you press **Start** — and the defaults (1 vehicle at speed 1) produce a single slow marker near the top edge of the map, so:
+Nothing moves until you press **Start**:
 
-1. Drag **Vehicle Number** up (20 shows the whole fleet) and **Vehicle Speed** up (e.g. 25).
-2. Press **Start** — numbered vehicles drive their recorded trajectories across the Seattle area.
-3. Press **Add Area**, then click two corners on the map — vehicles entering the orange geofence turn red via `RxIntersect` continuous queries (the *Dist* tab colours by `RxDistance` bands instead, and the *RxRxDist* tabs track pairs of moving objects against each other).
+1. On *Inside area* or *Near area*, set **Vehicles** (20 shows the whole fleet) and **Replay rate** (try 25), press **Start**, then press **Add area** and click two corners on the map. On *Near area*, also raise **Observe distance** — it starts at 1 m; try 2,000 m.
+2. On *Near vehicle* or *Convoy link* (always all 20 vehicles), press **Start**, choose a **First vehicle** and a **Second vehicle**, and press **Watch pair**. Vehicles **3 and 6** at an **Observe distance** of 3,500 m pass through every colour band.
+
+Colours, where *d* is the observe distance (a vehicle in several queries shows its most urgent colour):
+
+| Colour | Area tabs (vehicle vs area) | Pair tabs (vehicle vs vehicle; *Convoy link* line) |
+| --- | --- | --- |
+| Blue | Not inside an area, or farther than *d* from one | Not watched |
+| Gray | — | Watched, farther apart than *d* (thin dotted line) |
+| Green | Within *d* | Within *d*, near the limit (thin line) |
+| Yellow | Closer than 4/7 *d* | Closer than 4/7 *d*: stable working distance (thick line) |
+| Red | Inside an area | Closer than 1/7 *d*: the minimum safe distance is breached (thickest line) |
 
 ## Using RxSpatial with System.Reactive v7
 
