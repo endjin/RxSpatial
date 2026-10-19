@@ -26,6 +26,10 @@ public partial class MainWindow : Window
     private GeoPoint? corner2;
     private bool isPaused;
 
+    // Watch all pairs was pressed before the vehicles were on the map, so the status line
+    // still promises the pairs; cleared once they are watched, by Clear pairs or by a reset.
+    private bool allPairsPending;
+
     public MainWindow()
     {
         // WPF bindings format with en-US unless told otherwise; follow the OS culture so
@@ -39,6 +43,7 @@ public partial class MainWindow : Window
         polygons = new PolygonManager(map);
         lines = new ConnectionLines(map);
         fleet = new MovingObjectManager(map, polygons, lines);
+        fleet.PendingPairsWatched += OnPendingPairsWatched;
         ApplyControlDefaults(DemoParameters.ActiveScenario);
         ShowGuidance(DemoParameters.ActiveScenario);
     }
@@ -88,6 +93,7 @@ public partial class MainWindow : Window
     {
         // Also drops the tab's pre-set pairs; they come back only on the next tab reset.
         fleet.UnsubscribeAll();
+        allPairsPending = false;
         TrackedPairStatus.Text = string.Empty;
         ConnectionPairStatus.Text = string.Empty;
         polygons.ClearAllPolygons();
@@ -195,13 +201,25 @@ public partial class MainWindow : Window
     private void OnWatchAllPairsClick(object sender, RoutedEventArgs e)
     {
         int waiting = fleet.WatchAllPairs();
-        int total = MovingObjectManager.AllPairsCount;
+        allPairsPending = waiting > 0;
         TrackedPairStatus.Text = waiting switch
         {
-            0 => $"Watching all {total} pairs.",
-            _ when !fleet.TrafficStarted => $"All {total} pairs will be watched from Start.",
-            _ => $"All {total} pairs will be watched as soon as their vehicles are on the map.",
+            0 => AllPairsWatchedText,
+            _ when !fleet.TrafficStarted => $"All {MovingObjectManager.AllPairsCount} pairs will be watched from Start.",
+            _ => $"All {MovingObjectManager.AllPairsCount} pairs will be watched as soon as their vehicles are on the map.",
         };
+    }
+
+    private static string AllPairsWatchedText => $"Watching all {MovingObjectManager.AllPairsCount} pairs.";
+
+    /// <summary>Replaces the "will be watched" promise once the queued all-pairs request is met.</summary>
+    private void OnPendingPairsWatched()
+    {
+        if (!allPairsPending)
+            return;
+
+        allPairsPending = false;
+        TrackedPairStatus.Text = AllPairsWatchedText;
     }
 
     private static string DescribePairSubscription(int id1, int id2, PairSubscriptionResult result) => result switch
@@ -237,6 +255,7 @@ public partial class MainWindow : Window
     private void ResetScenario(Scenario scenario)
     {
         isPaused = false;
+        allPairsPending = false;
         SetPauseResumeLabels("Pause");
 
         ApplyControlDefaults(scenario);

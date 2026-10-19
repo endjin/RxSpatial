@@ -42,6 +42,12 @@ internal sealed class MovingObjectManager
 
     public bool TrafficStarted { get; private set; }
 
+    /// <summary>
+    /// Raised (on the UI thread) when the last pair waiting for its vehicles is watched, so a
+    /// status line that promised "watched from Start" can say the pairs are now watched.
+    /// </summary>
+    public event Action? PendingPairsWatched;
+
     public void StartTraffic()
     {
         // Stop any running timer first: repeated Start clicks must not stack timers
@@ -223,10 +229,16 @@ internal sealed class MovingObjectManager
 
     private void WatchPendingPairs()
     {
+        if (pendingPairs.Count == 0)
+            return;
+
         // Only a vehicle that is not on the map yet keeps a pair pending; added, already
         // watched and same-vehicle pairs are settled.
         pendingPairs.RemoveAll(pair =>
             WatchPair(pair.First, pair.Second, pendingPairsDrawConnection) != PairSubscriptionResult.NotOnMap);
+
+        if (pendingPairs.Count == 0)
+            PendingPairsWatched?.Invoke();
     }
 
     private void Apply(TrajectoryAction action)
