@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>RxSpatial.SqlServer</RootNamespace>
+    <AssemblyName>RxSpatial.SqlServer</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SqlServer.Types" />
+    <PackageReference Include="System.Reactive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj" />
+    <ProjectReference Include="..\RxSpatial.Index\RxSpatial.Index.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Microsoft.SqlServer.Types' spatial methods call the native SqlServerSpatial library,
+         which ships only for Windows, so this assembly is Windows-only at runtime. -->
+    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
+      <_Parameter1>windows</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

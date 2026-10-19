@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Microsoft.SqlServer.Types needs its Windows-only native library at runtime. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>RxSpatial.SqlServer.Benchmarks</RootNamespace>
+    <AssemblyName>RxSpatial.SqlServer.Benchmarks</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="Microsoft.SqlServer.Types" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
+    <ProjectReference Include="..\..\src\RxSpatial.SqlServer\RxSpatial.SqlServer.csproj" />
+  </ItemGroup>
+
+</Project>

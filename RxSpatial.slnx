@@ -2,6 +2,7 @@
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj" />
     <Project Path="benchmarks/RxSpatial.Experiments/RxSpatial.Experiments.csproj" />
+    <Project Path="benchmarks/RxSpatial.SqlServer.Benchmarks/RxSpatial.SqlServer.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/MapRunRxSpatial/MapRunRxSpatial.csproj" />
@@ -10,9 +11,11 @@
   <Folder Name="/src/">
     <Project Path="src/RxSpatial.Geo/RxSpatial.Geo.csproj" />
     <Project Path="src/RxSpatial.Index/RxSpatial.Index.csproj" />
+    <Project Path="src/RxSpatial.SqlServer/RxSpatial.SqlServer.csproj" />
     <Project Path="src/RxSpatial/RxSpatial.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/RxSpatial.SqlServer.Tests/RxSpatial.SqlServer.Tests.csproj" />
     <Project Path="tests/RxSpatial.Tests/RxSpatial.Tests.csproj" />
   </Folder>
 </Solution>

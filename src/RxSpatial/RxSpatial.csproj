@@ -16,6 +16,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- RxSpatial.SqlServer runs its SQL Server facades on this assembly's engine
+         (MovingObjectCore, ISpatialOperations, the backends and query observers). Granting it
+         internal access keeps that engine an implementation detail: making it public would
+         freeze a large generic surface (static abstract operations, backend plumbing) as
+         supported API for the sake of one first-party satellite assembly. -->
+    <InternalsVisibleTo Include="RxSpatial.SqlServer" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The SqlServerSpatial native library
          makes this assembly Windows-only at runtime. -->
     <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
