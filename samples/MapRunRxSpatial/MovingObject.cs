@@ -32,12 +32,6 @@ internal sealed class MovingObject
             subscriptions.Add(name, Geography.RxIntersect(polygon, new IntersectObserver(marker)));
     }
 
-    public void SubscribeIntersection(string name, SqlGeography polygon)
-    {
-        if (!subscriptions.ContainsKey(name))
-            subscriptions.Add(name, Geography.RxIntersection(polygon, new IntersectionObserver(marker)));
-    }
-
     public void SubscribeDistance(string name, SqlGeography polygon)
     {
         if (!subscriptions.ContainsKey(name))
@@ -60,13 +54,6 @@ internal sealed class MovingObject
 
         subscriptions.Add(name, Geography.RxRxDistance(other, new RxRxDistanceConnectionObserver(other, marker)));
         return true;
-    }
-
-    public void Unsubscribe(string name)
-    {
-        // Remove the disposed subscription so the name can be subscribed again later.
-        if (subscriptions.Remove(name, out IDisposable? subscription))
-            subscription.Dispose();
     }
 
     public void UnsubscribeAll()

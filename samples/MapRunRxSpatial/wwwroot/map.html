@@ -70,13 +70,21 @@
       } else {
         marker.setLngLat([m.lon, m.lat]);
       }
-      marker.getElement().style.background = m.color;
       marker.getElement().querySelector('span').textContent = m.label;
+      applyMarkerStyle(marker, m);
     }
 
     function setMarkerColor(m) {
       const marker = markers.get(m.id);
-      if (marker) marker.getElement().style.background = m.color;
+      if (marker) applyMarkerStyle(marker, m);
+    }
+
+    // Fill, border and label colours travel together: a light fill needs a dark label.
+    function applyMarkerStyle(marker, m) {
+      const el = marker.getElement();
+      el.style.background = m.fill;
+      el.style.borderColor = m.border;
+      el.querySelector('span').style.color = m.text;
     }
 
     function removeMarker(m) {

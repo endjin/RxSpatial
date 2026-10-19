@@ -21,7 +21,7 @@ internal static class DemoParameters
 
     public static int VehicleCount { get; set; } = 1;
 
-    public static double ObserveDistance { get; set; }
+    public static double ObserveDistance { get; set; } = 1;
 
     public static Scenario ActiveScenario { get; set; } = Scenario.Intersect;
 }

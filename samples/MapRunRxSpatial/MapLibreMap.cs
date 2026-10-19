@@ -33,11 +33,15 @@ internal sealed class MapLibreMap(WebView2 webView)
         webView.CoreWebView2.Navigate("https://maprun.local/map.html");
     }
 
-    public void SetMarker(string id, string label, double latitude, double longitude, string color)
-        => Send(new { cmd = "setMarker", id, label, lat = latitude, lon = longitude, color });
+    public void SetMarker(string id, string label, double latitude, double longitude, MarkerStyle style)
+        => Send(new
+        {
+            cmd = "setMarker", id, label, lat = latitude, lon = longitude,
+            fill = style.Fill, border = style.Border, text = style.Text,
+        });
 
-    public void SetMarkerColor(string id, string color)
-        => Send(new { cmd = "setMarkerColor", id, color });
+    public void SetMarkerColor(string id, MarkerStyle style)
+        => Send(new { cmd = "setMarkerColor", id, fill = style.Fill, border = style.Border, text = style.Text });
 
     public void RemoveMarker(string id)
         => Send(new { cmd = "removeMarker", id });

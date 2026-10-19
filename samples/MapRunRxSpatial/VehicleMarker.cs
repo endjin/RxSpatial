@@ -8,7 +8,7 @@ namespace MapRunRxSpatial;
 internal sealed class VehicleMarker(int id, MapLibreMap map, PolygonManager polygons)
 {
     private readonly string markerId = $"obj-{id}";
-    private string currentColor = "blue";
+    private VehicleColor color = VehicleColor.Blue;
     private GeoPoint position;
     private bool visible;
     private int lineId = -1;
@@ -25,41 +25,37 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, PolygonManager poly
     }
 
     /// <summary>
-    /// Applies a colour with the original demo's precedence ladder: red beats orange beats
-    /// green; gray always wins; blue (and other colours) only reset through MoveTo.
+    /// Raises the marker to <paramref name="candidate"/> if it is more urgent than the current
+    /// colour; an equal or less urgent colour is ignored. Only <see cref="MoveTo"/> lowers the
+    /// colour (back to Blue), so with several queries the most urgent one wins.
     /// </summary>
-    public void ApplyColor(string color)
+    public void ApplyColor(VehicleColor candidate)
     {
-        switch (color)
-        {
-            case "gray" or "red":
-                SetColor(color);
-                break;
-            case "orange" when currentColor != "red":
-                SetColor(color);
-                break;
-            case "greenyellow" when currentColor is not ("red" or "orange"):
-                SetColor(color);
-                break;
-            case "green" when currentColor is not ("red" or "orange" or "greenyellow"):
-                SetColor(color);
-                break;
-        }
+        if (candidate <= color)
+            return;
+
+        color = candidate;
+        if (visible)
+            map.SetMarkerColor(markerId, color.Style);
     }
 
+    /// <summary>
+    /// Moves the marker and resets it to Blue. RxGeography notifies location observers before
+    /// query observers, so this runs first and the queries then raise the colour again.
+    /// </summary>
     public void MoveTo(SqlGeography? location)
     {
         if (location is not null)
         {
             position = new GeoPoint(location.Lat.Value, location.Long.Value);
-            currentColor = "blue";
+            color = VehicleColor.Blue;
             visible = true;
             map.SetMarker(
                 markerId,
                 id.ToString(CultureInfo.InvariantCulture),
                 position.Latitude,
                 position.Longitude,
-                currentColor);
+                color.Style);
         }
         else
         {
@@ -79,12 +75,5 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, PolygonManager poly
             polygons.RemoveLine(lineId);
             lineId = -1;
         }
-    }
-
-    private void SetColor(string color)
-    {
-        currentColor = color;
-        if (visible)
-            map.SetMarkerColor(markerId, color);
     }
 }
