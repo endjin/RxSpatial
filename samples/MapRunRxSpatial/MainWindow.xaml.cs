@@ -16,12 +16,16 @@ public partial class MainWindow : Window
     private readonly MapLibreMap map;
     private readonly PolygonManager polygons;
     private readonly ConnectionLines lines;
+    private readonly OverlapShapes overlaps;
     private readonly MovingObjectManager fleet;
 
     // The appsettings.json backend (RUM-tree by default) is the Geofence tab's starting and
     // reset index; its Spatial index buttons switch it live. The distance-style tabs always
     // use the list backend because spatial pruning would suppress their continuous distance
-    // streams.
+    // streams. So does Overlap: a grid or tree only notifies an observer whose zone bounds
+    // meet the pushed reach, so a pair drifting apart would never hear "no overlap" (its
+    // markers would fall back to Blue, not watched, instead of Gray) and its lens, like a
+    // reach leaving a zone, would never get the empty result that removes it.
     private readonly RxGeographyDataStruct configuredBackend = RxSpatialOptions.Default.PreferredDataStruct;
 
     // The pressed area button while the map is in drawing mode; null when it is not.
@@ -44,12 +48,14 @@ public partial class MainWindow : Window
         map.DrawCancelled += EndAreaDrawing;
         polygons = new PolygonManager(map);
         lines = new ConnectionLines(map);
-        fleet = new MovingObjectManager(map, polygons, lines);
+        overlaps = new OverlapShapes(map);
+        fleet = new MovingObjectManager(map, polygons, lines, overlaps);
         fleet.PendingPairsWatched += OnPendingPairsWatched;
         ApplyControlDefaults(DemoParameters.ActiveScenario);
         ShowGuidance(DemoParameters.ActiveScenario);
         AnnounceChanges(TrackedPairStatus);
         AnnounceChanges(ConnectionPairStatus);
+        AnnounceChanges(OverlapPairStatus);
         AnnounceChanges(BackendText);
     }
 
@@ -101,6 +107,9 @@ public partial class MainWindow : Window
 
     /// <summary>Confinement area (Geofence only) pressed: draw a confinement area.</summary>
     private void OnConfinementAreaChecked(object sender, RoutedEventArgs e) => BeginAreaDrawing((ToggleButton)sender, AreaKind.Confinement);
+
+    /// <summary>Add zone (Overlap only) pressed: draw a zone.</summary>
+    private void OnZoneChecked(object sender, RoutedEventArgs e) => BeginAreaDrawing((ToggleButton)sender, AreaKind.Zone);
 
     /// <summary>
     /// An area button released. The user releasing the pressed button cancels drawing; a
@@ -160,17 +169,23 @@ public partial class MainWindow : Window
         button?.IsChecked = false;
     }
 
-    /// <summary>Clears areas and watched pairs alike (Clear areas / Clear pairs).</summary>
-    private void OnClearClick(object sender, RoutedEventArgs e)
+    /// <summary>Clear areas / Clear zones: removes every area and its queries; watched pairs stay.</summary>
+    private void OnClearAreasClick(object sender, RoutedEventArgs e)
+    {
+        fleet.UnsubscribeAllAreas();
+        polygons.ClearAllPolygons();
+        CancelAreaDrawing();
+    }
+
+    /// <summary>Clear pairs: stops watching every pair, with its line or lens; areas stay.</summary>
+    private void OnClearPairsClick(object sender, RoutedEventArgs e)
     {
         // Also drops the tab's pre-set pairs; they come back only on the next tab reset.
-        fleet.UnsubscribeAll();
+        fleet.UnwatchAllPairs();
         allPairsPending = false;
         TrackedPairStatus.Text = string.Empty;
         ConnectionPairStatus.Text = string.Empty;
-        polygons.ClearAllPolygons();
-        lines.Clear();
-        CancelAreaDrawing();
+        OverlapPairStatus.Text = string.Empty;
     }
 
     private void OnPauseResumeClick(object sender, RoutedEventArgs e)
@@ -198,6 +213,8 @@ public partial class MainWindow : Window
             fleet.SubscribeIntersectToNewPolygon(polygon);
         else if (DemoParameters.ActiveScenario == Scenario.Distance)
             fleet.SubscribeDistanceToNewPolygon(polygon.Name, polygon.Geography);
+        else if (DemoParameters.ActiveScenario == Scenario.RxRxIntersection)
+            fleet.SubscribeZoneOverlapToNewPolygon(polygon);
     }
 
     private void OnVehicleCountChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -215,27 +232,40 @@ public partial class MainWindow : Window
     private void OnObserveDistanceChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         => DemoParameters.ObserveDistance = e.NewValue;
 
-    /// <summary>Both pair tabs share this handler; the active scenario picks the controls.</summary>
+    /// <summary>Overlap only: the next push of every vehicle uses the new reach.</summary>
+    private void OnReachChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        => DemoParameters.Reach = e.NewValue;
+
+    /// <summary>
+    /// The pair tabs share this handler; the active scenario picks the controls. A pair is
+    /// watched with the query its tab's pre-set pairs use.
+    /// </summary>
     private void OnWatchPairClick(object sender, RoutedEventArgs e)
     {
-        (Slider first, Slider second, TextBlock status, bool drawConnection) = DemoParameters.ActiveScenario switch
+        (Slider first, Slider second) = DemoParameters.ActiveScenario switch
         {
-            Scenario.RxRxDistance => (TrackedPairSlider1, TrackedPairSlider2, TrackedPairStatus, false),
-            Scenario.RxRxDistanceConnection => (ConnectionPairSlider1, ConnectionPairSlider2, ConnectionPairStatus, true),
+            Scenario.RxRxDistance => (TrackedPairSlider1, TrackedPairSlider2),
+            Scenario.RxRxDistanceConnection => (ConnectionPairSlider1, ConnectionPairSlider2),
+            Scenario.RxRxIntersection => (OverlapPairSlider1, OverlapPairSlider2),
             _ => throw new InvalidOperationException("Watch pair is only offered on the vehicle-pair tabs."),
         };
 
         int id1 = (int)first.Value;
         int id2 = (int)second.Value;
-        status.Text = DescribePairSubscription(id1, id2, fleet.WatchPair(id1, id2, drawConnection));
+        PairStatus(DemoParameters.ActiveScenario).Text =
+            DescribePairSubscription(id1, id2, fleet.WatchPair(id1, id2, PairQueryFor(DemoParameters.ActiveScenario)));
     }
 
-    /// <summary>Near vehicle only: the self join over every pair (no connection lines).</summary>
+    /// <summary>
+    /// Near vehicle and Overlap: the self join over every pair. It is watched without lines or
+    /// lenses: on Overlap, 190 lenses would be computed twice per tick and cover the map.
+    /// </summary>
     private void OnWatchAllPairsClick(object sender, RoutedEventArgs e)
     {
-        int waiting = fleet.WatchAllPairs();
+        PairQuery query = DemoParameters.ActiveScenario == Scenario.RxRxIntersection ? PairQuery.Overlap : PairQuery.Distance;
+        int waiting = fleet.WatchAllPairs(query);
         allPairsPending = waiting > 0;
-        TrackedPairStatus.Text = waiting switch
+        PairStatus(DemoParameters.ActiveScenario).Text = waiting switch
         {
             0 => AllPairsWatchedText,
             _ when !fleet.TrafficStarted => $"All {MovingObjectManager.AllPairsCount} pairs will be watched from Start.",
@@ -252,8 +282,25 @@ public partial class MainWindow : Window
             return;
 
         allPairsPending = false;
-        TrackedPairStatus.Text = AllPairsWatchedText;
+        PairStatus(DemoParameters.ActiveScenario).Text = AllPairsWatchedText;
     }
+
+    /// <summary>The status line under a pair tab's Watch pair button.</summary>
+    private TextBlock PairStatus(Scenario scenario) => scenario switch
+    {
+        Scenario.RxRxDistance => TrackedPairStatus,
+        Scenario.RxRxDistanceConnection => ConnectionPairStatus,
+        Scenario.RxRxIntersection => OverlapPairStatus,
+        _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, "Only the vehicle-pair tabs watch pairs."),
+    };
+
+    /// <summary>The query a tab watches its pre-set and Watch pair pairs with.</summary>
+    private static PairQuery PairQueryFor(Scenario scenario) => scenario switch
+    {
+        Scenario.RxRxDistanceConnection => PairQuery.DistanceWithConnection,
+        Scenario.RxRxIntersection => PairQuery.OverlapWithLens,
+        _ => PairQuery.Distance,
+    };
 
     private static string DescribePairSubscription(int id1, int id2, PairSubscriptionResult result) => result switch
     {
@@ -278,6 +325,7 @@ public partial class MainWindow : Window
             1 => Scenario.Distance,
             2 => Scenario.RxRxDistance,
             3 => Scenario.RxRxDistanceConnection,
+            4 => Scenario.RxRxIntersection,
             _ => null,
         };
 
@@ -287,6 +335,14 @@ public partial class MainWindow : Window
 
     private void ResetScenario(Scenario scenario)
     {
+        // Overlap zooms to the trajectories: at the default view a 2 km reach is barely wider
+        // than a marker, and the lenses would hide under the markers. Leaving it restores the
+        // default view; switches between the other tabs keep the user's view, as before.
+        if (scenario == Scenario.RxRxIntersection)
+            map.FitBounds(fleet.TrajectorySouthWest, fleet.TrajectoryNorthEast);
+        else if (DemoParameters.ActiveScenario == Scenario.RxRxIntersection)
+            map.ResetView();
+
         isPaused = false;
         allPairsPending = false;
         SetPauseResumeLabels("Pause");
@@ -303,12 +359,11 @@ public partial class MainWindow : Window
         fleet.ClearAllVehicles();
         polygons.ClearAllPolygons();
         lines.Clear();
+        overlaps.Clear();
         CancelAreaDrawing();
 
         // Watched from the first tick that puts both vehicles on the map.
-        fleet.WatchPairsWhenOnMap(
-            DemoParameters.DefaultPairs(scenario),
-            drawConnection: scenario == Scenario.RxRxDistanceConnection);
+        fleet.WatchPairsWhenOnMap(DemoParameters.DefaultPairs(scenario), PairQueryFor(scenario));
     }
 
     /// <summary>
@@ -320,10 +375,11 @@ public partial class MainWindow : Window
     {
         IReadOnlyList<VehiclePair> nearVehiclePairs = DemoParameters.DefaultPairs(Scenario.RxRxDistance);
         IReadOnlyList<VehiclePair> convoyPairs = DemoParameters.DefaultPairs(Scenario.RxRxDistanceConnection);
+        IReadOnlyList<VehiclePair> overlapPairs = DemoParameters.DefaultPairs(Scenario.RxRxIntersection);
 
         VehicleCountSlider.Value = DemoParameters.DefaultVehicleCount;
         VehicleCountSlider1.Value = DemoParameters.DefaultVehicleCount;
-        foreach (Slider slider in (Slider[])[VehicleSpeedSlider, VehicleSpeedSlider1, VehicleSpeedSlider2, VehicleSpeedSlider3])
+        foreach (Slider slider in (Slider[])[VehicleSpeedSlider, VehicleSpeedSlider1, VehicleSpeedSlider2, VehicleSpeedSlider3, VehicleSpeedSlider4])
             slider.Value = DemoParameters.DefaultReplayRate;
 
         ObserveDistanceSlider.Value = DemoParameters.DefaultObserveDistance(Scenario.Distance);
@@ -331,14 +387,18 @@ public partial class MainWindow : Window
         ObserveDistanceSlider2.Value = DemoParameters.DefaultObserveDistance(Scenario.RxRxDistanceConnection);
         (TrackedPairSlider1.Value, TrackedPairSlider2.Value) = (nearVehiclePairs[0].First, nearVehiclePairs[0].Second);
         (ConnectionPairSlider1.Value, ConnectionPairSlider2.Value) = (convoyPairs[0].First, convoyPairs[0].Second);
+        (OverlapPairSlider1.Value, OverlapPairSlider2.Value) = (overlapPairs[0].First, overlapPairs[0].Second);
+        ReachSlider.Value = DemoParameters.DefaultReach;
 
         TrackedPairStatus.Text = DescribePresetPairs(nearVehiclePairs);
         ConnectionPairStatus.Text = DescribePresetPairs(convoyPairs);
+        OverlapPairStatus.Text = DescribePresetPairs(overlapPairs);
 
         // The slider handlers above overwrite the shared state in whichever order they fire,
         // so assign it explicitly last.
         DemoParameters.MovementIntervalMilliseconds = DemoParameters.ReplayIntervalMilliseconds(DemoParameters.DefaultReplayRate);
         DemoParameters.ObserveDistance = DemoParameters.DefaultObserveDistance(scenario);
+        DemoParameters.Reach = DemoParameters.DefaultReach;
         DemoParameters.VehicleCount = DemoParameters.DefaultVehicleCount;
         DemoParameters.ActiveScenario = scenario;
 
@@ -393,6 +453,7 @@ public partial class MainWindow : Window
         GuidanceNearArea.Visibility = VisibleWhen(scenario == Scenario.Distance);
         GuidanceNearVehicle.Visibility = VisibleWhen(scenario == Scenario.RxRxDistance);
         GuidanceConvoyLink.Visibility = VisibleWhen(scenario == Scenario.RxRxDistanceConnection);
+        GuidanceOverlap.Visibility = VisibleWhen(scenario == Scenario.RxRxIntersection);
 
         ShowBackend();
     }
@@ -419,5 +480,6 @@ public partial class MainWindow : Window
         PauseResume1.Content = label;
         PauseResume2.Content = label;
         PauseResume3.Content = label;
+        PauseResume4.Content = label;
     }
 }

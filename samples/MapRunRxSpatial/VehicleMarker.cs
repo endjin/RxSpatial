@@ -3,11 +3,17 @@ using Microsoft.SqlServer.Types;
 
 namespace MapRunRxSpatial;
 
-/// <summary>Drives one vehicle's marker (and the connection lines of its watched pairs) on the map.</summary>
-internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lines)
+/// <summary>
+/// Drives one vehicle's marker on the map, with its reach circle on the Overlap tab, and the
+/// shapes its queries draw: the connection lines and lenses of its watched pairs and its zone
+/// overlaps. They are removed with the vehicle.
+/// </summary>
+internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lines, OverlapShapes overlaps)
 {
     private readonly string markerId = $"obj-{id}";
     private readonly HashSet<VehiclePair> pairs = [];
+    private readonly HashSet<VehiclePair> lensPairs = [];
+    private readonly HashSet<string> zoneOverlapIds = [];
     private VehicleColor color = VehicleColor.Blue;
     private GeoPoint position;
     private bool visible;
@@ -17,6 +23,20 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lin
     {
         pairs.Add(pair);
         lines.Update(pair, position, new GeoPoint(otherLocation.Lat.Value, otherLocation.Long.Value), band);
+    }
+
+    /// <summary>Redraws (or removes, when it is empty) the pair's lens.</summary>
+    public void UpdateLens(VehiclePair pair, SqlGeography lens)
+    {
+        lensPairs.Add(pair);
+        overlaps.UpdateLens(pair, lens);
+    }
+
+    /// <summary>Redraws (or removes, when it is empty) the part of this vehicle's reach inside a zone.</summary>
+    public void UpdateZoneOverlap(string shapeId, SqlGeography overlap)
+    {
+        zoneOverlapIds.Add(shapeId);
+        overlaps.UpdateZoneOverlap(shapeId, overlap);
     }
 
     /// <summary>
@@ -35,28 +55,22 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lin
     }
 
     /// <summary>
-    /// Moves the marker and resets it to Blue. RxGeography notifies location observers before
-    /// query observers, so this runs first and the queries then raise the colour again.
+    /// Moves the marker (and its reach circle, if any) and resets it to Blue. RxGeography
+    /// notifies location observers before query observers, so this runs first and the queries
+    /// then raise the colour again.
     /// </summary>
-    public void MoveTo(SqlGeography? location)
+    public void MoveTo(VehicleFix fix)
     {
-        if (location is not null)
-        {
-            position = new GeoPoint(location.Lat.Value, location.Long.Value);
-            color = VehicleColor.Blue;
-            visible = true;
-            map.SetMarker(
-                markerId,
-                id.ToString(CultureInfo.InvariantCulture),
-                position.Latitude,
-                position.Longitude,
-                color.Style);
-        }
-        else
-        {
-            visible = false;
-            map.RemoveMarker(markerId);
-        }
+        position = fix.Centre;
+        color = VehicleColor.Blue;
+        visible = true;
+        map.SetMarker(
+            markerId,
+            id.ToString(CultureInfo.InvariantCulture),
+            position.Latitude,
+            position.Longitude,
+            color.Style,
+            fix.Reach);
     }
 
     public void Remove()
@@ -64,11 +78,19 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lin
         visible = false;
         map.RemoveMarker(markerId);
 
-        // Also remove this vehicle's connection lines, or they would linger on the map
+        // Also remove the shapes this vehicle's queries drew, or they would linger on the map
         // after the vehicle is gone.
         foreach (VehiclePair pair in pairs)
             lines.Remove(pair);
 
+        foreach (VehiclePair pair in lensPairs)
+            overlaps.RemoveLens(pair);
+
+        foreach (string shapeId in zoneOverlapIds)
+            overlaps.RemoveZoneOverlap(shapeId);
+
         pairs.Clear();
+        lensPairs.Clear();
+        zoneOverlapIds.Clear();
     }
 }

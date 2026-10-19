@@ -76,7 +76,9 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
    pre-watched pairs (aa8815d); window sized to the work area (bf9fe2d); darker out-of-range
    line (c838cf6); areas drawn by dragging in an explicit drawing mode, styled to keep the map
    readable (slate hatch / purple dashed outline); a live Spatial index selector on Geofence
-   (appsettings.json sets only its start/reset value). The papers (ICDE full paper, DEBS and
+   (appsettings.json sets only its start/reset value); a fifth tab, Overlap, for the three
+   intersection queries (RxRxIntersect, RxRxIntersection, RxIntersection) on buffered reaches,
+   after DEBS 2016 §3.1/§3.3. The papers (ICDE full paper, DEBS and
    SIGMOD demos) are in the authors' ZIP:
    homepage.cs.uri.edu/~ahendawi/materials/RxSpatilPublications.zip.
 10. `RxGeometry`, the planar moving object the ICDE 2017 paper names but never released
@@ -158,14 +160,15 @@ cost traded for scheduling that depends on pool state.
   pixels (darkest glyph pixel vs background), not just composited values. Every marker state
   must have a unique shape — colour is never the only cue (WCAG 1.4.1): blue circle, gray
   dashed ring, green rounded square, yellow triangle, red diamond, kept in step across
-  `VehicleColors`, map.html (`MARKER_SHAPES` + CSS) and the legends on all four tabs. Under
+  `VehicleColors`, map.html (`MARKER_SHAPES` + CSS) and the legends on all five tabs. Under
   Machado 2009 CVD simulation green/red (deutan 9.1, protan 10.7) and blue/green (tritan 11.5)
   are colour-confusable (ΔE00), gray/green and gray/red weak (<20), so a new state needs a new
   shape, not just a new hue. The triangle
   draws its border as ::before and its fill as ::after (clip-path drops borders and
   box-shadows; the element carries a drop-shadow filter instead).
   Keep the tab header panel `TabNavigation="Once"`: focusing a TabItem selects it, which
-  resets the scenario.
+  resets the scenario. Five headers fit the 376px panel only at 13px with 6px side padding;
+  a sixth tab needs a different strip, not tighter margins.
 - MapLibre zoom uses the 512px-tile convention (one level lower than Bing/Leaflet).
 - WPF demo colours: `RxGeography` notifies location observers before zone observers, so
   `VehicleMarker.MoveTo` resets the marker to Blue and each query observer may only *raise*
@@ -189,6 +192,20 @@ cost traded for scheduling that depends on pool state.
   tree/grid backends prune notifications to observers whose zone bounds meet the pushed
   location, so a far-outside vehicle never hears from the zone. `ConfinementObserver`s set a
   per-push flag; this relies on visualised mode notifying synchronously inside `OnNext`.
+- WPF demo Overlap tab: only there does `MovingObject.PushLocation` push
+  `point.STBuffer(Reach)` instead of the point, and the marker goes to the `VehicleFix` kept
+  alongside the push (`MarkerMovementObserver` ignores the pushed value) — never read
+  `Lat`/`Long` from a pushed location there (a polygon's are Null). `VehiclePairConnectionObserver`
+  reads `other.Location.Lat`, valid only because Convoy link pushes points. Lenses
+  (`RxRxIntersection`) and zone overlaps (`RxIntersection`) are upserted per `VehiclePair` /
+  per vehicle-and-zone by `OverlapShapes` and removed on an *empty* result, which is why the
+  tab uses the List backend (a tree/grid prunes the "no longer overlapping" notification, so
+  lenses would linger and markers fall back to Blue instead of Gray). Watch all pairs there is
+  RxRxIntersect only: 380 polygon intersects per tick already take ~40 ms vs ~10 ms for the
+  four pre-set pairs with lenses (measured), and STBuffer is ~0.1 ms per push. map.html batches
+  the reach/lens/zone-overlap GeoJSON per animation frame (`OVERLAY_STYLES`, one source per
+  kind). The tab fits the map to the trajectories and restores the default view on leaving
+  it; Clear pairs and Clear areas/zones now clear only their own kind.
 - The WPF demo requires `IsVisualized=true` (WebView2 must be driven from the UI thread and
   buffered mode notifies from the pool); `App.OnStartup` forces it over appsettings.json.
 - Residual uncovered `RStarCore` lines are defensive-by-invariant (single-chain condense,

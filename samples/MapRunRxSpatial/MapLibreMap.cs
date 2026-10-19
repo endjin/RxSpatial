@@ -36,11 +36,15 @@ internal sealed class MapLibreMap(WebView2 webView)
         webView.CoreWebView2.Navigate("https://maprun.local/map.html");
     }
 
-    public void SetMarker(string id, string label, double latitude, double longitude, MarkerStyle style)
+    /// <summary>
+    /// Places (or moves) a vehicle marker. A positive <paramref name="reach"/> also draws the
+    /// vehicle's reach circle of that radius in metres around it (the Overlap tab); 0 removes it.
+    /// </summary>
+    public void SetMarker(string id, string label, double latitude, double longitude, MarkerStyle style, double reach)
         => Send(new
         {
             cmd = "setMarker", id, label, lat = latitude, lon = longitude,
-            fill = style.Fill, border = style.Border, text = style.Text, shape = style.Shape,
+            fill = style.Fill, border = style.Border, text = style.Text, shape = style.Shape, reach,
         });
 
     public void SetMarkerColor(string id, MarkerStyle style)
@@ -81,10 +85,37 @@ internal sealed class MapLibreMap(WebView2 webView)
     public void CancelDraw()
         => Send(new { cmd = "cancelDraw" });
 
+    /// <summary>Zooms and pans the map so the rectangle between two opposite corners fills it.</summary>
+    public void FitBounds(GeoPoint corner1, GeoPoint corner2)
+        => Send(new
+        {
+            cmd = "fitBounds",
+            south = Math.Min(corner1.Latitude, corner2.Latitude),
+            west = Math.Min(corner1.Longitude, corner2.Longitude),
+            north = Math.Max(corner1.Latitude, corner2.Latitude),
+            east = Math.Max(corner1.Longitude, corner2.Longitude),
+        });
+
+    /// <summary>Returns the map to its start-up view (DEFAULT_VIEW in map.html).</summary>
+    public void ResetView()
+        => Send(new { cmd = "resetView" });
+
+    /// <summary>
+    /// Draws (or redraws) a query-result region styled by its kind (OVERLAY_STYLES in map.html):
+    /// <paramref name="polygons"/> are GeoJSON MultiPolygon coordinates. A non-null
+    /// <paramref name="label"/> is shown in a pill beside the region, clear of the markers.
+    /// </summary>
+    public void SetOverlay(OverlayKind kind, string id, List<double[][][]> polygons, string? label)
+        => Send(new { cmd = "setOverlay", kind = OverlayName(kind), id, polygons, label });
+
+    public void RemoveOverlay(OverlayKind kind, string id)
+        => Send(new { cmd = "removeOverlay", kind = OverlayName(kind), id });
+
     private static string KindName(AreaKind kind) => kind switch
     {
         AreaKind.Restricted => "restricted",
         AreaKind.Confinement => "confinement",
+        AreaKind.Zone => "zone",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown area kind."),
     };
 
@@ -92,7 +123,15 @@ internal sealed class MapLibreMap(WebView2 webView)
     {
         "restricted" => AreaKind.Restricted,
         "confinement" => AreaKind.Confinement,
+        "zone" => AreaKind.Zone,
         _ => null,
+    };
+
+    private static string OverlayName(OverlayKind kind) => kind switch
+    {
+        OverlayKind.Lens => "lens",
+        OverlayKind.ZoneOverlap => "zoneOverlap",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown overlay kind."),
     };
 
     private static List<double[]> ToCoordinates(IEnumerable<GeoPoint> points)

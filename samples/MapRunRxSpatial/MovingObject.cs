@@ -1,3 +1,4 @@
+using System.Reactive.Disposables;
 using Microsoft.SqlServer.Types;
 using RxSpatial;
 
@@ -10,17 +11,22 @@ namespace MapRunRxSpatial;
 /// </summary>
 internal sealed class MovingObject
 {
+    private const string AreaKeyPrefix = "area:";
+
     private readonly Dictionary<string, IDisposable> subscriptions = [];
+    private readonly int id;
     private readonly VehicleMarker marker;
     private readonly MarkerMovementObserver movementObserver;
     private readonly HashSet<string> confinementKeys = [];
     private bool insideConfinementThisPush;
+    private VehicleFix fix;
 
-    public MovingObject(int id, MapLibreMap map, ConnectionLines lines)
+    public MovingObject(int id, MapLibreMap map, ConnectionLines lines, OverlapShapes overlaps)
     {
+        this.id = id;
         Geography = new RxGeography();
-        marker = new VehicleMarker(id, map, lines);
-        movementObserver = new MarkerMovementObserver(marker);
+        marker = new VehicleMarker(id, map, lines, overlaps);
+        movementObserver = new MarkerMovementObserver(marker, () => fix);
         movementObserver.Attach(Geography);
     }
 
@@ -28,8 +34,11 @@ internal sealed class MovingObject
     public RxGeography Geography { get; }
 
     /// <summary>
-    /// Pushes a location and, once every observer has seen it, raises a confinement breach if
-    /// the vehicle has confinement areas and is inside none of them.
+    /// Pushes a position and, once every observer has seen it, raises a confinement breach if
+    /// the vehicle has confinement areas and is inside none of them. On the Overlap tab the
+    /// pushed location is the vehicle's reach, the disc of <see cref="DemoParameters.Reach"/>
+    /// metres around <paramref name="position"/>, so the intersect and intersection queries
+    /// compare regions; the marker stays at <paramref name="position"/> itself.
     /// </summary>
     /// <remarks>
     /// The breach cannot be an inverted intersect observer ("not intersecting, so red"): tree
@@ -41,10 +50,12 @@ internal sealed class MovingObject
     /// demo's visualised mode (forced in <see cref="App"/>), which notifies location and zone
     /// observers synchronously inside OnNext, so the marker's reset to Blue has happened by then.
     /// </remarks>
-    public void PushLocation(SqlGeography location)
+    public void PushLocation(SqlGeography position)
     {
+        double reach = DemoParameters.ActiveScenario == Scenario.RxRxIntersection ? DemoParameters.Reach : 0;
+        fix = new VehicleFix(new GeoPoint(position.Lat.Value, position.Long.Value), reach);
         insideConfinementThisPush = false;
-        Geography.OnNext(location);
+        Geography.OnNext(reach > 0 ? position.STBuffer(reach) : position);
         if (confinementKeys.Count > 0 && !insideConfinementThisPush)
             marker.ApplyColor(VehicleColor.Red);
     }
@@ -77,19 +88,37 @@ internal sealed class MovingObject
             subscriptions.Add(key, Geography.RxDistance(polygon, new DistanceObserver(marker)));
     }
 
+    /// <summary>Overlap tab: shades the part of this vehicle's reach inside the zone.</summary>
+    public void SubscribeZoneOverlap(DemoPolygon zone)
+    {
+        string key = AreaKey(zone.Name);
+        if (subscriptions.ContainsKey(key))
+            return;
+
+        string shapeId = FormattableString.Invariant($"{zone.ShapeId}-v{id}");
+        subscriptions.Add(key, Geography.RxIntersection(zone.Geography, new ZoneOverlapObserver(shapeId, marker)));
+    }
+
     /// <summary>
-    /// Watches the distance from this vehicle to <paramref name="other"/>, optionally drawing
-    /// the pair's connection line. Returns false if the pair is already watched.
+    /// Watches this vehicle's relation to <paramref name="other"/> with the given query.
+    /// Returns false if the pair is already watched.
     /// </summary>
-    public bool WatchPair(VehiclePair pair, RxGeography other, bool drawConnection)
+    public bool WatchPair(VehiclePair pair, RxGeography other, PairQuery query)
     {
         if (subscriptions.ContainsKey(pair.SubscriptionKey))
             return false;
 
-        IObserver<double> observer = drawConnection
-            ? new VehiclePairConnectionObserver(pair, other, marker)
-            : new VehiclePairDistanceObserver(marker);
-        subscriptions.Add(pair.SubscriptionKey, Geography.RxRxDistance(other, observer));
+        IDisposable subscription = query switch
+        {
+            PairQuery.Distance => Geography.RxRxDistance(other, new VehiclePairDistanceObserver(marker)),
+            PairQuery.DistanceWithConnection => Geography.RxRxDistance(other, new VehiclePairConnectionObserver(pair, other, marker)),
+            PairQuery.Overlap => Geography.RxRxIntersect(other, new VehiclePairOverlapObserver(marker)),
+            PairQuery.OverlapWithLens => new CompositeDisposable(
+                Geography.RxRxIntersect(other, new VehiclePairOverlapObserver(marker)),
+                Geography.RxRxIntersection(other, new VehiclePairLensObserver(pair, marker))),
+            _ => throw new ArgumentOutOfRangeException(nameof(query), query, "Unknown pair query."),
+        };
+        subscriptions.Add(pair.SubscriptionKey, subscription);
         return true;
     }
 
@@ -102,13 +131,32 @@ internal sealed class MovingObject
         confinementKeys.Clear();
     }
 
+    /// <summary>Stops watching every pair; the area subscriptions stay.</summary>
+    public void UnsubscribePairs() => Unsubscribe(key => !key.StartsWith(AreaKeyPrefix, StringComparison.Ordinal));
+
+    /// <summary>Stops watching every area; the pair subscriptions stay.</summary>
+    public void UnsubscribeAreas()
+    {
+        Unsubscribe(key => key.StartsWith(AreaKeyPrefix, StringComparison.Ordinal));
+        confinementKeys.Clear();
+    }
+
     public void Remove()
     {
         UnsubscribeAll();
         movementObserver.OnCompleted();
     }
 
+    private void Unsubscribe(Func<string, bool> selected)
+    {
+        foreach (string key in subscriptions.Keys.Where(selected).ToList())
+        {
+            subscriptions[key].Dispose();
+            subscriptions.Remove(key);
+        }
+    }
+
     private void ReportInsideConfinement() => insideConfinementThisPush = true;
 
-    private static string AreaKey(string name) => "area:" + name;
+    private static string AreaKey(string name) => AreaKeyPrefix + name;
 }

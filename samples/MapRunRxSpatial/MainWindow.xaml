@@ -156,7 +156,7 @@
         </Style>
 
         <!-- Scenario tabs: a compact selector bar (text tabs with an accent underline pill)
-             whose four headers fit one row at the panel width. -->
+             whose five headers fit one row at the panel width (13px text, 6px side padding). -->
         <Style x:Key="ScenarioTabs" TargetType="TabControl">
             <Setter Property="Template">
                 <Setter.Value>
@@ -168,7 +168,7 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Border BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1"
-                                    Padding="10,4,10,0">
+                                    Padding="4,4,4,0">
                                 <!-- One tab stop (the selected tab), arrows between tabs, as in the
                                      stock TabPanel. Without it Tab walks every header, and focusing
                                      a header selects it, so tabbing through reset each scenario. -->
@@ -183,7 +183,7 @@
             </Setter>
         </Style>
         <Style TargetType="TabItem">
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
             <Setter Property="FocusVisualStyle" Value="{DynamicResource DefaultControlFocusVisualStyle}"/>
             <Setter Property="Template">
@@ -191,7 +191,7 @@
                     <ControlTemplate TargetType="TabItem">
                         <Grid Background="Transparent">
                             <Border x:Name="Hover" CornerRadius="4" Margin="0,4,0,6" Background="Transparent"/>
-                            <ContentPresenter ContentSource="Header" Margin="10,10,10,13" RecognizesAccessKey="True"
+                            <ContentPresenter ContentSource="Header" Margin="6,10,6,13" RecognizesAccessKey="True"
                                               HorizontalAlignment="Center"/>
                             <Rectangle x:Name="Indicator" Width="16" Height="3" RadiusX="1.5" RadiusY="1.5"
                                        VerticalAlignment="Bottom" Fill="{DynamicResource AccentFillColorDefaultBrush}"
@@ -401,6 +401,68 @@
             <Setter Property="StrokeStartLineCap" Value="Round"/>
             <Setter Property="StrokeEndLineCap" Value="Round"/>
         </Style>
+
+        <!-- Overlap swatches, matching the map (OVERLAY_STYLES and AREA_STYLES.zone in
+             wwwroot/map.html): a thin slate reach circle, a teal dotted lens with a solid
+             outline, a brown zone outline, and a brown back-hatch for a reach inside a zone.
+             Each has its own pattern or outline, so none relies on colour alone. -->
+        <DrawingBrush x:Key="LensDots" TileMode="Tile" Viewport="0,0,3,3" ViewportUnits="Absolute"
+                      Viewbox="0,0,3,3" ViewboxUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+                    <!-- The map's light teal tint under the dots. -->
+                    <GeometryDrawing Brush="#1F00695C">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,3,3"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#00695C">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="1.5,1.5" RadiusX="0.75" RadiusY="0.75"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+        <LinearGradientBrush x:Key="ZoneOverlapHatch" MappingMode="Absolute" SpreadMethod="Repeat"
+                             StartPoint="2.5,0" EndPoint="0,2.5">
+            <GradientStop Color="#B36D4C41" Offset="0"/>
+            <GradientStop Color="#B36D4C41" Offset="0.45"/>
+            <GradientStop Color="Transparent" Offset="0.45"/>
+            <GradientStop Color="Transparent" Offset="1"/>
+        </LinearGradientBrush>
+        <Style x:Key="ReachSwatch" TargetType="Ellipse">
+            <Setter Property="Width" Value="17"/>
+            <Setter Property="Height" Value="17"/>
+            <Setter Property="Stroke" Value="#455A64"/>
+            <Setter Property="StrokeThickness" Value="1.25"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="LensSwatch" TargetType="Path">
+            <!-- Two circular arcs: the lens two overlapping circles make. -->
+            <Setter Property="Data" Value="M 1,7 A 9,9 0 0 1 17,7 A 9,9 0 0 1 1,7 Z"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="Stretch" Value="Fill"/>
+            <Setter Property="Fill" Value="{StaticResource LensDots}"/>
+            <Setter Property="Stroke" Value="#00695C"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="ZoneSwatch" TargetType="Rectangle" BasedOn="{StaticResource AreaSwatch}">
+            <Setter Property="Fill" Value="#106D4C41"/>
+            <Setter Property="Stroke" Value="#6D4C41"/>
+            <Setter Property="StrokeThickness" Value="2"/>
+            <Setter Property="RadiusX" Value="0"/>
+            <Setter Property="RadiusY" Value="0"/>
+        </Style>
+        <Style x:Key="ZoneOverlapSwatch" TargetType="Rectangle" BasedOn="{StaticResource AreaSwatch}">
+            <Setter Property="Fill" Value="{StaticResource ZoneOverlapHatch}"/>
+            <Setter Property="Stroke" Value="#6D4C41"/>
+            <Setter Property="StrokeThickness" Value="1"/>
+            <Setter Property="RadiusX" Value="6.5"/>
+            <Setter Property="RadiusY" Value="6.5"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -458,7 +520,7 @@
                             </UniformGrid>
 
                             <DockPanel Style="{StaticResource SectionHeader}">
-                                <Button Style="{StaticResource SectionButton}" Content="Clear areas" Click="OnClearClick"/>
+                                <Button Style="{StaticResource SectionButton}" Content="Clear areas" Click="OnClearAreasClick"/>
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Draw an area"/>
                             </DockPanel>
                             <UniformGrid Style="{StaticResource ButtonRow}" Margin="-4,0">
@@ -537,7 +599,7 @@
                             </UniformGrid>
 
                             <DockPanel Style="{StaticResource SectionHeader}">
-                                <Button Style="{StaticResource SectionButton}" Content="Clear areas" Click="OnClearClick"/>
+                                <Button Style="{StaticResource SectionButton}" Content="Clear areas" Click="OnClearAreasClick"/>
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Draw an area"/>
                             </DockPanel>
                             <UniformGrid Style="{StaticResource ButtonRow}" Margin="-4,0">
@@ -589,7 +651,7 @@
                             </UniformGrid>
 
                             <DockPanel Style="{StaticResource SectionHeader}">
-                                <Button Style="{StaticResource SectionButton}" Content="Clear pairs" Click="OnClearClick"/>
+                                <Button Style="{StaticResource SectionButton}" Content="Clear pairs" Click="OnClearPairsClick"/>
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Watched pairs"/>
                             </DockPanel>
                             <!-- The pair sliders sit side by side (as in the 2016 panel) so the
@@ -674,7 +736,7 @@
                             </UniformGrid>
 
                             <DockPanel Style="{StaticResource SectionHeader}">
-                                <Button Style="{StaticResource SectionButton}" Content="Clear pairs" Click="OnClearClick"/>
+                                <Button Style="{StaticResource SectionButton}" Content="Clear pairs" Click="OnClearPairsClick"/>
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Linked pairs"/>
                             </DockPanel>
                             <Grid>
@@ -711,6 +773,98 @@
                                 <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
                             </UniformGrid>
                             <TextBlock x:Name="ConnectionPairStatus" Style="{StaticResource StatusText}" AutomationProperties.LiveSetting="Polite"/>
+                        </StackPanel>
+                    </Border>
+                </TabItem>
+
+                <TabItem Header="Overlap">
+                    <Border Style="{StaticResource Card}" Margin="12,12,12,0">
+                        <StackPanel>
+                            <DockPanel Style="{StaticResource FirstSectionHeader}">
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Traffic"/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="All 20"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Vehicles"/>
+                            </DockPanel>
+
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=VehicleSpeedSlider4, StringFormat='{}{0:0} updates/s'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Replay rate"/>
+                            </DockPanel>
+                            <Slider x:Name="VehicleSpeedSlider4" AutomationProperties.Name="Replay rate" Style="{StaticResource DemoSlider}"
+                                    Minimum="1" Maximum="50" ValueChanged="OnVehicleSpeedChanged"/>
+                            <DockPanel Style="{StaticResource TickRow}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="1"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="50"/>
+                                <TextBlock Style="{StaticResource TickCentre}" Text="25"/>
+                            </DockPanel>
+
+                            <!-- Snaps to 50 m: the reach is a radius in metres, not an index. -->
+                            <DockPanel Style="{StaticResource FieldHeader}">
+                                <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=ReachSlider, StringFormat='{}{0:N0} m'}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Reach"/>
+                            </DockPanel>
+                            <Slider x:Name="ReachSlider" AutomationProperties.Name="Reach" Style="{StaticResource DemoSlider}" TickFrequency="50"
+                                    SmallChange="50" LargeChange="250" Minimum="250" Maximum="3000" ValueChanged="OnReachChanged"/>
+                            <DockPanel Style="{StaticResource TickRowEnds}">
+                                <TextBlock Style="{StaticResource TickLeft}" Text="250 m"/>
+                                <TextBlock Style="{StaticResource TickRight}" Text="3 km"/>
+                            </DockPanel>
+
+                            <UniformGrid Style="{StaticResource ButtonRow}">
+                                <Button Style="{StaticResource PrimaryButton}" Content="Start" Click="OnStartClick"/>
+                                <Button x:Name="PauseResume4" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
+                            </UniformGrid>
+
+                            <DockPanel Style="{StaticResource SectionHeader}">
+                                <Button Style="{StaticResource SectionButton}" Content="Clear pairs" Click="OnClearPairsClick"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Watched pairs"/>
+                            </DockPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=OverlapPairSlider1, StringFormat='{}{0:0}'}"/>
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="First vehicle"/>
+                                    </DockPanel>
+                                    <Slider x:Name="OverlapPairSlider1" AutomationProperties.Name="First vehicle" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                    <DockPanel Style="{StaticResource TickRowEnds}">
+                                        <TextBlock Style="{StaticResource TickLeft}" Text="0"/>
+                                        <TextBlock Style="{StaticResource TickRight}" Text="19"/>
+                                    </DockPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <DockPanel Style="{StaticResource FieldHeader}" Margin="0">
+                                        <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=OverlapPairSlider2, StringFormat='{}{0:0}'}"/>
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Second vehicle"/>
+                                    </DockPanel>
+                                    <Slider x:Name="OverlapPairSlider2" AutomationProperties.Name="Second vehicle" Style="{StaticResource DemoSlider}" Minimum="0" Maximum="19"/>
+                                    <DockPanel Style="{StaticResource TickRowEnds}">
+                                        <TextBlock Style="{StaticResource TickLeft}" Text="0"/>
+                                        <TextBlock Style="{StaticResource TickRight}" Text="19"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Grid>
+
+                            <UniformGrid Style="{StaticResource ButtonRow}" Margin="-4,12,-4,0">
+                                <Button Style="{StaticResource DemoButton}" Content="Watch pair" Click="OnWatchPairClick"/>
+                                <Button Style="{StaticResource DemoButton}" Content="Watch all pairs" Click="OnWatchAllPairsClick"/>
+                            </UniformGrid>
+                            <TextBlock x:Name="OverlapPairStatus" Style="{StaticResource StatusText}" AutomationProperties.LiveSetting="Polite"/>
+
+                            <!-- One row, to leave the guidance room: Add zone sits beside Clear
+                                 zones and is sized like it. -->
+                            <DockPanel Style="{StaticResource SectionHeader}" Margin="0,20,0,0">
+                                <Button Style="{StaticResource SectionButton}" Content="Clear zones" Click="OnClearAreasClick"/>
+                                <ToggleButton Content="Add zone" DockPanel.Dock="Right" Margin="0,0,8,0" Padding="10,3,10,4" FontSize="13"
+                                              Checked="OnZoneChecked" Unchecked="OnAreaButtonUnchecked"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Zones"/>
+                            </DockPanel>
                         </StackPanel>
                     </Border>
                 </TabItem>
@@ -891,6 +1045,62 @@
                                 <StackPanel Style="{StaticResource LegendSwatchWide}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
                                 <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – not watched.</TextBlock>
                             </DockPanel>
+                        </StackPanel>
+
+                        <StackPanel x:Name="GuidanceOverlap" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Overlap – car pooling and friends in a region"/>
+                            <WrapPanel Margin="0,6,0,14">
+                                <Border Style="{StaticResource QueryTag}" Margin="0,0,6,4"><TextBlock Style="{StaticResource QueryTagText}" Text="RxRxIntersect"/></Border>
+                                <Border Style="{StaticResource QueryTag}" Margin="0,0,6,4"><TextBlock Style="{StaticResource QueryTagText}" Text="RxRxIntersection"/></Border>
+                                <Border Style="{StaticResource QueryTag}" Margin="0,0,6,4"><TextBlock Style="{StaticResource QueryTagText}" Text="RxIntersection"/></Border>
+                            </WrapPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start (all 20 vehicles). On this tab each vehicle reports its reach – the circle of the Reach radius around it, pre-set to 2,000 m – instead of a point, so the queries compare regions.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Pairs 15-16, 10-12, 7-9 and 1-17 from the car pooling scenario <Run Style="{StaticResource Citation}">(DEBS 2016 section 3.3, Fig. 3)</Run> are watched from Start. RxRxIntersect turns a pair green while their reaches overlap. RxRxIntersection draws the overlap itself, the lens, with its area. Cars whose reaches overlap until they reach their destination, like 15 and 16, could car pool.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="3"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">To watch another pair, pick two vehicles and press Watch pair. Watch all pairs watches all 190 pairs with RxRxIntersect only: every vehicle whose reach overlaps another turns green. Lenses are drawn only for the pairs you watch one at a time. Intersecting 380 pairs of regions on every update is costly, so the replay slows down.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource Step}">
+                                <ContentControl Style="{StaticResource StepNumber}" Content="4"/>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Add zone and drag a rectangle on the map, like "find all my friends in Seattle downtown" <Run Style="{StaticResource Citation}">(DEBS 2016 section 3.1)</Run>. RxIntersection gives each vehicle the part of its reach inside the zone, which is shaded.</TextBlock>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – not watched.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDashedDot}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring</Run> – watched; the reaches do not overlap.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendSquare}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run> – watched; the reaches overlap (could car pool).</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource ReachSwatch}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Thin slate circle</Run> – a vehicle's reach.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Path Style="{StaticResource LensSwatch}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Teal dotted lens</Run> – where a watched pair's reaches overlap, labelled with its area.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource ZoneSwatch}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Brown outline</Run> – a zone you drew.</TextBlock>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource ZoneOverlapSwatch}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Brown hatching</Run> – the part of a vehicle's reach inside a zone.</TextBlock>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource GuidanceNote}" Margin="0,6,0,10"
+                                       Text="Clear pairs and Clear zones each remove only their own kind. List index: the queries must report when two reaches stop overlapping or a reach leaves a zone, which a spatial index would prune away."/>
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>

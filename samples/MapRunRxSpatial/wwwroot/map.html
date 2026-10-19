@@ -72,6 +72,10 @@
       box-shadow: var(--shadow-low);
       pointer-events: none; white-space: nowrap;
     }
+    /* A lens's area: smaller than an area label, with the lens's teal as its stroke. */
+    .area-label.lens-label {
+      font-size: 11px; padding: 3px 6px 4px; border-color: #00695C;
+    }
     #draw-hint {
       position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
       z-index: 2; display: none;
@@ -116,6 +120,9 @@
   <div id="map"></div>
   <div id="draw-hint"></div>
   <script>
+    // MapLibre zoom levels use the 512px-tile convention; 9 matches the original
+    // Bing Maps ZoomLevel of 10 (256px-tile convention).
+    const DEFAULT_VIEW = { center: [-122.2016143798835, 47.5319677333823], zoom: 9 };
     const map = new maplibregl.Map({
       container: 'map',
       style: {
@@ -130,10 +137,8 @@
         },
         layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
       },
-      center: [-122.2016143798835, 47.5319677333823],
-      // MapLibre zoom levels use the 512px-tile convention; 9 matches the original
-      // Bing Maps ZoomLevel of 10 (256px-tile convention).
-      zoom: 9
+      center: DEFAULT_VIEW.center,
+      zoom: DEFAULT_VIEW.zoom
     });
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 
@@ -141,20 +146,38 @@
     const markers = new Map();    // id -> maplibregl.Marker
     const areaLabels = new Map(); // area id -> maplibregl.Marker (its corner label)
 
-    // Area styles. Neither may resemble the OSM palette (pink/orange/yellow roads, green
+    // Area styles. None may resemble the OSM palette (pink/orange/yellow roads, green
     // parks, blue water, beige land) or a vehicle colour, and streets must stay legible
     // underneath: restricted is a slate hatch, confinement a purple dashed outline over an
-    // almost clear fill. The drawing preview uses the same style, lighter and dashed.
+    // almost clear fill, a zone (Overlap tab) a solid brown outline over an almost clear fill.
+    // The drawing preview uses the same style, lighter and dashed.
     const AREA_STYLES = {
       restricted: {
-        label: 'Restricted', color: '#37474F', pattern: 'hatch-restricted',
+        label: 'Restricted', noun: 'restricted area', color: '#37474F', pattern: 'hatch-restricted',
         fillOpacity: 0.35, previewFillOpacity: 0.2, lineWidth: 2, dash: null
       },
       confinement: {
-        label: 'Confinement', color: '#6A1B9A', pattern: null,
+        label: 'Confinement', noun: 'confinement area', color: '#6A1B9A', pattern: null,
         fillOpacity: 0.06, previewFillOpacity: 0.04, lineWidth: 2.5, dash: [3, 2]
+      },
+      zone: {
+        label: 'Zone', noun: 'zone', color: '#6D4C41', pattern: null,
+        fillOpacity: 0.06, previewFillOpacity: 0.04, lineWidth: 2.5, dash: null
       }
     };
+
+    // Overlap tab overlays: query results drawn above the areas and below the lines. Each has a
+    // pattern or outline of its own, not just a colour, and none uses a marker or OSM colour:
+    // a vehicle's reach is a thin slate circle with no fill; a lens (two watched reaches
+    // overlapping, RxRxIntersection) a teal dot pattern with a solid teal outline; the part of a
+    // reach inside a zone (RxIntersection) the zone's brown as a back-diagonal hatch. A tint
+    // under a pattern fills the gaps between its dots.
+    const OVERLAY_STYLES = {
+      zoneOverlap: { color: '#6D4C41', pattern: 'hatch-zone-overlap', fillOpacity: 0.6, lineWidth: 1, lineOpacity: 0.8 },
+      reach: { color: '#455A64', pattern: null, fillOpacity: 0, lineWidth: 1.25, lineOpacity: 0.7 },
+      lens: { color: '#00695C', pattern: 'dots-lens', fillOpacity: 0.9, tintOpacity: 0.12, lineWidth: 2, lineOpacity: 1 }
+    };
+    const REACH_SEGMENTS = 64;
     const PREVIEW_ID = 'draw-preview';
     const MIN_DRAG_PX = 6;
 
@@ -162,12 +185,14 @@
     // lines are appended above it. Vehicle markers are DOM elements, so always on top.
     const AREA_TOP = 'areas-top';
 
-    // A seamless diagonal hatch tile, drawn at 2x so the lines stay crisp on high-DPI screens.
-    function hatchImage(color) {
+    // A seamless diagonal hatch tile, drawn at 2x so the lines stay crisp on high-DPI screens:
+    // bottom-left to top-right, or mirrored (top-left to bottom-right) when backward.
+    function hatchImage(color, backward) {
       const ratio = 2, px = 10 * ratio;
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = px;
       const ctx = canvas.getContext('2d');
+      if (backward) { ctx.translate(px, 0); ctx.scale(-1, 1); }
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.5 * ratio;
       ctx.beginPath();
@@ -179,13 +204,146 @@
       return { image: ctx.getImageData(0, 0, px, px), pixelRatio: ratio };
     }
 
+    // A dot grid tile (one dot per 4px cell), also drawn at 2x.
+    function dotImage(color) {
+      const ratio = 2, px = 4 * ratio;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = px;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(px / 2, px / 2, 0.9 * ratio, 0, 2 * Math.PI);
+      ctx.fill();
+      return { image: ctx.getImageData(0, 0, px, px), pixelRatio: ratio };
+    }
+
+    function addPattern(name, tile) {
+      map.addImage(name, tile.image, { pixelRatio: tile.pixelRatio });
+    }
+
+    const emptyCollection = () => ({ type: 'FeatureCollection', features: [] });
+
     map.on('load', () => {
-      const hatch = hatchImage(AREA_STYLES.restricted.color);
-      map.addImage(AREA_STYLES.restricted.pattern, hatch.image, { pixelRatio: hatch.pixelRatio });
-      map.addSource(AREA_TOP, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      addPattern(AREA_STYLES.restricted.pattern, hatchImage(AREA_STYLES.restricted.color, false));
+      addPattern(OVERLAY_STYLES.zoneOverlap.pattern, hatchImage(OVERLAY_STYLES.zoneOverlap.color, true));
+      addPattern(OVERLAY_STYLES.lens.pattern, dotImage(OVERLAY_STYLES.lens.color));
+      map.addSource(AREA_TOP, { type: 'geojson', data: emptyCollection() });
       map.addLayer({ id: AREA_TOP, type: 'line', source: AREA_TOP });
+      // One source per overlay kind, in drawing order, above every area (inserted before
+      // AREA_TOP) and below every line (appended later).
+      for (const [kind, style] of Object.entries(OVERLAY_STYLES)) {
+        const sourceId = 'ov-' + kind;
+        map.addSource(sourceId, { type: 'geojson', data: emptyCollection() });
+        if (style.tintOpacity) {
+          map.addLayer({
+            id: sourceId + '-tint', type: 'fill', source: sourceId,
+            paint: { 'fill-color': style.color, 'fill-opacity': style.tintOpacity }
+          });
+        }
+        if (style.fillOpacity > 0) {
+          const fillPaint = style.pattern ? { 'fill-pattern': style.pattern } : { 'fill-color': style.color };
+          fillPaint['fill-opacity'] = style.fillOpacity;
+          map.addLayer({ id: sourceId + '-fill', type: 'fill', source: sourceId, paint: fillPaint });
+        }
+        map.addLayer({
+          id: sourceId + '-line', type: 'line', source: sourceId,
+          paint: { 'line-color': style.color, 'line-width': style.lineWidth, 'line-opacity': style.lineOpacity }
+        });
+      }
       post({ type: 'ready' });
     });
+
+    // ---- Overlays ----------------------------------------------------------------------
+    // Each kind keeps its features by id; changes are flushed to the map once per animation
+    // frame, so 20 vehicles moving 25 times a second cost one setData per kind per frame.
+    const overlays = { zoneOverlap: new Map(), reach: new Map(), lens: new Map() };
+    const overlayLabels = new Map(); // lens id -> maplibregl.Marker (its area pill)
+    const dirtyOverlays = new Set();
+    let flushPending = false;
+
+    function setOverlayFeature(kind, id, geometry) {
+      if (geometry) overlays[kind].set(id, { type: 'Feature', geometry, properties: {} });
+      else if (!overlays[kind].delete(id)) return;
+      dirtyOverlays.add(kind);
+      if (!flushPending) { flushPending = true; requestAnimationFrame(flushOverlays); }
+    }
+
+    function flushOverlays() {
+      flushPending = false;
+      for (const kind of dirtyOverlays) {
+        map.getSource('ov-' + kind)?.setData({ type: 'FeatureCollection', features: [...overlays[kind].values()] });
+      }
+      dirtyOverlays.clear();
+    }
+
+    // A circle of the given radius in metres, as a polygon (small-area approximation: a
+    // degree of longitude shrinks with the cosine of the latitude).
+    function circle(lon, lat, metres) {
+      const dLat = metres / 111320, dLon = dLat / Math.cos(lat * Math.PI / 180);
+      const ring = [];
+      for (let i = 0; i <= REACH_SEGMENTS; i++) {
+        const a = 2 * Math.PI * i / REACH_SEGMENTS;
+        ring.push([lon + dLon * Math.cos(a), lat + dLat * Math.sin(a)]);
+      }
+      return { type: 'Polygon', coordinates: [ring] };
+    }
+
+    // A lens's tips (the vertices farthest from its middle) are where the two reach circles
+    // cross, a full reach from both vehicles, so a label there is clear of both markers. The
+    // lower tip is used (the right one if the lens lies flat), and the pill points away from
+    // the lens.
+    function lensLabelPlacement(polygons) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      const points = polygons.flatMap(p => p[0]);
+      for (const [x, y] of points) {
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      }
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, k = Math.cos(cy * Math.PI / 180);
+      let tip = points[0], best = -Infinity;
+      for (const p of points) {
+        const dx = (p[0] - cx) * k, dy = p[1] - cy;
+        // Distance from the middle, nudged towards the lower right so one tip wins steadily.
+        const score = Math.hypot(dx, dy) * (1 + 0.05 * Math.sign(dx - dy));
+        if (score > best) { best = score; tip = p; }
+      }
+      const dx = (tip[0] - cx) * k, dy = tip[1] - cy;
+      const anchor = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'left' : 'right') : (dy > 0 ? 'bottom' : 'top');
+      return { lngLat: tip, anchor };
+    }
+
+    function setOverlay(m) {
+      const geometry = m.polygons.length ? { type: 'MultiPolygon', coordinates: m.polygons } : null;
+      setOverlayFeature(m.kind, m.id, geometry);
+      if (!geometry || !m.label) { removeOverlayLabel(m.id); return; }
+      const placement = lensLabelPlacement(m.polygons);
+      let label = overlayLabels.get(m.id);
+      if (!label || label.getElement().dataset.anchor !== placement.anchor) {
+        removeOverlayLabel(m.id);
+        const el = document.createElement('div');
+        el.className = 'area-label lens-label';
+        el.dataset.anchor = placement.anchor;
+        label = new maplibregl.Marker({ element: el, anchor: placement.anchor, offset: labelOffset(placement.anchor) });
+        label.setLngLat(placement.lngLat).addTo(map);
+        overlayLabels.set(m.id, label);
+      } else {
+        label.setLngLat(placement.lngLat);
+      }
+      label.getElement().textContent = m.label;
+    }
+
+    function labelOffset(anchor) {
+      return { left: [4, 0], right: [-4, 0], top: [0, 4], bottom: [0, -4] }[anchor];
+    }
+
+    function removeOverlayLabel(id) {
+      const label = overlayLabels.get(id);
+      if (label) { label.remove(); overlayLabels.delete(id); }
+    }
+
+    function removeOverlay(m) {
+      setOverlayFeature(m.kind, m.id, null);
+      removeOverlayLabel(m.id);
+    }
 
     // ---- Area drawing mode -------------------------------------------------------------
     // C# turns it on (beginDraw) and may cancel it (cancelDraw); the drag and its live
@@ -196,7 +354,7 @@
     const canvasContainer = map.getCanvasContainer();
     const hint = document.getElementById('draw-hint');
     const suspendedGestures = [map.dragPan, map.dragRotate, map.boxZoom, map.doubleClickZoom];
-    let drawKind = null; // 'restricted' | 'confinement' while the mode is on
+    let drawKind = null; // an AREA_STYLES key while the mode is on
     let drag = null;     // the press point ({ x, y, lngLat }) while a drag is in progress
 
     function beginDraw(kind) {
@@ -206,7 +364,7 @@
       drawKind = kind;
       for (const gesture of suspendedGestures) gesture.disable();
       document.body.classList.add('drawing');
-      hint.textContent = 'Drag to draw a ' + kind + ' area · Esc to cancel';
+      hint.textContent = 'Drag to draw a ' + AREA_STYLES[kind].noun + ' · Esc to cancel';
       hint.style.display = 'block';
     }
 
@@ -281,6 +439,16 @@
       if (e.key === 'Escape') cancelDrawFromMap();
     });
 
+    // ---- View ------------------------------------------------------------------------------
+    // The Overlap tab zooms to the replayed trajectories, so the reach circles and lenses are
+    // larger than the markers; leaving it restores the default view. Without animation when
+    // the user prefers reduced motion.
+    const viewDuration = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600;
+
+    function fitView(m) {
+      map.fitBounds([[m.west, m.south], [m.east, m.north]], { padding: 48, bearing: 0, duration: viewDuration() });
+    }
+
     function setMarker(m) {
       let marker = markers.get(m.id);
       if (!marker) {
@@ -296,6 +464,7 @@
       }
       marker.getElement().querySelector('span').textContent = m.label;
       applyMarkerStyle(marker, m);
+      setOverlayFeature('reach', m.id, m.reach > 0 ? circle(m.lon, m.lat, m.reach) : null);
     }
 
     function setMarkerColor(m) {
@@ -317,6 +486,7 @@
     function removeMarker(m) {
       const marker = markers.get(m.id);
       if (marker) { marker.remove(); markers.delete(m.id); }
+      setOverlayFeature('reach', m.id, null);
     }
 
     function upsertSource(id, geometry) {
@@ -397,8 +567,12 @@
         case 'setLine': setLine(m); break;
         case 'setArea': drawArea(m.id, m.kind, m, false); break;
         case 'removeShape': removeShape(m); break;
+        case 'setOverlay': setOverlay(m); break;
+        case 'removeOverlay': removeOverlay(m); break;
         case 'beginDraw': beginDraw(m.kind); break;
         case 'cancelDraw': endDraw(); break;
+        case 'fitBounds': fitView(m); break;
+        case 'resetView': map.easeTo({ ...DEFAULT_VIEW, bearing: 0, pitch: 0, duration: viewDuration() }); break;
       }
     });
   </script>
