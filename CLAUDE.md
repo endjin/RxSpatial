@@ -33,7 +33,7 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
   members (`extension(RxGeography source)`).
 - Windows-only at runtime (native `SqlServerSpatial170.dll` from Microsoft.SqlServer.Types).
 
-## Modernisation history (July 2026, per-phase commits on master)
+## Modernisation history (July–October 2026, per-phase commits on master)
 
 1. .NET 10 + System.Reactive 7 + Microsoft.SqlServer.Types 170.x migration; load/memory test
    apps replaced with BenchmarkDotNet suite.
@@ -65,6 +65,10 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
 9. WPF demo rework (Oct 2026; ef4f87f, 52921bf, a8efcb1): urgency-ordered colour bands with a
    minimum safe distance, one connection line per pair, and a per-scenario control panel
    (Inside area / Near area / Near vehicle / Convoy link) with legends and a backend footer.
+   Follow-ups: controls default to the ICDE 2017 / DEBS 2016 figure settings, including
+   pre-watched pairs (aa8815d); window sized to the work area (bf9fe2d); darker out-of-range
+   line (c838cf6). The papers (ICDE full paper, DEBS and SIGMOD demos) are in the authors' ZIP:
+   homepage.cs.uri.edu/~ahendawi/materials/RxSpatilPublications.zip.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 

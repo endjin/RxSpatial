@@ -6,6 +6,8 @@ The spatial libraries that have been developed by Microsoft, IBM and Oracle have
 
 - Abdeltawab M. Hendawi, Youying Shi, Hossam Fattah, Jumana Karwa, Mohamed H. Ali. *RxSpatial: a framework for real-time spatio-temporal operations.* In ACM DEBS 2016, 366-367
 - Youying Shi, Abdeltawab M. Hendawi, Hossam Fattah, Mohamed H. Ali. *RxSpatial: Reactive Spatial Library for Real-Time Location Tracking and Processing.* In ACM SIGMOD 2016, 2165-2168
+- Youying Shi, Abdeltawab M. Hendawi, Jayant Gupta, Hossam Fattah, Mohamed H. Ali. *RxSpatial: the reactive spatial library.* In ACM SIGSPATIAL GIS 2016, 64
+- Abdeltawab M. Hendawi, Jayant Gupta, Youying Shi, Hossam Fattah, Mohamed H. Ali. *The Microsoft Reactive Framework Meets the Internet of Moving Things.* In IEEE ICDE 2017, 1150-1161 ([doi:10.1109/ICDE.2017.159](https://doi.org/10.1109/ICDE.2017.159)) — the full paper; the map demo's scenarios and default settings follow its figures
 
 A copy of the SIGMOD demo paper is included as [docs/RxSpatialDemo.pdf](docs/RxSpatialDemo.pdf).
 
@@ -98,6 +100,8 @@ gpsFixes.Select(fix => SqlGeography.Point(fix.Lat, fix.Lon, 4326))
 ```
 
 Continuous queries between two moving objects (`RxRx*` in the papers) are available through the same extensions: `a.DistanceTo(b)`, `a.Intersects(b)`, `a.IntersectionWith(b)`.
+
+The papers name the two families by their operands: a single `Rx` prefix (`RxIntersect`, `RxDistance`, `RxIntersection`) relates a moving object to a stationary geography, and a double `RxRx` prefix relates two moving objects. The method names follow the SIGMOD 2016 class diagram; the ICDE 2017 paper spells them `RxIntersects` / `RxRxIntersects`, which are the same operations.
 
 ## Configuration
 
