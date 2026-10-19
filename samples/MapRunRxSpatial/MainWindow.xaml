@@ -76,7 +76,7 @@
 
             <!-- Keep the tab order: OnScenarioTabChanged maps tabs to scenarios by index. -->
             <TabControl Grid.Row="0" VerticalAlignment="Top" SelectionChanged="OnScenarioTabChanged">
-                <TabItem Header="Inside area">
+                <TabItem Header="Geofence">
                     <StackPanel Margin="6">
                         <TextBlock Style="{StaticResource SectionLabel}"
                                    Text="{Binding Value, ElementName=VehicleCountSlider, StringFormat='Vehicles: {0:0}'}"/>
@@ -287,9 +287,9 @@
                     CornerRadius="10" Margin="4,6,4,4" Padding="8,8,2,8">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0" FontSize="11.5">
                     <StackPanel>
-                        <StackPanel x:Name="GuidanceInsideArea">
+                        <StackPanel x:Name="GuidanceGeofence">
                             <TextBlock Style="{StaticResource GuidanceHeading}"
-                                       Text="Inside area - restricted and confinement zones (RxIntersect)"/>
+                                       Text="Geofence - restricted and confinement zones (RxIntersect)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="1. Press Start. All 20 vehicles (numbered 0-19) replay recorded Seattle GPS trajectories at 25 updates/s, as in the DEBS 2016 Fig. 5 set-up; nothing moves until you press Start."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
@@ -322,7 +322,7 @@
                             <TextBlock Style="{StaticResource GuidanceHeading}"
                                        Text="Near area - an offender approaches a restricted zone (RxDistance)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start, then Add area and click two corners on the map, as on the first tab."/>
+                                       Text="1. Press Start, then Add area and click two corners on the map."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="2. Observe distance is pre-set to 4,600 m, the family-locator set-up of DEBS 2016 Fig. 4. Move it to widen or narrow the bands."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>

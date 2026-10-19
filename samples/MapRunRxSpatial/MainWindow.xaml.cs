@@ -80,10 +80,10 @@ public partial class MainWindow : Window
 
     private void OnStartClick(object sender, RoutedEventArgs e) => fleet.StartTraffic();
 
-    /// <summary>Add area (Near area) and Add: Restricted area (Inside area).</summary>
+    /// <summary>Add area (Near area) and Add: Restricted area (Geofence).</summary>
     private void OnAddAreaClick(object sender, RoutedEventArgs e) => BeginAreaDrawing(AreaKind.Restricted);
 
-    /// <summary>Add: Confinement area (Inside area only).</summary>
+    /// <summary>Add: Confinement area (Geofence only).</summary>
     private void OnAddConfinementAreaClick(object sender, RoutedEventArgs e) => BeginAreaDrawing(AreaKind.Confinement);
 
     private void BeginAreaDrawing(AreaKind kind)
@@ -329,7 +329,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void ShowGuidance(Scenario scenario)
     {
-        GuidanceInsideArea.Visibility = VisibleWhen(scenario == Scenario.Intersect);
+        GuidanceGeofence.Visibility = VisibleWhen(scenario == Scenario.Intersect);
         GuidanceNearArea.Visibility = VisibleWhen(scenario == Scenario.Distance);
         GuidanceNearVehicle.Visibility = VisibleWhen(scenario == Scenario.RxRxDistance);
         GuidanceConvoyLink.Visibility = VisibleWhen(scenario == Scenario.RxRxDistanceConnection);

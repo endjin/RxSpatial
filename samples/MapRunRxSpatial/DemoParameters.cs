@@ -37,7 +37,7 @@ internal static class DemoParameters
     public static int ReplayIntervalMilliseconds(int updatesPerSecond) => 1000 / updatesPerSecond;
 
     /// <summary>
-    /// The observe distance a tab starts with, in metres. The Inside area tab has no
+    /// The observe distance a tab starts with, in metres. The Geofence tab has no
     /// distance; it returns the Near area value so the shared state is never meaningless.
     /// </summary>
     public static double DefaultObserveDistance(Scenario scenario) => scenario switch

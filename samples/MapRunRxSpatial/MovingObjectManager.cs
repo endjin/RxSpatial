@@ -70,7 +70,7 @@ internal sealed class MovingObjectManager
             StartTraffic();
     }
 
-    /// <summary>Subscribes every vehicle to an area newly drawn on the Inside area tab, restricted or confinement.</summary>
+    /// <summary>Subscribes every vehicle to an area newly drawn on the Geofence tab, restricted or confinement.</summary>
     public void SubscribeIntersectToNewPolygon(DemoPolygon area)
     {
         foreach (MovingObject vehicle in vehicles.Values)

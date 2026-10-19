@@ -64,7 +64,7 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
    in `.editorconfig`).
 9. WPF demo rework (Oct 2026; ef4f87f, 52921bf, a8efcb1): urgency-ordered colour bands with a
    minimum safe distance, one connection line per pair, and a per-scenario control panel
-   (Inside area / Near area / Near vehicle / Convoy link) with legends and a backend footer.
+   (Geofence / Near area / Near vehicle / Convoy link) with legends and a backend footer.
    Follow-ups: controls default to the ICDE 2017 / DEBS 2016 figure settings, including
    pre-watched pairs (aa8815d); window sized to the work area (bf9fe2d); darker out-of-range
    line (c838cf6). The papers (ICDE full paper, DEBS and SIGMOD demos) are in the authors' ZIP:
@@ -126,7 +126,7 @@ cost traded for scheduling that depends on pool state.
 - WPF demo pairs: an RxRx observer fires only when its *own* vehicle moves, so both
   directions of a pair are subscribed; the connection line is keyed by `VehiclePair` and
   upserted by `ConnectionLines` (one MapLibre line per pair, not per observer).
-- WPF demo confinement zones (Inside area): the breach ("outside every confinement area") is
+- WPF demo confinement zones (Geofence): the breach ("outside every confinement area") is
   decided at the end of `MovingObject.PushLocation`, not by an inverted intersect observer —
   tree/grid backends prune notifications to observers whose zone bounds meet the pushed
   location, so a far-outside vehicle never hears from the zone. `ConfinementObserver`s set a
