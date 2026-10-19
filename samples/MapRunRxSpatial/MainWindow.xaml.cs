@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Markup;
 using RxSpatial;
 
@@ -9,8 +11,6 @@ namespace MapRunRxSpatial;
 /// <summary>The demo shell: a MapLibre map beside a per-scenario control panel.</summary>
 public partial class MainWindow : Window
 {
-    private const string PreviewAreaShapeId = "tmp-area";
-
     private readonly MapLibreMap map;
     private readonly PolygonManager polygons;
     private readonly ConnectionLines lines;
@@ -21,10 +21,8 @@ public partial class MainWindow : Window
     // suppress their continuous distance streams.
     private readonly RxGeographyDataStruct configuredBackend = RxSpatialOptions.Default.PreferredDataStruct;
 
-    private bool isDrawingArea;
-    private AreaKind drawingKind;
-    private GeoPoint? corner1;
-    private GeoPoint? corner2;
+    // The pressed area button while the map is in drawing mode; null when it is not.
+    private ToggleButton? drawingButton;
     private bool isPaused;
 
     // Watch all pairs was pressed before the vehicles were on the map, so the status line
@@ -39,8 +37,8 @@ public partial class MainWindow : Window
         InitializeComponent();
         FitToWorkArea();
         map = new MapLibreMap(mapView);
-        map.MapClick += OnMapClick;
-        map.MapMouseMove += OnMapMouseMove;
+        map.AreaDrawn += OnAreaDrawn;
+        map.DrawCancelled += EndAreaDrawing;
         polygons = new PolygonManager(map);
         lines = new ConnectionLines(map);
         fleet = new MovingObjectManager(map, polygons, lines);
@@ -80,20 +78,71 @@ public partial class MainWindow : Window
 
     private void OnStartClick(object sender, RoutedEventArgs e) => fleet.StartTraffic();
 
-    /// <summary>Add area (Near area) and Add: Restricted area (Geofence).</summary>
-    private void OnAddAreaClick(object sender, RoutedEventArgs e) => BeginAreaDrawing(AreaKind.Restricted);
+    /// <summary>
+    /// Restricted area (Geofence) and Add area (Near area) pressed: draw a restricted area.
+    /// Checked/Unchecked rather than Click, so keyboard and UI Automation toggles work too.
+    /// </summary>
+    private void OnRestrictedAreaChecked(object sender, RoutedEventArgs e) => BeginAreaDrawing((ToggleButton)sender, AreaKind.Restricted);
 
-    /// <summary>Add: Confinement area (Geofence only).</summary>
-    private void OnAddConfinementAreaClick(object sender, RoutedEventArgs e) => BeginAreaDrawing(AreaKind.Confinement);
+    /// <summary>Confinement area (Geofence only) pressed: draw a confinement area.</summary>
+    private void OnConfinementAreaChecked(object sender, RoutedEventArgs e) => BeginAreaDrawing((ToggleButton)sender, AreaKind.Confinement);
 
-    private void BeginAreaDrawing(AreaKind kind)
+    /// <summary>
+    /// An area button released. The user releasing the pressed button cancels drawing; a
+    /// release made by <see cref="EndAreaDrawing"/> or a take-over arrives after
+    /// <see cref="drawingButton"/> has moved on, so it is ignored.
+    /// </summary>
+    private void OnAreaButtonUnchecked(object sender, RoutedEventArgs e)
     {
-        // Re-arming mid-draw must not leave the previous preview rectangle behind.
-        map.RemoveShape(PreviewAreaShapeId);
-        isDrawingArea = true;
-        drawingKind = kind;
-        corner1 = null;
-        corner2 = null;
+        if (sender == drawingButton)
+            CancelAreaDrawing();
+    }
+
+    private void BeginAreaDrawing(ToggleButton button, AreaKind kind)
+    {
+        ToggleButton? previous = drawingButton;
+        drawingButton = button;
+        previous?.IsChecked = false;
+        map.BeginDraw(kind);
+    }
+
+    /// <summary>
+    /// Esc while the WPF panel has keyboard focus. When the map has focus, the WebView2 child
+    /// window gets the key instead and map.html cancels (reported back as DrawCancelled).
+    /// </summary>
+    private void OnWindowKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && drawingButton is not null)
+        {
+            CancelAreaDrawing();
+            e.Handled = true;
+        }
+    }
+
+    private void OnAreaDrawn(AreaKind kind, GeoPoint corner1, GeoPoint corner2)
+    {
+        // A rectangle finished just as the mode was cancelled here is dropped.
+        if (drawingButton is null)
+            return;
+
+        EndAreaDrawing();
+        AddArea(corner1, corner2, kind);
+    }
+
+    /// <summary>Leaves drawing mode in the map and in the panel.</summary>
+    private void CancelAreaDrawing()
+    {
+        map.CancelDraw();
+        EndAreaDrawing();
+    }
+
+    /// <summary>Un-presses the area button; the map has left (or is leaving) drawing mode.</summary>
+    private void EndAreaDrawing()
+    {
+        // Cleared first, so the Unchecked this raises is not taken for a user cancel.
+        ToggleButton? button = drawingButton;
+        drawingButton = null;
+        button?.IsChecked = false;
     }
 
     /// <summary>Clears areas and watched pairs alike (Clear areas / Clear pairs).</summary>
@@ -123,45 +172,6 @@ public partial class MainWindow : Window
         isPaused = !isPaused;
         SetPauseResumeLabels(isPaused ? "Resume" : "Pause");
     }
-
-    private void OnMapClick(double latitude, double longitude)
-    {
-        if (!isDrawingArea)
-            return;
-
-        GeoPoint corner = new(latitude, longitude);
-        if (corner1 is null)
-        {
-            corner1 = corner;
-        }
-        else if (corner2 is null)
-        {
-            corner2 = corner;
-            map.RemoveShape(PreviewAreaShapeId);
-            AddArea(corner1.Value, corner2.Value, drawingKind);
-            isDrawingArea = false;
-            corner1 = null;
-            corner2 = null;
-        }
-    }
-
-    private void OnMapMouseMove(double latitude, double longitude)
-    {
-        if (isDrawingArea && corner1 is not null)
-            DrawAreaPreview(corner1.Value, new GeoPoint(latitude, longitude));
-    }
-
-    private void DrawAreaPreview(GeoPoint corner1, GeoPoint corner2)
-        => map.SetLine(
-            PreviewAreaShapeId,
-            [
-                new GeoPoint(corner1.Latitude, corner1.Longitude),
-                new GeoPoint(corner1.Latitude, corner2.Longitude),
-                new GeoPoint(corner2.Latitude, corner2.Longitude),
-                new GeoPoint(corner2.Latitude, corner1.Longitude),
-                new GeoPoint(corner1.Latitude, corner1.Longitude),
-            ],
-            PolygonManager.StrokeColor(drawingKind), 2, drawingKind == AreaKind.Confinement, 0.7);
 
     private void AddArea(GeoPoint corner1, GeoPoint corner2, AreaKind kind)
     {
@@ -358,13 +368,5 @@ public partial class MainWindow : Window
         PauseResume1.Content = label;
         PauseResume2.Content = label;
         PauseResume3.Content = label;
-    }
-
-    private void CancelAreaDrawing()
-    {
-        isDrawingArea = false;
-        corner1 = null;
-        corner2 = null;
-        map.RemoveShape(PreviewAreaShapeId);
     }
 }

@@ -67,7 +67,9 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
    (Geofence / Near area / Near vehicle / Convoy link) with legends and a backend footer.
    Follow-ups: controls default to the ICDE 2017 / DEBS 2016 figure settings, including
    pre-watched pairs (aa8815d); window sized to the work area (bf9fe2d); darker out-of-range
-   line (c838cf6). The papers (ICDE full paper, DEBS and SIGMOD demos) are in the authors' ZIP:
+   line (c838cf6); areas drawn by dragging in an explicit drawing mode, styled to keep the map
+   readable (slate hatch / purple dashed outline). The papers (ICDE full paper, DEBS and
+   SIGMOD demos) are in the authors' ZIP:
    homepage.cs.uri.edu/~ahendawi/materials/RxSpatilPublications.zip.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
@@ -126,6 +128,16 @@ cost traded for scheduling that depends on pool state.
 - WPF demo pairs: an RxRx observer fires only when its *own* vehicle moves, so both
   directions of a pair are subscribed; the connection line is keyed by `VehiclePair` and
   upserted by `ConnectionLines` (one MapLibre line per pair, not per observer).
+- WPF demo area drawing: the drag and its preview live in `map.html` (drawing mode suspends
+  dragPan/dragRotate/boxZoom/doubleClickZoom); C# only sends `beginDraw`/`cancelDraw` and
+  receives `areaDrawn`/`drawCancelled`. Esc arrives in two focus domains — the WebView2 HWND
+  (JS keydown → `drawCancelled`) or the WPF panel (Window `KeyDown`) — so both paths cancel and
+  both are idempotent. Area buttons are `ToggleButton`s driven by Checked/Unchecked (UIA
+  `Toggle` raises no Click); `EndAreaDrawing` clears `drawingButton` *before* un-checking so
+  its own Unchecked is not taken for a user cancel. Area/preview styles are defined once, in
+  `AREA_STYLES` in map.html. Measure pointer positions against `map.getContainer()`: the
+  MapLibre canvas container has zero height. UI-automation drags via posted
+  `WM_MOUSEMOVE`/`WM_LBUTTONDOWN` to `Chrome_RenderWidgetHostHWND` work (no real cursor).
 - WPF demo confinement zones (Geofence): the breach ("outside every confinement area") is
   decided at the end of `MovingObject.PushLocation`, not by an inverted intersect observer —
   tree/grid backends prune notifications to observers whose zone bounds meet the pushed

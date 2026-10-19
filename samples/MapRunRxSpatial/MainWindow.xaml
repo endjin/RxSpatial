@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="MapRun RxSpatial" Height="880" Width="1300" MinHeight="600" MinWidth="900"
-        WindowStartupLocation="CenterScreen" Loaded="OnLoaded">
+        WindowStartupLocation="CenterScreen" Loaded="OnLoaded" KeyDown="OnWindowKeyDown">
     <!-- Shared styles come first: a missing StaticResource key fails when the window is
          created, not at build time. -->
     <Window.Resources>
@@ -20,6 +20,45 @@
             <Setter Property="MinWidth" Value="90"/>
             <Setter Property="Padding" Value="8,2"/>
             <Setter Property="Margin" Value="0,6,6,0"/>
+        </Style>
+        <!-- An area button stays pressed while the map is in drawing mode for it. -->
+        <Style x:Key="DrawAreaButton" TargetType="ToggleButton">
+            <Setter Property="MinWidth" Value="90"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Margin" Value="0,6,6,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Legend swatches matching the map's area styles (AREA_STYLES in wwwroot/map.html):
+             restricted is a slate diagonal hatch with a solid outline, confinement a purple
+             dashed outline over an almost clear fill. -->
+        <LinearGradientBrush x:Key="RestrictedHatch" MappingMode="Absolute" SpreadMethod="Repeat"
+                             StartPoint="0,0" EndPoint="2.5,2.5">
+            <GradientStop Color="#9937474F" Offset="0"/>
+            <GradientStop Color="#9937474F" Offset="0.45"/>
+            <GradientStop Color="Transparent" Offset="0.45"/>
+            <GradientStop Color="Transparent" Offset="1"/>
+        </LinearGradientBrush>
+        <Style x:Key="AreaSwatch" TargetType="Rectangle">
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="11"/>
+            <Setter Property="Margin" Value="0,2,6,0"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="DockPanel.Dock" Value="Left"/>
+        </Style>
+        <Style x:Key="RestrictedSwatch" TargetType="Rectangle" BasedOn="{StaticResource AreaSwatch}">
+            <Setter Property="Fill" Value="{StaticResource RestrictedHatch}"/>
+            <Setter Property="Stroke" Value="#37474F"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+        </Style>
+        <Style x:Key="ConfinementSwatch" TargetType="Rectangle" BasedOn="{StaticResource AreaSwatch}">
+            <Setter Property="Fill" Value="#0F6A1B9A"/>
+            <Setter Property="Stroke" Value="#6A1B9A"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+            <Setter Property="StrokeDashArray" Value="2 1"/>
         </Style>
         <!-- Every slider here selects an integer, so values snap to whole numbers. -->
         <Style x:Key="DemoSlider" TargetType="Slider">
@@ -104,9 +143,11 @@
                             <Button Style="{StaticResource DemoButton}" Content="Clear areas" Click="OnClearClick"/>
                         </WrapPanel>
                         <WrapPanel>
-                            <TextBlock Text="Add:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,6,6,0"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Restricted area" Click="OnAddAreaClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Confinement area" Click="OnAddConfinementAreaClick"/>
+                            <TextBlock Text="Draw:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,6,6,0"/>
+                            <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Restricted area"
+                                          Checked="OnRestrictedAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
+                            <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Confinement area"
+                                          Checked="OnConfinementAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
                         </WrapPanel>
                     </StackPanel>
                 </TabItem>
@@ -146,7 +187,8 @@
                         <WrapPanel>
                             <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
                             <Button x:Name="PauseResume1" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Add area" Click="OnAddAreaClick"/>
+                            <ToggleButton Style="{StaticResource DrawAreaButton}" Content="Add area"
+                                          Checked="OnRestrictedAreaChecked" Unchecked="OnAreaButtonUnchecked"/>
                             <Button Style="{StaticResource DemoButton}" Content="Clear areas" Click="OnClearClick"/>
                         </WrapPanel>
                     </StackPanel>
@@ -293,19 +335,17 @@
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="1. Press Start. All 20 vehicles (numbered 0-19) replay recorded Seattle GPS trajectories at 25 updates/s, as in the DEBS 2016 Fig. 5 set-up; nothing moves until you press Start."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="2. Press Add: Restricted area or Add: Confinement area and click two corners on the map. Every vehicle gets a continuous RxIntersect query against each area."/>
+                                       Text="2. Press Restricted area or Confinement area, then drag a rectangle on the map; Esc or a right-click cancels. The button stays pressed while you draw, and the map pans as usual at other times. Every vehicle gets a continuous RxIntersect query against each area."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="An offender must stay out of every restricted zone and inside a confinement zone, such as a city or county (ICDE 2017 Fig. 4a); a child must not leave a designated region (DEBS 2016 section 3.4). Being inside any one confinement area is enough."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Rectangle Width="10" Height="10" Margin="0,3,6,0" VerticalAlignment="Top" DockPanel.Dock="Left"
-                                           Fill="#66FFA500" Stroke="Orange" StrokeThickness="1.5"/>
-                                <TextBlock TextWrapping="Wrap" Text="Orange area - restricted: a vehicle inside it turns red."/>
+                                <Rectangle Style="{StaticResource RestrictedSwatch}"/>
+                                <TextBlock TextWrapping="Wrap" Text="Slate hatched area - restricted: a vehicle inside it turns red."/>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <Rectangle Width="10" Height="10" Margin="0,3,6,0" VerticalAlignment="Top" DockPanel.Dock="Left"
-                                           Fill="#33CE93D8" Stroke="#6A1B9A" StrokeThickness="1.5" StrokeDashArray="2 1"/>
-                                <TextBlock TextWrapping="Wrap" Text="Purple dashed area - confinement: a vehicle outside every confinement area turns red."/>
+                                <Rectangle Style="{StaticResource ConfinementSwatch}"/>
+                                <TextBlock TextWrapping="Wrap" Text="Purple dashed outline - confinement: a vehicle outside every confinement area turns red."/>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
@@ -322,10 +362,14 @@
                             <TextBlock Style="{StaticResource GuidanceHeading}"
                                        Text="Near area - an offender approaches a restricted zone (RxDistance)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start, then Add area and click two corners on the map."/>
+                                       Text="1. Press Start, then press Add area and drag a rectangle on the map; Esc or a right-click cancels."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="2. Observe distance is pre-set to 4,600 m, the family-locator set-up of DEBS 2016 Fig. 4. Move it to widen or narrow the bands."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Rectangle Style="{StaticResource RestrictedSwatch}"/>
+                                <TextBlock TextWrapping="Wrap" Text="Slate hatched area - the restricted area each vehicle's distance is measured to."/>
+                            </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
                                 <TextBlock TextWrapping="Wrap" Text="Blue - farther than the observe distance."/>

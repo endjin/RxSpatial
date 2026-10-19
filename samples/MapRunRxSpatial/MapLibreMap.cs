@@ -7,8 +7,8 @@ namespace MapRunRxSpatial;
 
 /// <summary>
 /// A thin C# facade over MapLibre GL JS running in a WebView2 (see wwwroot/map.html).
-/// Commands are posted as JSON web messages; map events (ready, click, mousemove) come
-/// back the same way. Commands sent before the map finishes loading are queued.
+/// Commands are posted as JSON web messages; map events (ready, areaDrawn, drawCancelled)
+/// come back the same way. Commands sent before the map finishes loading are queued.
 /// All members must be used from the UI thread (a WebView2 requirement).
 /// </summary>
 internal sealed class MapLibreMap(WebView2 webView)
@@ -16,11 +16,14 @@ internal sealed class MapLibreMap(WebView2 webView)
     private readonly List<string> pending = [];
     private bool ready;
 
-    /// <summary>Raised with (latitude, longitude) when the map is clicked.</summary>
-    public event Action<double, double>? MapClick;
+    /// <summary>
+    /// Raised with the kind and two opposite corners (south-west, north-east) when the user
+    /// finishes dragging a rectangle in drawing mode. The map has already left drawing mode.
+    /// </summary>
+    public event Action<AreaKind, GeoPoint, GeoPoint>? AreaDrawn;
 
-    /// <summary>Raised with (latitude, longitude) as the pointer moves over the map (throttled).</summary>
-    public event Action<double, double>? MapMouseMove;
+    /// <summary>Raised when the user cancels drawing mode in the map (Esc or a right-click).</summary>
+    public event Action? DrawCancelled;
 
     public async Task InitializeAsync()
     {
@@ -49,13 +52,48 @@ internal sealed class MapLibreMap(WebView2 webView)
     public void SetLine(string id, IEnumerable<GeoPoint> points, string color, double width, bool dashed, double opacity)
         => Send(new { cmd = "setLine", id, points = ToCoordinates(points), color, width, dashed, opacity });
 
-    public void SetPolygon(
-        string id, IEnumerable<GeoPoint> ring, string stroke, double strokeWidth, double strokeOpacity,
-        string fill, double fillOpacity, bool dashed)
-        => Send(new { cmd = "setPolygon", id, ring = ToCoordinates(ring), stroke, strokeWidth, strokeOpacity, fill, fillOpacity, dashed });
+    /// <summary>
+    /// Draws a finished area between two opposite corners, styled by its kind (the styles live
+    /// in map.html, shared with the drawing preview), with a label in its top-left corner.
+    /// </summary>
+    public void SetArea(string id, AreaKind kind, GeoPoint corner1, GeoPoint corner2)
+        => Send(new
+        {
+            cmd = "setArea", id, kind = KindName(kind),
+            south = Math.Min(corner1.Latitude, corner2.Latitude),
+            west = Math.Min(corner1.Longitude, corner2.Longitude),
+            north = Math.Max(corner1.Latitude, corner2.Latitude),
+            east = Math.Max(corner1.Longitude, corner2.Longitude),
+        });
 
+    /// <summary>Removes a line or an area (and the area's label).</summary>
     public void RemoveShape(string id)
         => Send(new { cmd = "removeShape", id });
+
+    /// <summary>
+    /// Enters drawing mode: a left drag draws a rectangle of the given kind instead of panning.
+    /// The mode ends with <see cref="AreaDrawn"/>, <see cref="DrawCancelled"/> or <see cref="CancelDraw"/>.
+    /// </summary>
+    public void BeginDraw(AreaKind kind)
+        => Send(new { cmd = "beginDraw", kind = KindName(kind) });
+
+    /// <summary>Leaves drawing mode, if it is on, without raising <see cref="DrawCancelled"/>.</summary>
+    public void CancelDraw()
+        => Send(new { cmd = "cancelDraw" });
+
+    private static string KindName(AreaKind kind) => kind switch
+    {
+        AreaKind.Restricted => "restricted",
+        AreaKind.Confinement => "confinement",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown area kind."),
+    };
+
+    private static AreaKind? ParseKind(string? name) => name switch
+    {
+        "restricted" => AreaKind.Restricted,
+        "confinement" => AreaKind.Confinement,
+        _ => null,
+    };
 
     private static List<double[]> ToCoordinates(IEnumerable<GeoPoint> points)
     {
@@ -118,16 +156,20 @@ internal sealed class MapLibreMap(WebView2 webView)
                 pending.Clear();
                 break;
 
-            case "click":
-                MapClick?.Invoke(
-                    message.RootElement.GetProperty("lat").GetDouble(),
-                    message.RootElement.GetProperty("lon").GetDouble());
+            case "areaDrawn":
+                JsonElement root = message.RootElement;
+                if (ParseKind(root.GetProperty("kind").GetString()) is AreaKind kind)
+                {
+                    AreaDrawn?.Invoke(
+                        kind,
+                        new GeoPoint(root.GetProperty("south").GetDouble(), root.GetProperty("west").GetDouble()),
+                        new GeoPoint(root.GetProperty("north").GetDouble(), root.GetProperty("east").GetDouble()));
+                }
+
                 break;
 
-            case "mousemove":
-                MapMouseMove?.Invoke(
-                    message.RootElement.GetProperty("lat").GetDouble(),
-                    message.RootElement.GetProperty("lon").GetDouble());
+            case "drawCancelled":
+                DrawCancelled?.Invoke();
                 break;
         }
     }

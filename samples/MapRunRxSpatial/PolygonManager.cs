@@ -20,9 +20,6 @@ internal sealed class DemoPolygon(string name, string shapeId, SqlGeography geog
 /// <summary>Owns the demo's drawn areas (connection lines live in <see cref="ConnectionLines"/>).</summary>
 internal sealed class PolygonManager(MapLibreMap map)
 {
-    private const string RestrictedStroke = "orange";
-    private const string ConfinementStroke = "#6A1B9A";
-
     private readonly Dictionary<string, DemoPolygon> polygons = [];
     private int polygonCounter;
 
@@ -51,9 +48,6 @@ internal sealed class PolygonManager(MapLibreMap map)
         return SqlGeography.STPolyFromText(new SqlChars(new SqlString(wkt)), 4326);
     }
 
-    /// <summary>Outline colour of an area of the given kind, also used for its drawing preview.</summary>
-    public static string StrokeColor(AreaKind kind) => kind == AreaKind.Confinement ? ConfinementStroke : RestrictedStroke;
-
     public DemoPolygon? AddPolygon(GeoPoint point1, GeoPoint point2, AreaKind kind)
     {
         SqlGeography? geography = CreatePolygon(point1, point2);
@@ -66,22 +60,8 @@ internal sealed class PolygonManager(MapLibreMap map)
         polygons.Add(name, polygon);
         polygonCounter++;
 
-        GeoPoint[] ring =
-        [
-            new GeoPoint(point1.Latitude, point1.Longitude),
-            new GeoPoint(point1.Latitude, point2.Longitude),
-            new GeoPoint(point2.Latitude, point2.Longitude),
-            new GeoPoint(point2.Latitude, point1.Longitude),
-            new GeoPoint(point1.Latitude, point1.Longitude),
-        ];
-
-        // Restricted areas keep the original solid orange; confinement areas get a dashed
-        // purple outline over a light fill, so the map stays readable inside a large one.
-        if (kind == AreaKind.Confinement)
-            map.SetPolygon(shapeId, ring, ConfinementStroke, 3, 0.9, "#CE93D8", 0.2, dashed: true);
-        else
-            map.SetPolygon(shapeId, ring, RestrictedStroke, 2, 0.8, RestrictedStroke, 0.4, dashed: false);
-
+        // The map styles the area by its kind (see AREA_STYLES in map.html).
+        map.SetArea(shapeId, kind, point1, point2);
         return polygon;
     }
 

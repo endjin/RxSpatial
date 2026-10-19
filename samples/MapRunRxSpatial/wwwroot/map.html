@@ -12,14 +12,36 @@
       width: 26px; height: 26px; border-radius: 50%;
       border: 2px solid #ffffff;
       box-shadow: 0 1px 4px rgba(0,0,0,.45); cursor: default;
+      z-index: 1; /* above the area labels */
     }
     .vehicle-marker span {
       color: #fff; font: bold 11px sans-serif;
     }
+    .area-label {
+      background: #ffffff; color: #263238;
+      font: 600 11px/1 'Segoe UI', sans-serif;
+      padding: 3px 6px; border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.35);
+      pointer-events: none; white-space: nowrap;
+    }
+    #draw-hint {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      z-index: 2; display: none;
+      background: rgba(38, 50, 56, .92); color: #ffffff;
+      font: 13px 'Segoe UI', sans-serif;
+      padding: 6px 14px; border-radius: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+      pointer-events: none; white-space: nowrap;
+    }
+    /* Draw mode: a crosshair over the whole map, vehicle markers included. */
+    body.drawing .maplibregl-canvas-container,
+    body.drawing .maplibregl-canvas,
+    body.drawing .vehicle-marker { cursor: crosshair !important; }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div id="draw-hint"></div>
   <script>
     const map = new maplibregl.Map({
       container: 'map',
@@ -43,18 +65,147 @@
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 
     const post = (m) => window.chrome.webview.postMessage(m);
-    const markers = new Map(); // id -> maplibregl.Marker
+    const markers = new Map();    // id -> maplibregl.Marker
+    const areaLabels = new Map(); // area id -> maplibregl.Marker (its corner label)
 
-    map.on('load', () => post({ type: 'ready' }));
-    map.on('click', (e) => post({ type: 'click', lat: e.lngLat.lat, lon: e.lngLat.lng }));
-
-    let lastMove = 0;
-    map.on('mousemove', (e) => {
-      const now = Date.now();
-      if (now - lastMove > 60) {
-        lastMove = now;
-        post({ type: 'mousemove', lat: e.lngLat.lat, lon: e.lngLat.lng });
+    // Area styles. Neither may resemble the OSM palette (pink/orange/yellow roads, green
+    // parks, blue water, beige land) or a vehicle colour, and streets must stay legible
+    // underneath: restricted is a slate hatch, confinement a purple dashed outline over an
+    // almost clear fill. The drawing preview uses the same style, lighter and dashed.
+    const AREA_STYLES = {
+      restricted: {
+        label: 'Restricted', color: '#37474F', pattern: 'hatch-restricted',
+        fillOpacity: 0.35, previewFillOpacity: 0.2, lineWidth: 2, dash: null
+      },
+      confinement: {
+        label: 'Confinement', color: '#6A1B9A', pattern: null,
+        fillOpacity: 0.06, previewFillOpacity: 0.04, lineWidth: 2.5, dash: [3, 2]
       }
+    };
+    const PREVIEW_ID = 'draw-preview';
+    const MIN_DRAG_PX = 6;
+
+    // Areas sit below every line (convoy links): they are inserted before this empty layer,
+    // lines are appended above it. Vehicle markers are DOM elements, so always on top.
+    const AREA_TOP = 'areas-top';
+
+    // A seamless diagonal hatch tile, drawn at 2x so the lines stay crisp on high-DPI screens.
+    function hatchImage(color) {
+      const ratio = 2, px = 10 * ratio;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = px;
+      const ctx = canvas.getContext('2d');
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5 * ratio;
+      ctx.beginPath();
+      // The main diagonal plus the two corner pieces that join it to the neighbouring tiles.
+      ctx.moveTo(0, px); ctx.lineTo(px, 0);
+      ctx.moveTo(-px / 2, px / 2); ctx.lineTo(px / 2, -px / 2);
+      ctx.moveTo(px / 2, px * 1.5); ctx.lineTo(px * 1.5, px / 2);
+      ctx.stroke();
+      return { image: ctx.getImageData(0, 0, px, px), pixelRatio: ratio };
+    }
+
+    map.on('load', () => {
+      const hatch = hatchImage(AREA_STYLES.restricted.color);
+      map.addImage(AREA_STYLES.restricted.pattern, hatch.image, { pixelRatio: hatch.pixelRatio });
+      map.addSource(AREA_TOP, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addLayer({ id: AREA_TOP, type: 'line', source: AREA_TOP });
+      post({ type: 'ready' });
+    });
+
+    // ---- Area drawing mode -------------------------------------------------------------
+    // C# turns it on (beginDraw) and may cancel it (cancelDraw); the drag and its live
+    // preview run entirely here. A finished rectangle goes back as 'areaDrawn'; a cancel made
+    // in the map (Esc, right-click) goes back as 'drawCancelled' so the panel can un-press
+    // its button. The gestures that use a left drag or a click are suspended while the mode
+    // is on; scroll zoom and the +/- buttons keep working.
+    const canvasContainer = map.getCanvasContainer();
+    const hint = document.getElementById('draw-hint');
+    const suspendedGestures = [map.dragPan, map.dragRotate, map.boxZoom, map.doubleClickZoom];
+    let drawKind = null; // 'restricted' | 'confinement' while the mode is on
+    let drag = null;     // the press point ({ x, y, lngLat }) while a drag is in progress
+
+    function beginDraw(kind) {
+      if (!AREA_STYLES[kind]) return;
+      clearPreview();
+      drag = null;
+      drawKind = kind;
+      for (const gesture of suspendedGestures) gesture.disable();
+      document.body.classList.add('drawing');
+      hint.textContent = 'Drag to draw a ' + kind + ' area · Esc to cancel';
+      hint.style.display = 'block';
+    }
+
+    function endDraw() {
+      clearPreview();
+      drag = null;
+      drawKind = null;
+      for (const gesture of suspendedGestures) gesture.enable();
+      document.body.classList.remove('drawing');
+      hint.style.display = 'none';
+    }
+
+    function cancelDrawFromMap() {
+      if (!drawKind) return;
+      endDraw();
+      post({ type: 'drawCancelled' });
+    }
+
+    // The pointer position relative to the map, clamped to it: releasing outside the map
+    // still finishes the rectangle at the map's edge. Measured against the map container:
+    // the canvas container has no height of its own (the canvas inside it is positioned).
+    function mapPoint(e) {
+      const rect = map.getContainer().getBoundingClientRect();
+      const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+      const y = Math.min(Math.max(e.clientY - rect.top, 0), rect.height);
+      return { x, y, lngLat: map.unproject([x, y]) };
+    }
+
+    function bounds(a, b) {
+      return {
+        south: Math.min(a.lat, b.lat), north: Math.max(a.lat, b.lat),
+        west: Math.min(a.lng, b.lng), east: Math.max(a.lng, b.lng)
+      };
+    }
+
+    function ringOf(b) {
+      return [[b.west, b.south], [b.east, b.south], [b.east, b.north], [b.west, b.north], [b.west, b.south]];
+    }
+
+    // Capture phase, so a press on a vehicle marker starts a rectangle too.
+    canvasContainer.addEventListener('mousedown', (e) => {
+      if (!drawKind || e.button !== 0) return;
+      e.preventDefault();
+      drag = mapPoint(e);
+    }, true);
+
+    window.addEventListener('mousemove', (e) => {
+      if (!drawKind || !drag) return;
+      drawArea(PREVIEW_ID, drawKind, bounds(drag.lngLat, mapPoint(e).lngLat), true);
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!drawKind || !drag || e.button !== 0) return;
+      const start = drag;
+      const end = mapPoint(e);
+      drag = null;
+      clearPreview();
+      // No real drag (either side under MIN_DRAG_PX): ignore it and stay in the mode.
+      if (Math.abs(end.x - start.x) < MIN_DRAG_PX || Math.abs(end.y - start.y) < MIN_DRAG_PX) return;
+      const kind = drawKind;
+      endDraw();
+      post({ type: 'areaDrawn', kind, ...bounds(start.lngLat, end.lngLat) });
+    });
+
+    canvasContainer.addEventListener('contextmenu', (e) => {
+      if (!drawKind) return;
+      e.preventDefault();
+      cancelDrawFromMap();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') cancelDrawFromMap();
     });
 
     function setMarker(m) {
@@ -117,19 +268,39 @@
       map.setPaintProperty(layerId, 'line-dasharray', m.dashed ? [2, 3] : [1, 0]);
     }
 
-    function setPolygon(m) {
-      const added = upsertSource(m.id, { type: 'Polygon', coordinates: [m.ring] });
-      if (added) {
+    // Draws (or redraws) an area rectangle: a fill, an outline and, for a finished area, a
+    // label pill in its top-left corner. The style has no glyphs URL, so the label is an
+    // HTML marker rather than a symbol layer.
+    function drawArea(id, kind, b, preview) {
+      const style = AREA_STYLES[kind];
+      const fillId = 'f-' + id, lineId = 'l-' + id;
+      if (upsertSource(id, { type: 'Polygon', coordinates: [ringOf(b)] })) {
+        const before = preview ? undefined : AREA_TOP;
+        const fillPaint = style.pattern ? { 'fill-pattern': style.pattern } : { 'fill-color': style.color };
+        map.addLayer({ id: fillId, type: 'fill', source: 's-' + id, paint: fillPaint }, before);
         map.addLayer({
-          id: 'f-' + m.id, type: 'fill', source: 's-' + m.id,
-          paint: { 'fill-color': m.fill, 'fill-opacity': m.fillOpacity }
-        });
-        map.addLayer({
-          id: 'l-' + m.id, type: 'line', source: 's-' + m.id,
-          paint: { 'line-color': m.stroke, 'line-width': m.strokeWidth, 'line-opacity': m.strokeOpacity }
-        });
-        if (m.dashed) map.setPaintProperty('l-' + m.id, 'line-dasharray', [2, 2]);
+          id: lineId, type: 'line', source: 's-' + id,
+          paint: { 'line-color': style.color, 'line-width': style.lineWidth }
+        }, before);
+        map.setPaintProperty(fillId, 'fill-opacity', preview ? style.previewFillOpacity : style.fillOpacity);
+        map.setPaintProperty(lineId, 'line-opacity', preview ? 0.85 : 1);
+        // A preview is always dashed; a finished area only when its kind is.
+        const dash = preview ? (style.dash || [2, 1.5]) : style.dash;
+        if (dash) map.setPaintProperty(lineId, 'line-dasharray', dash);
       }
+
+      if (!preview) {
+        const el = document.createElement('div');
+        el.className = 'area-label';
+        el.textContent = style.label;
+        areaLabels.get(id)?.remove();
+        areaLabels.set(id, new maplibregl.Marker({ element: el, anchor: 'top-left', offset: [5, 5] })
+          .setLngLat([b.west, b.north]).addTo(map));
+      }
+    }
+
+    function clearPreview() {
+      removeShape({ id: PREVIEW_ID });
     }
 
     function removeShape(m) {
@@ -137,6 +308,8 @@
         if (map.getLayer(layerId)) map.removeLayer(layerId);
       }
       if (map.getSource('s-' + m.id)) map.removeSource('s-' + m.id);
+      const label = areaLabels.get(m.id);
+      if (label) { label.remove(); areaLabels.delete(m.id); }
     }
 
     window.chrome.webview.addEventListener('message', (ev) => {
@@ -146,8 +319,10 @@
         case 'setMarkerColor': setMarkerColor(m); break;
         case 'removeMarker': removeMarker(m); break;
         case 'setLine': setLine(m); break;
-        case 'setPolygon': setPolygon(m); break;
+        case 'setArea': drawArea(m.id, m.kind, m, false); break;
         case 'removeShape': removeShape(m); break;
+        case 'beginDraw': beginDraw(m.kind); break;
+        case 'cancelDraw': endDraw(); break;
       }
     });
   </script>
