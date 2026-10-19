@@ -59,8 +59,10 @@
     .vehicle-marker span {
       position: relative; z-index: 1; color: var(--text); font: 600 11px var(--font);
     }
-    /* Lower, where the triangle is wider, and a size smaller, so two digits fit inside. */
-    .vehicle-marker.triangle span { top: 3px; font-size: 10px; }
+    /* Centred on the triangle's centroid (the element's centre), where its visual middle is
+       and it is still ~21px wide inside the border; a size smaller so two digits fit, and
+       line-height 1 so the digits, not the font's taller default line box, are centred. */
+    .vehicle-marker.triangle span { font-size: 10px; line-height: 1; }
     .area-label {
       background: var(--surface); color: var(--text);
       -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
