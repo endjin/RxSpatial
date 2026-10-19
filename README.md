@@ -17,7 +17,7 @@ Open [`RxSpatial.slnx`](RxSpatial.slnx) at the repository root.
 
 | Path | Description |
 | --- | --- |
-| `src/RxSpatial` | The core library: `RxGeography` moving objects, continuous distance / intersection / intersect queries, and pluggable spatial index backends (list, grid, R*-tree, RUM-tree). |
+| `src/RxSpatial` | The core library: `RxGeography` (geodetic) and `RxGeometry` (planar) moving objects, continuous distance / intersection / intersect queries, and pluggable spatial index backends (list, grid, R*-tree, RUM-tree). |
 | `src/RxSpatial.Index` | R*-tree (Beckmann et al., 1990) and RUM-tree (R-tree with Update Memo, Xiong &amp; Aref) spatial indexes sharing one engine; a clean-room .NET 10 replacement for the formerly vendored LGPL Java ports. Zero dependencies. |
 | `samples/RxSpatial.Examples` | Runnable example / smoke test: Rx.NET v7 sequences feeding and consuming RxSpatial streams on every backend. |
 | `samples/MapRunRxSpatial` | WPF demo that visualises moving objects and continuous queries on a MapLibre GL JS map hosted in WebView2 (OpenStreetMap tiles, no API key). |
@@ -35,7 +35,7 @@ dotnet test
 dotnet run --project samples/RxSpatial.Examples
 ```
 
-The examples program drives a vehicle towards a geofence around the Seattle Space Needle and asserts the behaviour of every spatial index backend; it doubles as an end-to-end smoke test. The same scenarios are covered as unit tests in `tests/RxSpatial.Tests`.
+The examples program drives a vehicle towards a geofence around the Seattle Space Needle, and a planar `RxGeometry` forklift towards a loading bay, and asserts the behaviour of every spatial index backend; it doubles as an end-to-end smoke test. The same scenarios are covered as unit tests in `tests/RxSpatial.Tests`.
 
 To run the benchmarks (BenchmarkDotNet requires a Release build):
 
@@ -106,6 +106,29 @@ Distance queries (`RxDistance`, `RxRxDistance` and both `DistanceTo` overloads) 
 
 The papers name the two families by their operands: a single `Rx` prefix (`RxIntersect`, `RxDistance`, `RxIntersection`) relates a moving object to a stationary geography, and a double `RxRx` prefix relates two moving objects. The method names follow the SIGMOD 2016 class diagram; the ICDE 2017 paper spells them `RxIntersects` / `RxRxIntersects`, which are the same operations.
 
+## Planar moving objects: `RxGeometry`
+
+The ICDE 2017 paper (§III) names a second moving-object class beside `RxGeography`: "the same concepts would apply to the RxGeometry class". The authors never released it, so `RxGeometry` here is a clean-room version of that contract. It is the `SqlGeometry` sibling of `RxGeography`, with the same six queries (`RxIntersect`, `RxIntersection`, `RxDistance` and their `RxRx*` forms), the same `Location`, `AverageLatency` and `QueuedPushCount`, and `RxGeometryObservable` extension members that mirror `RxGeographyObservable` (`Locations`, `DistanceTo`, `Intersects`, `IntersectionWith`). Use it for flat coordinate systems: a warehouse or factory floor, a CAD drawing, or a projected map.
+
+```csharp
+// A forklift on a warehouse floor (SRID 0, metres) approaching a 100 m loading bay.
+var bay = SqlGeometry.Parse("POLYGON ((450 450, 550 450, 550 550, 450 550, 450 450))");
+var forklift = new RxGeometry();
+
+using var nearBay = forklift.DistanceTo(bay)
+                            .Where(metres => metres < 100)
+                            .Subscribe(m => Console.WriteLine($"{m:F0} m from the bay"));
+
+forklift.OnNext(SqlGeometry.Point(100, 500, 0));   // 350 m
+forklift.OnNext(SqlGeometry.Point(400, 500, 0));   // 50 m: reported
+```
+
+- **Units.** Distances are Euclidean, in the geometries' own coordinate units (metres in the example), not geodetic metres.
+- **NaN rule.** As for geographies, a distance is `double.NaN` when `STDistance` returns Null: different SRIDs, or an empty geometry. An intersection test is `false` when `STIntersects` returns Null, and an intersection geometry is forwarded as SQL Server returns it.
+- **Shared engine.** Both classes implement `IMovingObject<TShape>` (an `IObservable<TShape>` with a `Location`) and share one internal engine, so the push queue, the drainer and every index backend behave the same. The grid backend of an `RxGeometry` covers `RxSpatialOptions.PlanarGrid` instead of the latitude/longitude `Grid` (see Configuration).
+- **No mixing.** An `RxGeometry` cannot query an `RxGeography`, or the reverse: the two classes have no common base type, so mixing them is a compile error by design.
+- **Naming.** `RxGeographyDataStruct` keeps its historic name and selects the index for both classes.
+
 ## Configuration
 
 Settings are typed (`RxSpatialOptions`) and can be passed straight to the constructor:
@@ -144,6 +167,11 @@ RxSpatialOptions.Default =
         "LowerLeftLatitude": 46, "LowerLeftLongitude": -124,
         "UpperRightLatitude": 49, "UpperRightLongitude": -120
       }
+    },
+    "PlanarGrid": {
+      "XCells": 10,
+      "YCells": 10,
+      "CoverageRegion": { "MinX": 0, "MinY": 0, "MaxX": 1000, "MaxY": 1000 }
     }
   }
 }
@@ -155,7 +183,8 @@ RxSpatialOptions.Default =
 | `RumTreeCleaningInterval` | Cleaning-token interval of the RUM-tree backend: garbage-creating operations between purges of one leaf (successor to the legacy `RUMTreeGCInspectionInterval` appSetting).              | `5`                               |
 | `QueueLimit`              | Location-push buffer size before `RxSpatialOverloadException` is thrown (buffered mode).                                                                                                 | `1`                               |
 | `IsVisualized`            | `true` processes pushes synchronously and forwards raw locations to direct subscribers (used by the WPF demo, the examples and the benchmarks); `false` is the buffered throughput mode. | `false`                           |
-| `Grid`                    | Grid backend dimensions and coverage rectangle.                                                                                                                                          | `10×10` over `46,-124 .. 49,-120` |
+| `Grid`                    | Grid backend dimensions and coverage rectangle for `RxGeography` (latitude/longitude).                                                                                                   | `10×10` over `46,-124 .. 49,-120` |
+| `PlanarGrid`              | Grid backend dimensions and coverage rectangle for `RxGeometry` (X/Y, in the geometries' coordinate units).                                                                              | `10×10` over `0,0 .. 1000,1000`   |
 
 
 ## Modernisation notes (2026)
@@ -172,3 +201,4 @@ The codebase was originally built in 2014-2016 against .NET Framework 4.0/4.5 an
 - **MapLibre instead of Bing Maps.** The retired Bing Maps WPF control (and with it the repo's last .NET Framework-era package) was replaced by MapLibre GL JS hosted in WebView2: `wwwroot/map.html` renders OpenStreetMap raster tiles (no API key), and the `MapLibreMap` class bridges C# and the map over JSON web messages (markers, lines, areas and drawing mode in; drawn areas with geographic coordinates out — which also replaced the old `ViewportPointToLocation` conversion). Because WebView2 is HWND-hosted and always paints above WPF content, the control panel now sits beside the map rather than overlaying it. Note MapLibre zoom levels use the 512px-tile convention — one level lower than the equivalent Bing value.
 - **Idiomatic C# 14 review.** A full sweep for the library's Java heritage: `IContainer`/`GeoList`/`Grid`/`Tree` became `ISpatialBackend`/`ListBackend`/`GridBackend`/`TreeBackend`, `dump()` became `ToString()`, `AvgCalc` became `RunningAverage`, and the twelve continuous-query observers were rebuilt on primary-constructor bases (`RxObserverBase`/`RxRxObserverBase`, `VehicleObserverBase<TValue>` in the demo) that supply the `IObserver<T>` boilerplate so each query is a single expression. Public members were renamed to .NET conventions (`loc` → `Location`, `latency` → `AverageLatency`, `checkQueuedPushNum` → `QueuedPushCount`, `RxSpatialOverLoadException` → `RxSpatialOverloadException`), and the buffered drainer now goes to the thread pool instead of constructing an OS thread per push burst (~2× faster on the push-wait-push pattern a moving object produces). Reviewing the discarded `IDisposable` in the backends' `Subscribe` overloads turned up two further defects, both fixed and covered by tests: every spatial backend re-registered a disposed observer when the object it tracked next moved, and the grid could not unsubscribe a region observer (a geofence) at all. The build enforces the standard — `AnalysisMode=Recommended` plus the rules covering defect classes this codebase has actually shipped (culture-dependent formatting, discarded disposables, unqualified P/Invoke search paths), with the handful of deliberate exemptions recorded in `.editorconfig` alongside the reason.
 - **Distances as `double` (breaking change).** The 2016 code returned distances as `SqlDouble`, so every consumer had to cast or call `.Value`. The distance queries now take `IObserver<double>` and the `DistanceTo` extensions return `IObservable<double>`, matching the `RxDistance(SqlGeography, IObserver<double>)` / `RxRxDistance(RxGeography, IObserver<double>)` signatures in the ICDE 2017, DEBS 2016 and SIGMOD 2016 papers. Where `STDistance` returns `SqlDouble.Null` (different SRIDs, an empty geography) the query emits `double.NaN`, which keeps one notification per location update; the map demo shows NaN as out of range.
+- **`RxGeometry`, the planar moving object.** The ICDE 2017 paper names `RxGeometry` beside `RxGeography` but the authors never released it. The push queue, drainer and backend factory moved out of `RxGeography` into one internal engine, `MovingObjectCore<TShape, TOps>`, with the shape-specific operations in stateless structs whose static members the JIT calls directly; `RxGeography` (public members unchanged) and the new `RxGeometry` are thin facades over it. The grid and tree backends now index every shape by the same bounding rectangle, which made the grid cheaper for region pushes and fixed a grid defect where a region push notified a region observer once per shared cell. The public `ISpatialBackend` and `Unsubscriber` types gained a shape type parameter (`ISpatialBackend<TShape, T>`, `Unsubscriber<TShape>`).

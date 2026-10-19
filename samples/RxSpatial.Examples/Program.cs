@@ -18,6 +18,10 @@ internal static class Program
     private static readonly SqlGeography Fence =
         SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500);
 
+    // A 100 m square loading bay on a warehouse floor (SRID 0, metres).
+    private static readonly SqlGeometry LoadingBay =
+        SqlGeometry.Parse("POLYGON ((450 450, 550 450, 550 550, 450 550, 450 450))");
+
     private static int failures;
 
     private static async Task<int> Main()
@@ -42,6 +46,12 @@ internal static class Program
         SpatialFiltering(RxGeographyDataStruct.HashMap, expectedEvents: 1);
         SpatialFiltering(RxGeographyDataStruct.RTree, expectedEvents: 1);
         SpatialFiltering(RxGeographyDataStruct.RumTree, expectedEvents: 1);
+
+        await PlanarDistanceStreamAsync();
+        PlanarSpatialFiltering(RxGeographyDataStruct.List, expectedEvents: 2);
+        PlanarSpatialFiltering(RxGeographyDataStruct.HashMap, expectedEvents: 1);
+        PlanarSpatialFiltering(RxGeographyDataStruct.RTree, expectedEvents: 1);
+        PlanarSpatialFiltering(RxGeographyDataStruct.RumTree, expectedEvents: 1);
 
         Console.WriteLine();
         Console.WriteLine(failures == 0 ? "All scenarios passed." : $"{failures} scenario(s) FAILED.");
@@ -122,6 +132,74 @@ internal static class Program
         Console.WriteLine($"   notifications: [{string.Join(", ", events)}]");
         Check(events.Count == expectedEvents, $"{expectedEvents} notification(s) on '{backend}' backend");
         Check(events.LastOrDefault(), "vehicle detected inside the fence");
+    }
+
+    /// <summary>
+    /// The planar sibling: a forklift (<see cref="RxGeometry"/>, SRID 0, metres) drives across a
+    /// warehouse floor towards a loading bay. The bay is a rectangle, so every Euclidean
+    /// distance is exact.
+    /// </summary>
+    private static async Task PlanarDistanceStreamAsync()
+    {
+        Console.WriteLine("-- Planar distance query (RxGeometry, warehouse floor in metres) --");
+
+        RxGeometry forklift = new();
+        List<SqlGeometry> route =
+        [
+            SqlGeometry.Point(100, 500, 0),
+            SqlGeometry.Point(300, 500, 0),
+            SqlGeometry.Point(400, 500, 0),
+            SqlGeometry.Point(500, 500, 0), // inside the bay
+        ];
+
+        List<double> distances = [];
+        List<bool> intersections = [];
+        List<SqlGeometry> positions = [];
+
+        using IDisposable distanceSub = forklift.DistanceTo(LoadingBay).Subscribe(distances.Add);
+        using IDisposable intersectSub = forklift.Intersects(LoadingBay)
+                                                 .DistinctUntilChanged()
+                                                 .Subscribe(intersections.Add);
+        using IDisposable locationSub = forklift.Locations.Subscribe(positions.Add);
+
+        await Observable.Interval(TimeSpan.FromMilliseconds(50))
+                        .Take(route.Count)
+                        .Do(t => forklift.OnNext(route[(int)t]))
+                        .LastOrDefaultAsync();
+
+        foreach (double metres in distances)
+            Console.WriteLine($"   distance to loading bay: {metres,6:F1} m");
+        Console.WriteLine($"   entered loading bay: {intersections.LastOrDefault()}");
+
+        Check(distances.SequenceEqual([350.0, 150.0, 50.0, 0.0]), "exact Euclidean distances 350, 150, 50, 0");
+        Check(intersections.SequenceEqual([false, true]), "intersection stream flips false -> true");
+        Check(positions.Count == route.Count, "raw location stream forwards every update");
+    }
+
+    /// <summary>
+    /// The planar intersection query on every index backend. The grid backend covers
+    /// <see cref="RxSpatialOptions.PlanarGrid"/> from bound configuration.
+    /// </summary>
+    private static void PlanarSpatialFiltering(RxGeographyDataStruct backend, int expectedEvents)
+    {
+        Console.WriteLine($"-- Planar intersection query, '{backend}' backend --");
+
+        RxGeometry forklift = new(new RxSpatialOptions
+        {
+            PreferredDataStruct = backend,
+            IsVisualized = true,
+            PlanarGrid = RxSpatialOptions.Default.PlanarGrid,
+        });
+        List<bool> events = [];
+        using IDisposable subscription = forklift.Intersects(LoadingBay).Subscribe(events.Add);
+
+        // Far from the bay (a different grid cell, outside its bounding box), then at its centre.
+        forklift.OnNext(SqlGeometry.Point(50, 50, 0).STBuffer(5));
+        forklift.OnNext(SqlGeometry.Point(500, 500, 0).STBuffer(5));
+
+        Console.WriteLine($"   notifications: [{string.Join(", ", events)}]");
+        Check(events.Count == expectedEvents, $"{expectedEvents} notification(s) on '{backend}' backend");
+        Check(events.LastOrDefault(), "forklift detected inside the loading bay");
     }
 
     private static void Check(bool condition, string description)

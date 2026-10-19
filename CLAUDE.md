@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 RxSpatial is the SIGMOD/DEBS 2016 research library for reactive spatio-temporal queries
-(`RxGeography` moving objects + continuous distance/intersect/intersection queries), fully
+(`RxGeography` geodetic and `RxGeometry` planar moving objects + continuous
+distance/intersect/intersection queries), fully
 modernised to .NET 10 / C# 14 / System.Reactive 7 in July 2026. House standards live in
 `.endjin/llm-kb/dotnet` (gitignored) — consult before .NET work.
 
@@ -9,7 +10,7 @@ modernised to .NET 10 / C# 14 / System.Reactive 7 in July 2026. House standards 
 
 ```shell
 dotnet build RxSpatial.slnx -c Release   # TreatWarningsAsErrors in Release; must stay warning-free
-dotnet test -c Release                   # 98 MSTest tests, ~1s (MTP runner, opted in via global.json "test" key)
+dotnet test -c Release                   # 142 MSTest tests, ~1s (MTP runner, opted in via global.json "test" key)
 dotnet run --project samples/RxSpatial.Examples -c Release   # end-to-end smoke: "All scenarios passed."
 dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*TreeIndexBenchmarks*"
 ```
@@ -21,16 +22,22 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
 
 ## Architecture essentials
 
-- `RxGeography` is `IObserver<SqlGeography>`/`IObservable<SqlGeography>`; observers are held
-  in an `ISpatialBackend<T>` (`Backends/`): `ListBackend`, `GridBackend` (spatial hash), or
-  `TreeBackend` over `RxSpatial.Index`. Backend chosen by `RxSpatialOptions.PreferredDataStruct`.
+- `RxGeography` (`SqlGeography`) and `RxGeometry` (`SqlGeometry`) are thin public facades over
+  one internal engine, `MovingObjectCore<TShape, TOps>` (push queue, drainer, latency, backend
+  factory); both implement `IMovingObject<TShape>`. Shape knowledge lives only in
+  `ISpatialOperations<TShape>` struct strategies (`GeographyOperations`, `GeometryOperations`)
+  with static abstract members, so `TOps.Distance(a, b)` is a JIT-specialised direct call.
+- Observers are held in an `ISpatialBackend<TShape, T>` (`Backends/`): `ListBackend`,
+  `GridBackend` (spatial hash), or `TreeBackend` over `RxSpatial.Index`. Backends are
+  shape-agnostic: they index `TOps.BoundsOf(shape)` (a `Rect`), and the grid lays its cells
+  out from a `GridLayout`. Backend chosen by `RxSpatialOptions.PreferredDataStruct`.
 - `RxSpatial.Index`: one shared engine (`RStarCore`, struct-generic leaf filters) under two
   facades — `RStarTree` (item-keyed, physical updates) and `RumTree` (update-memo, lazy
   deletion, cleaning token over a circular leaf ring). Correctness anchor:
   `SpatialIndexOracleTests` (seeded randomized workloads vs naive-scan oracle) — keep green
   through any engine change.
-- `RxGeographyObservable` exposes the query API as Rx.NET streams via C# 14 extension
-  members (`extension(RxGeography source)`).
+- `RxGeographyObservable` / `RxGeometryObservable` expose the query API as Rx.NET streams via
+  C# 14 extension members (`extension(RxGeography source)`).
 - Windows-only at runtime (native `SqlServerSpatial170.dll` from Microsoft.SqlServer.Types).
 
 ## Modernisation history (July–October 2026, per-phase commits on master)
@@ -72,6 +79,15 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
    (appsettings.json sets only its start/reset value). The papers (ICDE full paper, DEBS and
    SIGMOD demos) are in the authors' ZIP:
    homepage.cs.uri.edu/~ahendawi/materials/RxSpatilPublications.zip.
+10. `RxGeometry`, the planar moving object the ICDE 2017 paper names but never released
+    (Oct 2026; 8dae8d1, 262b947, bb620ae, plus docs/benchmark commits). The grid indexes by
+    the shared `Rect` (allocation −5 KB/push on HashMap); the engine moved out of `RxGeography`
+    into `MovingObjectCore<TShape, TOps>` with `ISpatialOperations<TShape>` struct strategies
+    (B/op identical on every `SpatialBackendBenchmarks` row); `RxGeometry` +
+    `RxGeometryObservable` + `PlanarGridOptions` added with 44 tests, which also exposed and
+    fixed per-shared-cell duplicate grid notifications. Public deltas: `ISpatialBackend<TShape,
+    T>`, `Unsubscriber<TShape>`, `IMovingObject<TShape>`. `PlanarBackendBenchmarks` mirrors
+    the geographic benchmark.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
@@ -198,6 +214,18 @@ cost traded for scheduling that depends on pool state.
   the assembly, which the single blittable P/Invoke does not justify.
 - Distance queries return `double` (the papers' signature, not the 2016 `SqlDouble`): a Null
   `STDistance` (different SRIDs, empty geography) becomes `double.NaN`, converted only in
-  `SpatialDistance.Between`, so each location update still yields one notification. NaN fails
+  `SpatialDistance.ToDouble`, so each location update still yields one notification. NaN fails
   every comparison, so classifiers must test it first — the demo's `DistanceBands` maps it to
-  `OutOfRange`. `DistanceQueryTests` pins the premise that those inputs really yield Null.
+  `OutOfRange`. `DistanceQueryTests` pins the premise that those inputs really yield Null;
+  `PlanarDistanceQueryTests` pins the same premise for `SqlGeometry` (SRID 0 vs 3857, POINT EMPTY).
+- Two grid settings: `RxSpatialOptions.Grid` (lat/long, `RxSpatial:Grid:*`) serves
+  `RxGeography`; `RxSpatialOptions.PlanarGrid` (X/Y, `RxSpatial:PlanarGrid:*`, default 10×10
+  over 0..1000) serves `RxGeometry`. Each ops struct picks its own via `GridLayoutOf`.
+- `RxGeographyDataStruct` is a historic name: it selects the backend for both types.
+- Mixing `RxGeometry` and `RxGeography` (e.g. `geometry.RxRxDistance(geography, …)`) is a
+  compile error by design — the concrete facades share no base type.
+- Empty shapes (`POINT EMPTY`) pushed into the Tree/Grid backends throw for both types (the
+  point fast path reads a Null coordinate); only the List backend accepts them.
+- The grid's region path is Rect-based since history item 10: the HashMap benchmark rows dropped
+  ~5 KB/push at 8dae8d1. A multi-cell push reports each observer once (from the first cell the
+  two blocks share), not once per shared cell.
