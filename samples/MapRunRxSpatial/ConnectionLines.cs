@@ -5,7 +5,7 @@ internal readonly record struct ConnectionLineStyle(string Color, double Width, 
 {
     public static ConnectionLineStyle For(DistanceBand band) => band switch
     {
-        DistanceBand.OutOfRange => new ConnectionLineStyle("#757575", 1, Dotted: true, 0.8),
+        DistanceBand.OutOfRange => new ConnectionLineStyle("#424242", 2, Dotted: true, 1.0),
         DistanceBand.NearLimit => new ConnectionLineStyle("#2E7D32", 2, Dotted: false, 0.8),
         DistanceBand.Stable => new ConnectionLineStyle("#F9A825", 4, Dotted: false, 0.9),
         DistanceBand.TooClose => new ConnectionLineStyle("#D32F2F", 5, Dotted: false, 1.0),

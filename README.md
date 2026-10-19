@@ -69,7 +69,7 @@ Colours, where *d* is the observe distance (a vehicle in several queries shows i
 | Colour | Area tabs (vehicle vs area) | Pair tabs (vehicle vs vehicle; *Convoy link* line) |
 | --- | --- | --- |
 | Blue | Not inside an area, or farther than *d* from one | Not watched |
-| Gray | — | Watched, farther apart than *d* (thin dotted line) |
+| Gray | — | Watched, farther apart than *d* (dark dotted line) |
 | Green | Within *d* | Within *d*, near the limit (thin line) |
 | Yellow | Closer than 4/7 *d* | Closer than 4/7 *d*: stable working distance (thick line) |
 | Red | Inside an area | Closer than 1/7 *d*: the minimum safe distance is breached (thickest line) |

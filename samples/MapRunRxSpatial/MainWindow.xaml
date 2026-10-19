@@ -373,9 +373,9 @@
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend (marker and line)"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#757575"/>
-                                <Line Style="{StaticResource LegendLine}" Stroke="#757575" StrokeThickness="1" StrokeDashArray="2 3" Opacity="0.8"/>
+                                <Line Style="{StaticResource LegendLine}" Stroke="#424242" StrokeThickness="2" StrokeDashArray="2 3"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Text="Gray marker, thin dotted line - watching each other, but too far apart to connect (beyond the observe distance)."/>
+                                           Text="Gray marker, dark dotted line - watching each other, but too far apart to connect (beyond the observe distance)."/>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
