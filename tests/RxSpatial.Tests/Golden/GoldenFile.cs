@@ -25,7 +25,8 @@ namespace RxSpatial.Tests.Golden;
 /// or straight lines (planar).</item>
 /// <item><c>clearance</c>: the signed distance from <c>b</c> to the boundary of <c>a</c> for the
 /// exact (unbuffered) shapes, computed with GeographicLib. It is negative inside and absent
-/// when it is not known. Intersects is only compared for cases more than 0.5 m from a boundary.</item>
+/// when it is not known. The fidelity tests compare Intersects only for cases clear of a
+/// boundary (see <c>GoldenFidelityTests</c> for the rule).</item>
 /// <item><c>sql</c>: <c>distance</c> (<c>STDistance</c>), <c>intersects</c> (<c>STIntersects</c>),
 /// <c>intersectionArea</c> (<c>STIntersection().STArea()</c>) and
 /// <c>intersectionType</c> for pairs; <c>area</c> (<c>STArea</c>) for single shapes.</item>
