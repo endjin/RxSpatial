@@ -8,7 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -16,11 +20,36 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Build
+      # Windows builds everything, including the Windows-only RxSpatial.SqlServer package,
+      # its tests and benchmarks (native SqlServerSpatial170.dll) and the WPF demo.
+      - name: Build (Windows, whole solution)
+        if: runner.os == 'Windows'
         run: dotnet build RxSpatial.slnx --configuration Release
 
-      - name: Test
+      - name: Test (Windows, all test projects)
+        if: runner.os == 'Windows'
         run: dotnet test --configuration Release --no-build
+
+      # Linux and macOS build the cross-platform projects by path: the solution also holds
+      # the Windows-only projects, which do not build there.
+      - name: Build (Linux/macOS, cross-platform projects)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          for project in \
+            src/RxSpatial.Index \
+            src/RxSpatial.Geo \
+            src/RxSpatial \
+            benchmarks/RxSpatial.Benchmarks \
+            benchmarks/RxSpatial.Experiments \
+            samples/RxSpatial.Examples
+          do
+            dotnet build "$project" --configuration Release
+          done
+
+      - name: Test (Linux/macOS, cross-platform tests)
+        if: runner.os != 'Windows'
+        run: dotnet test --project tests/RxSpatial.Tests/RxSpatial.Tests.csproj --configuration Release
 
       - name: Run examples smoke test
         run: dotnet run --project samples/RxSpatial.Examples --configuration Release --no-build
