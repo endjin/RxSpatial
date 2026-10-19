@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>RxSpatial.Examples</RootNamespace>
     <AssemblyName>RxSpatial.Examples</AssemblyName>
   </PropertyGroup>
@@ -11,14 +11,11 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
-    <PackageReference Include="Microsoft.SqlServer.Types" />
     <PackageReference Include="System.Reactive" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
-    <!-- Still on the SQL Server facades (RxSqlGeography) until it moves to the Geo core. -->
-    <ProjectReference Include="..\..\src\RxSpatial.SqlServer\RxSpatial.SqlServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

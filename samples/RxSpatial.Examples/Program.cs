@@ -1,27 +1,26 @@
 using System.Reactive.Linq;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
-using Microsoft.SqlServer.Types;
-using RxSpatial.SqlServer;
+using RxSpatial.Geo;
 
 namespace RxSpatial.Examples;
 
 /// <summary>
 /// Demonstrates — and smoke-tests — RxSpatial composed with System.Reactive v7 on .NET 10:
-/// an Rx sequence feeds position updates into an <see cref="RxSqlGeography"/> (which is an
-/// <c>IObserver&lt;SqlGeography&gt;</c>), and the spatio-temporal query streams coming back
+/// an Rx sequence feeds position updates into an <see cref="RxGeography"/> (which is an
+/// <c>IObserver&lt;GeoShape&gt;</c>), and the spatio-temporal query streams coming back
 /// out are consumed through ordinary Rx operators. Configuration comes from
 /// Microsoft.Extensions.Configuration (appsettings.json + RXSPATIAL_-prefixed environment
-/// variables) bound to <see cref="RxSpatialOptions"/>.
+/// variables) bound to <see cref="RxSpatialOptions"/>. The shapes are RxSpatial.Geo's
+/// clean-room WGS84 and planar types, so the sample runs unchanged on Windows, Linux and macOS.
 /// </summary>
 internal static class Program
 {
-    // 500 m geofence around the Seattle Space Needle.
-    private static readonly SqlGeography Fence =
-        SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500);
+    // 500 m geofence around the Seattle Space Needle: an exact circle, not a polygon.
+    private static readonly GeoCircle Fence = new(new GeoPoint(47.6205, -122.3493), 500);
 
-    // A 100 m square loading bay on a warehouse floor (SRID 0, metres).
-    private static readonly SqlGeometry LoadingBay =
-        SqlGeometry.Parse("POLYGON ((450 450, 550 450, 550 550, 450 550, 450 450))");
+    // A 100 m square loading bay on a warehouse floor (planar, metres).
+    private static readonly PlanarPolygon LoadingBay = PlanarPolygon.Rectangle(450, 450, 550, 550);
 
     private static int failures;
 
@@ -36,9 +35,9 @@ internal static class Program
         RxSpatialOptions.Default =
             configuration.GetSection(RxSpatialOptions.SectionName).Get<RxSpatialOptions>() ?? new();
 
-        Console.WriteLine($"RxSpatial on .NET {Environment.Version}");
+        Console.WriteLine($"RxSpatial on .NET {Environment.Version} ({RuntimeInformation.OSDescription})");
         Console.WriteLine($"System.Reactive {typeof(Observable).Assembly.GetName().Version}");
-        Console.WriteLine($"Microsoft.SqlServer.Types {typeof(SqlGeography).Assembly.GetName().Version}");
+        Console.WriteLine($"RxSpatial.Geo {typeof(GeoShape).Assembly.GetName().Version}");
         Console.WriteLine($"Configured backend: {RxSpatialOptions.Default.PreferredDataStruct}");
         Console.WriteLine();
 
@@ -68,18 +67,18 @@ internal static class Program
     {
         Console.WriteLine("-- Continuous distance query (configured backend, Rx Interval position feed) --");
 
-        RxSqlGeography vehicle = new();
-        List<SqlGeography> route =
+        RxGeography vehicle = new();
+        List<GeoShape> route =
         [
-            SqlGeography.Point(47.7000, -122.4000, 4326),
-            SqlGeography.Point(47.6600, -122.3700, 4326),
-            SqlGeography.Point(47.6300, -122.3550, 4326),
-            SqlGeography.Point(47.6205, -122.3493, 4326), // inside the fence
+            new GeoPointShape(47.7000, -122.4000),
+            new GeoPointShape(47.6600, -122.3700),
+            new GeoPointShape(47.6300, -122.3550),
+            new GeoPointShape(47.6205, -122.3493), // inside the fence
         ];
 
         List<double> distances = [];
         List<bool> intersections = [];
-        List<SqlGeography> positions = [];
+        List<GeoShape> positions = [];
 
         using IDisposable distanceSub = vehicle.DistanceTo(Fence)
                                                .DistinctUntilChanged()
@@ -115,7 +114,7 @@ internal static class Program
     {
         Console.WriteLine($"-- Intersection query, '{backend}' backend --");
 
-        RxSqlGeography vehicle = new(new RxSpatialOptions
+        RxGeography vehicle = new(new RxSpatialOptions
         {
             PreferredDataStruct = backend,
             IsVisualized = true,
@@ -125,10 +124,10 @@ internal static class Program
 
         // Far away from the fence (a different grid zone, outside the fence's bounding box),
         // then right at its centre. The tree backends index bounding boxes, so the vehicle
-        // reports a small buffered region rather than a bare point — exactly like the
-        // original load-test traffic generator did.
-        vehicle.OnNext(SqlGeography.Point(46.2000, -123.5000, 4326).STBuffer(50));
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        // reports a small disc rather than a bare point — exactly like the original
+        // load-test traffic generator did.
+        vehicle.OnNext(new GeoCircle(new GeoPoint(46.2000, -123.5000), 50));
+        vehicle.OnNext(new GeoCircle(new GeoPoint(47.6205, -122.3493), 50));
 
         Console.WriteLine($"   notifications: [{string.Join(", ", events)}]");
         Check(events.Count == expectedEvents, $"{expectedEvents} notification(s) on '{backend}' backend");
@@ -136,26 +135,26 @@ internal static class Program
     }
 
     /// <summary>
-    /// The planar sibling: a forklift (<see cref="RxSqlGeometry"/>, SRID 0, metres) drives across a
+    /// The planar sibling: a forklift (<see cref="RxGeometry"/>, planar metres) drives across a
     /// warehouse floor towards a loading bay. The bay is a rectangle, so every Euclidean
     /// distance is exact.
     /// </summary>
     private static async Task PlanarDistanceStreamAsync()
     {
-        Console.WriteLine("-- Planar distance query (RxSqlGeometry, warehouse floor in metres) --");
+        Console.WriteLine("-- Planar distance query (RxGeometry, warehouse floor in metres) --");
 
-        RxSqlGeometry forklift = new();
-        List<SqlGeometry> route =
+        RxGeometry forklift = new();
+        List<PlanarShape> route =
         [
-            SqlGeometry.Point(100, 500, 0),
-            SqlGeometry.Point(300, 500, 0),
-            SqlGeometry.Point(400, 500, 0),
-            SqlGeometry.Point(500, 500, 0), // inside the bay
+            new PlanarPointShape(100, 500),
+            new PlanarPointShape(300, 500),
+            new PlanarPointShape(400, 500),
+            new PlanarPointShape(500, 500), // inside the bay
         ];
 
         List<double> distances = [];
         List<bool> intersections = [];
-        List<SqlGeometry> positions = [];
+        List<PlanarShape> positions = [];
 
         using IDisposable distanceSub = forklift.DistanceTo(LoadingBay).Subscribe(distances.Add);
         using IDisposable intersectSub = forklift.Intersects(LoadingBay)
@@ -185,7 +184,7 @@ internal static class Program
     {
         Console.WriteLine($"-- Planar intersection query, '{backend}' backend --");
 
-        RxSqlGeometry forklift = new(new RxSpatialOptions
+        RxGeometry forklift = new(new RxSpatialOptions
         {
             PreferredDataStruct = backend,
             IsVisualized = true,
@@ -195,8 +194,8 @@ internal static class Program
         using IDisposable subscription = forklift.Intersects(LoadingBay).Subscribe(events.Add);
 
         // Far from the bay (a different grid cell, outside its bounding box), then at its centre.
-        forklift.OnNext(SqlGeometry.Point(50, 50, 0).STBuffer(5));
-        forklift.OnNext(SqlGeometry.Point(500, 500, 0).STBuffer(5));
+        forklift.OnNext(new PlanarCircle(new PlanarPoint(50, 50), 5));
+        forklift.OnNext(new PlanarCircle(new PlanarPoint(500, 500), 5));
 
         Console.WriteLine($"   notifications: [{string.Join(", ", events)}]");
         Check(events.Count == expectedEvents, $"{expectedEvents} notification(s) on '{backend}' backend");
