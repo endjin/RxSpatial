@@ -139,8 +139,15 @@ cost traded for scheduling that depends on pool state.
   in pixels), so `AccessibleTheme` (App.OnStartup) swaps the secondary brush for opaque
   #5C5C5C, and pins the accent brushes to #005A9E when white text on the user's accent (80%
   pressed state) would fail; both are skipped under high contrast. Measure from PrintWindow
-  pixels (darkest glyph pixel vs background), not just composited values. Marker state is
-  never colour-only: alert = diamond, gray = dashed ring (`VehicleColors`, map.html, legends).
+  pixels (darkest glyph pixel vs background), not just composited values. Every marker state
+  must have a unique shape — colour is never the only cue (WCAG 1.4.1): blue circle, gray
+  dashed ring, green rounded square, yellow triangle, red diamond, kept in step across
+  `VehicleColors`, map.html (`MARKER_SHAPES` + CSS) and the legends on all four tabs. Under
+  Machado 2009 CVD simulation green/red (deutan 9.1, protan 10.7) and blue/green (tritan 11.5)
+  are colour-confusable (ΔE00), gray/green and gray/red weak (<20), so a new state needs a new
+  shape, not just a new hue. The triangle
+  draws its border as ::before and its fill as ::after (clip-path drops borders and
+  box-shadows; the element carries a drop-shadow filter instead).
   Keep the tab header panel `TabNavigation="Once"`: focusing a TabItem selects it, which
   resets the scenario.
 - MapLibre zoom uses the 512px-tile convention (one level lower than Bing/Leaflet).

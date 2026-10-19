@@ -21,9 +21,10 @@
     html, body, #map { margin: 0; padding: 0; height: 100%; }
     body, .maplibregl-map { font-family: var(--font); }
     /* A vehicle marker. Its body is the ::before box, not the element: MapLibre positions the
-       element with its own transform, so only the body may rotate (the alert diamond). The
-       shape classes keep state from relying on colour alone (WCAG 1.4.1): an alert is a
-       diamond, an out-of-range pair a dashed ring. */
+       element with its own transform, so only the body may rotate (the alert diamond). Every
+       state has its own shape, so state never relies on colour alone (WCAG 1.4.1): blue
+       circle, gray dashed ring, green rounded square, yellow triangle, red diamond. The
+       element stays 30px square (the hit area) with its centre on the vehicle. */
     .vehicle-marker {
       display: flex; align-items: center; justify-content: center;
       width: 30px; height: 30px; cursor: default; /* 26px body + 2px ring each side */
@@ -36,10 +37,30 @@
       box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 3px 8px rgba(0,0,0,.22);
     }
     .vehicle-marker.dashed::before { border-style: dashed; }
+    .vehicle-marker.square::before { border-radius: 6px; transform: scale(.9); }
     .vehicle-marker.diamond::before { border-radius: 3px; transform: rotate(45deg) scale(.8); }
-    .vehicle-marker span {
-      position: relative; color: var(--text); font: 600 11px var(--font);
+    /* The warning triangle: a CSS border cannot follow a clip-path, so ::before is the
+       border-coloured triangle and ::after the fill, inset 2px from each edge. Both are
+       38 x 33px, wider than the element, and placed so the centroid sits on the element's
+       centre; they ignore the pointer, so the hit area stays the element's. A box-shadow
+       would be clipped away, so the element carries the shadow as a drop-shadow filter. */
+    .vehicle-marker.triangle {
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)) drop-shadow(0 2px 4px rgba(0,0,0,.22));
     }
+    .vehicle-marker.triangle::before,
+    .vehicle-marker.triangle::after {
+      clip-path: polygon(50% 0, 100% 100%, 0 100%); pointer-events: none;
+      border: 0; border-radius: 0; box-shadow: none;
+    }
+    .vehicle-marker.triangle::before { inset: -7px -4px 4px; background: var(--border); }
+    .vehicle-marker.triangle::after {
+      content: ''; position: absolute; inset: -3px -.5px 6px; background: var(--fill);
+    }
+    .vehicle-marker span {
+      position: relative; z-index: 1; color: var(--text); font: 600 11px var(--font);
+    }
+    /* Lower, where the triangle is wider, and a size smaller, so two digits fit inside. */
+    .vehicle-marker.triangle span { top: 3px; font-size: 10px; }
     .area-label {
       background: var(--surface); color: var(--text);
       -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
@@ -281,8 +302,8 @@
     }
 
     // Fill, border and label colours travel together (a light fill needs a dark label), and
-    // with them the shape: 'circle', 'dashed' or 'diamond'.
-    const MARKER_SHAPES = ['circle', 'dashed', 'diamond'];
+    // with them the shape (VehicleColors in C#), one per state.
+    const MARKER_SHAPES = ['circle', 'dashed', 'square', 'triangle', 'diamond'];
     function applyMarkerStyle(marker, m) {
       const el = marker.getElement();
       el.style.setProperty('--fill', m.fill);

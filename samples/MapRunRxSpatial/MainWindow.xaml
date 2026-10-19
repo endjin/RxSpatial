@@ -330,10 +330,10 @@
             <Setter Property="RadiusX" Value="0"/>
             <Setter Property="RadiusY" Value="0"/>
         </Style>
-        <!-- Vehicle marker dots: the map's fill colour with a hairline ring, so light fills
-             (yellow) stay crisp on the card. The map does not rely on colour alone
-             (VehicleColors): an alert marker is a diamond and an out-of-range (gray) marker
-             has a dashed ring, and the legend shows and names both. -->
+        <!-- Vehicle marker swatches: the map's fill colour and shape with a hairline ring, so
+             light fills (yellow) stay crisp on the card. Every state has its own shape
+             (VehicleColors), so colour is never the only cue: blue circle, gray dashed ring,
+             green rounded square, yellow triangle, red diamond. Each legend row names both. -->
         <Style x:Key="LegendDot" TargetType="Ellipse">
             <Setter Property="Width" Value="12"/>
             <Setter Property="Height" Value="12"/>
@@ -349,6 +349,29 @@
             <Setter Property="Stroke" Value="White"/>
             <Setter Property="StrokeThickness" Value="1.5"/>
             <Setter Property="StrokeDashArray" Value="1.2 1"/>
+        </Style>
+        <Style x:Key="LegendSquare" TargetType="Rectangle">
+            <Setter Property="Width" Value="11"/>
+            <Setter Property="Height" Value="11"/>
+            <Setter Property="Fill" Value="#2E7D32"/>
+            <Setter Property="Stroke" Value="#40000000"/>
+            <Setter Property="StrokeThickness" Value="1"/>
+            <Setter Property="RadiusX" Value="2.5"/>
+            <Setter Property="RadiusY" Value="2.5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="3.5,0,0,0"/>
+        </Style>
+        <!-- The warning triangle keeps the map marker's dark border. -->
+        <Style x:Key="LegendTriangle" TargetType="Path">
+            <Setter Property="Data" Value="M 7,0.75 L 13.25,12 L 0.75,12 Z"/>
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="13"/>
+            <Setter Property="Fill" Value="#FFD54F"/>
+            <Setter Property="Stroke" Value="#333333"/>
+            <Setter Property="StrokeThickness" Value="1"/>
+            <Setter Property="StrokeLineJoin" Value="Round"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="2,0,0,0"/>
         </Style>
         <Style x:Key="LegendDiamond" TargetType="Rectangle">
             <Setter Property="Width" Value="10"/>
@@ -727,7 +750,7 @@
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue</Run> – no alert.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – no alert.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendDiamond}"/></StackPanel>
@@ -757,15 +780,15 @@
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue</Run> – farther than the observe distance.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – farther than the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green</Run> – within the observe distance (watching).</TextBlock>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendSquare}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run> – within the observe distance (watching).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow</Run> – closer than 4/7 of it (warning).</TextBlock>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Path Style="{StaticResource LegendTriangle}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle</Run> – closer than 4/7 of it (warning).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendDiamond}"/></StackPanel>
@@ -799,19 +822,19 @@
                             <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue</Run> – not watched.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – not watched.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDashedDot}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray, dashed ring</Run> – watched, farther apart than the observe distance.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring</Run> – watched, farther apart than the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green</Run> – within the observe distance.</TextBlock>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendSquare}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run> – within the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
-                                <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow</Run> – closer than 4/7 of it (meet-up warning).</TextBlock>
+                                <StackPanel Style="{StaticResource LegendSwatch}"><Path Style="{StaticResource LegendTriangle}"/></StackPanel>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle</Run> – closer than 4/7 of it (meet-up warning).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendDiamond}"/></StackPanel>
@@ -841,21 +864,21 @@
                                     <Ellipse Style="{StaticResource LegendDashedDot}"/>
                                     <Line Style="{StaticResource LegendLine}" Stroke="#424242" StrokeThickness="2" StrokeDashArray="1.5 2" StrokeDashCap="Round"/>
                                 </StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed marker, dark dotted line</Run> – watching each other, but too far apart to connect (beyond the observe distance).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring, dark dotted line</Run> – watching each other, but too far apart to connect (beyond the observe distance).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatchWide}">
-                                    <Ellipse Style="{StaticResource LegendDot}" Fill="#2E7D32"/>
+                                    <Rectangle Style="{StaticResource LegendSquare}"/>
                                     <Line Style="{StaticResource LegendLine}" Stroke="#2E7D32" StrokeThickness="2" Opacity="0.8"/>
                                 </StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green marker, thin solid line</Run> – connected near the limit; likely to drop if they drift apart.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square, thin solid line</Run> – connected near the limit; likely to drop if they drift apart.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatchWide}">
-                                    <Ellipse Style="{StaticResource LegendDot}" Fill="#FFD54F"/>
+                                    <Path Style="{StaticResource LegendTriangle}"/>
                                     <Line Style="{StaticResource LegendLine}" Stroke="#F9A825" StrokeThickness="4" Opacity="0.9"/>
                                 </StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow marker, thick solid line</Run> – stable working distance (closer than 4/7 of the observe distance).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle, thick solid line</Run> – stable working distance (closer than 4/7 of the observe distance).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatchWide}">
@@ -866,7 +889,7 @@
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatchWide}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue</Run> – not watched.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – not watched.</TextBlock>
                             </DockPanel>
                         </StackPanel>
                     </StackPanel>

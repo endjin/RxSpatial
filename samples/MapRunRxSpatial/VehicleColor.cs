@@ -16,15 +16,16 @@ internal enum VehicleColor
 
 /// <summary>
 /// CSS colours for a marker (fill, border and label text) and its shape, a class name in
-/// map.html: "circle", "dashed" (a circle with a dashed ring) or "diamond".
+/// map.html: "circle", "dashed" (a circle with a dashed ring), "square" (rounded), "triangle"
+/// (pointing up, like a warning sign) or "diamond".
 /// </summary>
 internal readonly record struct MarkerStyle(string Fill, string Border, string Text, string Shape);
 
 /// <summary>Maps a <see cref="VehicleColor"/> to the marker styling sent to the map.</summary>
 /// <remarks>
-/// Colour is not the only cue (WCAG 1.4.1): an alert is a diamond and an out-of-range pair a
-/// dashed ring, so red and gray stay distinct from green and blue without colour vision;
-/// yellow differs by its dark border and label. The legends in MainWindow.xaml match.
+/// Colour is never the only cue (WCAG 1.4.1): every state has its own shape, so a viewer who
+/// cannot tell the fills apart (blue and green are close under tritanopia, for example) can
+/// still read the state. The legends in MainWindow.xaml draw and name the same shapes.
 /// </remarks>
 internal static class VehicleColors
 {
@@ -34,10 +35,10 @@ internal static class VehicleColors
         {
             VehicleColor.Blue => new MarkerStyle("#1565C0", "#FFFFFF", "#FFFFFF", "circle"),
             VehicleColor.Gray => new MarkerStyle("#757575", "#FFFFFF", "#FFFFFF", "dashed"),
-            VehicleColor.Green => new MarkerStyle("#2E7D32", "#FFFFFF", "#FFFFFF", "circle"),
+            VehicleColor.Green => new MarkerStyle("#2E7D32", "#FFFFFF", "#FFFFFF", "square"),
 
             // Dark border and label: white on amber is unreadable over OSM tiles.
-            VehicleColor.Yellow => new MarkerStyle("#FFD54F", "#333333", "#222222", "circle"),
+            VehicleColor.Yellow => new MarkerStyle("#FFD54F", "#333333", "#222222", "triangle"),
             VehicleColor.Red => new MarkerStyle("#D32F2F", "#FFFFFF", "#FFFFFF", "diamond"),
             _ => throw new ArgumentOutOfRangeException(nameof(color), color, "Unknown vehicle colour."),
         };
