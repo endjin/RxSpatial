@@ -8,6 +8,7 @@
     <Project Path="samples/RxSpatial.Examples/RxSpatial.Examples.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/RxSpatial.Geo/RxSpatial.Geo.csproj" />
     <Project Path="src/RxSpatial.Index/RxSpatial.Index.csproj" />
     <Project Path="src/RxSpatial/RxSpatial.csproj" />
   </Folder>

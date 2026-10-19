@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>RxSpatial.Geo</RootNamespace>
+    <AssemblyName>RxSpatial.Geo</AssemblyName>
+    <!-- Users build fences with these types, so every public member is documented;
+         CS1591 turns a missing comment into a build error in Release. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="RxSpatial.Tests" />
+  </ItemGroup>
+
+</Project>
