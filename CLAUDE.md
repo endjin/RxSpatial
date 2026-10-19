@@ -3,31 +3,63 @@
 RxSpatial is the SIGMOD/DEBS 2016 research library for reactive spatio-temporal queries
 (`RxGeography` geodetic and `RxGeometry` planar moving objects + continuous
 distance/intersect/intersection queries), fully
-modernised to .NET 10 / C# 14 / System.Reactive 7 in July 2026. House standards live in
-`.endjin/llm-kb/dotnet` (gitignored) — consult before .NET work.
+modernised to .NET 10 / C# 14 / System.Reactive 7 in July 2026, and cross-platform since
+October 2026: the core runs on Windows, Linux and macOS over the clean-room `RxSpatial.Geo`
+shape maths; only `RxSpatial.SqlServer` (the SQL Server facades) and the WPF demo are
+Windows-only. House standards live in `.endjin/llm-kb/dotnet` (gitignored) — consult
+before .NET work.
 
 ## Commands
 
 ```shell
-dotnet build RxSpatial.slnx -c Release   # TreatWarningsAsErrors in Release; must stay warning-free
-dotnet test -c Release                   # 142 MSTest tests, ~1s (MTP runner, opted in via global.json "test" key)
-dotnet run --project samples/RxSpatial.Examples -c Release   # end-to-end smoke: "All scenarios passed."
+dotnet build RxSpatial.slnx -c Release   # TreatWarningsAsErrors in Release; must stay warning-free (Windows: the slnx has Windows-only projects)
+dotnet test -c Release                   # 372 MSTest tests, ~3s: RxSpatial.Tests 280 + RxSpatial.SqlServer.Tests 92 (1 golden recorder skipped); MTP runner via global.json "test" key
+dotnet run --project samples/RxSpatial.Examples -c Release   # end-to-end smoke: "All scenarios passed." (any OS)
 dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*TreeIndexBenchmarks*"
+dotnet run --project benchmarks/RxSpatial.SqlServer.Benchmarks -c Release -- --filter "*SqlVsGeo*" --job short   # SQL baseline vs Geo, per operation
 dotnet run --project benchmarks/RxSpatial.Experiments -c Release -- all   # ICDE 2017 Figs 6–12, ~45 min wall-clock
+
+# Linux (the committed HEAD; the slnx does not build there): Docker Desktop, Linux engine, from bash
+git archive HEAD | docker run --rm -i mcr.microsoft.com/dotnet/sdk:10.0 bash -c \
+  'mkdir /w && tar -xf - -C /w && cd /w && dotnet test --project tests/RxSpatial.Tests/RxSpatial.Tests.csproj -c Release && dotnet run --project samples/RxSpatial.Examples -c Release'
 ```
 
-Layout: `src/RxSpatial` (core), `src/RxSpatial.Index` (R*-tree + RUM-tree, zero deps),
-`samples/` (Examples console, MapRunRxSpatial WPF demo), `benchmarks/`, `tests/`,
+Layout: `src/RxSpatial` (core), `src/RxSpatial.Geo` (geodetic + planar shapes and maths, zero
+deps), `src/RxSpatial.Index` (R*-tree + RUM-tree, zero deps), `src/RxSpatial.SqlServer`
+(Windows-only `RxSqlGeography`/`RxSqlGeometry`), `samples/` (Examples console — any OS;
+MapRunRxSpatial WPF demo), `benchmarks/` (RxSpatial.Benchmarks and Experiments — any OS;
+RxSpatial.SqlServer.Benchmarks — Windows), `tests/` (RxSpatial.Tests — any OS;
+RxSpatial.SqlServer.Tests — Windows; `tests/golden/*.json` recorded SQL Server values),
 `docs/prototypes` (never-compiled 2016 archives — do not modernise). Central package
-management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
+management, artifacts output layout, global.json pins SDK + MSTest.Sdk. CI
+(`.github/workflows/build.yml`) is a matrix: Windows builds the slnx and runs every test
+project; Linux/macOS build the cross-platform projects by path and run RxSpatial.Tests.
 
 ## Architecture essentials
 
-- `RxGeography` (`SqlGeography`) and `RxGeometry` (`SqlGeometry`) are thin public facades over
+- `RxGeography` (`GeoShape`) and `RxGeometry` (`PlanarShape`) are thin public facades over
   one internal engine, `MovingObjectCore<TShape, TOps>` (push queue, drainer, latency, backend
   factory); both implement `IMovingObject<TShape>`. Shape knowledge lives only in
-  `ISpatialOperations<TShape>` struct strategies (`GeographyOperations`, `GeometryOperations`)
-  with static abstract members, so `TOps.Distance(a, b)` is a JIT-specialised direct call.
+  `ISpatialOperations<TShape>` struct strategies (`GeographyOperations`, `GeometryOperations`
+  → `GeoOperations`/`PlanarOperations`) with static abstract members, so `TOps.Distance(a, b)`
+  is a JIT-specialised direct call.
+- `RxSpatial.Geo` (public, zero deps): `GeoPoint` (lat, lon; validates), closed `GeoShape`
+  hierarchy `GeoPointShape`/`GeoCircle` (exact, radius ≤ 250 km)/`GeoPolygon` (convex only,
+  stored CCW; `Rectangle`, `FromVertices`, `FromWkt` lon-first)/`GeoEmpty`, `Wgs84` (Vincenty
+  inverse/direct, ≤200 iterations, NaN on non-convergence; `FastDistance` guard), `LocalPlane`
+  (azimuthal equidistant), `GeoOperations` (Intersects/Intersection/Distance/Area/Bounds/
+  ToVertices, 128 segments). Planar twin `PlanarShape`/`PlanarOperations`, exact. Shapes > 500 km
+  (`MaxExtent`) are rejected; `Bounds` is degree-based and does not split at ±180°. Circle∩circle
+  is the analytic lens as a `GeoPolygon` with arc vertices (its `Area` is the exact curved one);
+  polygon clipping runs in the local plane. Hot paths allocate 0 B; Bounds (and a polygon's Area)
+  are computed at construction, so those benchmarks read a field. Its `InternalsVisibleTo`
+  names the `RxSpatial.Tests` assembly — keep that name.
+- `RxSpatial.SqlServer` (net10.0, `[SupportedOSPlatform("windows")]`): `RxSqlGeography`/
+  `RxSqlGeometry` + their observable extensions — the pre-Geo facades over the same engine, with
+  `SqlGeographyOperations`/`SqlGeometryOperations`, `SpatialBounds`, `SpatialDistance`. Reaches the
+  engine through `InternalsVisibleTo("RxSpatial.SqlServer")` in `src/RxSpatial/RxSpatial.csproj`.
+  Only it, its tests and its benchmarks use Microsoft.SqlServer.Types (170.x: pre-release/CTP
+  licence terms — README says so).
 - Observers are held in an `ISpatialBackend<TShape, T>` (`Backends/`): `ListBackend`,
   `GridBackend` (spatial hash), or `TreeBackend` over `RxSpatial.Index`. Backends are
   shape-agnostic: they index `TOps.BoundsOf(shape)` (a `Rect`), and the grid lays its cells
@@ -39,7 +71,12 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
   through any engine change.
 - `RxGeographyObservable` / `RxGeometryObservable` expose the query API as Rx.NET streams via
   C# 14 extension members (`extension(RxGeography source)`).
-- Windows-only at runtime (native `SqlServerSpatial170.dll` from Microsoft.SqlServer.Types).
+- Fidelity vs SQL Server is pinned by `tests/golden/{geodetic,planar}.json` (170 + 31 cases,
+  recorded by `GoldenValueRecorder` in RxSpatial.SqlServer.Tests under
+  `RXSPATIAL_RECORD_GOLDEN=1`): `GoldenFidelityTests` (any OS) checks Geo within budget
+  (point–point max(0.01 %, 1 cm); point–circle/polygon 0.5 m, + 128-gon chord sag for circles;
+  areas 0.15 %; intersects agree > 0.5 m from a boundary); `GoldenValueGuardTests` (Windows)
+  checks live SQL Server still matches the JSON. GeographicLib.NET is a test-only oracle.
 
 ## Modernisation history (July–October 2026, per-phase commits on master)
 
@@ -98,6 +135,19 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
     SqlSpatial/Grid drops (RUM 175× SqlSpatial at 200 ms vs the paper's 55×). Not resolvable:
     R-tree vs RUM (both sub-ms, dispatch noise; both ≥ object cap). Not reproduced: Fig. 12
     drops (load too light now). `AverageLatency` switched to total fractional ms.
+12. Cross-platform core (Oct 2026; plan and evidence in the session's research report). Agent A
+    (ace954a..5c1b82f): SQL Server golden values recorded first, `LocationPush` on Stopwatch
+    (HighResolutionDateTime P/Invoke removed), clean-room `src/RxSpatial.Geo` + 131 tests (unit,
+    property, GeographicLib oracle, golden fidelity, allocation), Geo benchmarks. Agent B
+    (239047d, 16f4e07): `src/RxSpatial.SqlServer` (`RxSqlGeography`/`RxSqlGeometry`), core
+    switched to `GeoShape`/`PlanarShape` (breaking), tests split into RxSpatial.Tests (any OS) +
+    RxSpatial.SqlServer.Tests (Windows; recorder + live guard), benchmarks split. Agent C
+    (dcb20cb..): Examples and Experiments on Geo (net10.0), WPF demo on Geo (no SqlServer.Types;
+    reach outline from `ToVertices`), `SqlVsGeoOperationsBenchmarks`, CI matrix (ubuntu/windows/
+    macos), README/CLAUDE.md. Measured: Geo point-in-circle 20 ns vs SQL 58 µs, disc–disc 23 ns vs
+    226 µs, lens 21 µs vs 190 µs; point–point distance is the one op SQL wins (86 vs 152 ns). The
+    experiments' List ("SqlSpatial") update fell 109 ms → 67 µs, so the paper's orders-of-magnitude
+    gaps between List and the trees collapse to sub-ms dispatch noise on Geo.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
@@ -134,8 +184,8 @@ cost traded for scheduling that depends on pool state.
 - `RxSpatialOptions.Default` is process-global → tests run sequentially by design.
 - Tree/grid backends: `RxGeography.Location` is null until the first `OnNext` push, so
   RxRx subscriptions before a first push fail (preserved original behaviour). Tests that
-  exercise tree-backend zone notification push buffered geographies (`.STBuffer(...)`),
-  not bare points.
+  exercise tree-backend zone notification push small discs (`GeoCircle`/`PlanarCircle`; on
+  the RxSql* facades `.STBuffer(...)`), not bare points.
 - RUM-tree stability law: steady pending garbage ≈ CleaningInterval × leaf count; keep the
   interval well below average leaf fill.
 - Benchmark absolutes on this workstation swing ~2× with load — compare within-run ratios
@@ -201,19 +251,28 @@ cost traded for scheduling that depends on pool state.
   location, so a far-outside vehicle never hears from the zone. `ConfinementObserver`s set a
   per-push flag; this relies on visualised mode notifying synchronously inside `OnNext`.
 - WPF demo Overlap tab: only there does `MovingObject.PushLocation` push
-  `point.STBuffer(Reach)` instead of the point, and the marker goes to the `VehicleFix` kept
-  alongside the push (`MarkerMovementObserver` ignores the pushed value) — never read
-  `Lat`/`Long` from a pushed location there (a polygon's are Null). `VehiclePairConnectionObserver`
-  reads `other.Location.Lat`, valid only because Convoy link pushes points. Lenses
-  (`RxRxIntersection`) and zone overlaps (`RxIntersection`) are upserted per `VehiclePair` /
-  per vehicle-and-zone by `OverlapShapes` and removed on an *empty* result, which is why the
-  tab uses the List backend (a tree/grid prunes the "no longer overlapping" notification, so
-  lenses would linger and markers fall back to Blue instead of Gray). Watch all pairs there is
-  RxRxIntersect only: 380 polygon intersects per tick already take ~40 ms vs ~10 ms for the
-  four pre-set pairs with lenses (measured), and STBuffer is ~0.1 ms per push. map.html batches
-  the reach/lens/zone-overlap GeoJSON per animation frame (`OVERLAY_STYLES`, one source per
-  kind). The tab fits the map to the trajectories and restores the default view on leaving
+  `new GeoCircle(position, Reach)` instead of the `GeoPointShape`, and the marker goes to the
+  `VehicleFix` kept alongside the push (`MarkerMovementObserver` ignores the pushed value). The
+  fix carries that same `GeoCircle`; `MapLibreMap.SetMarker` sends its outline
+  (`GeoOperations.ToVertices`, 64 segments to keep 25 Hz × 20 markers' messages small) and
+  map.html draws it — map.html no longer computes circles. `VehiclePairConnectionObserver`
+  draws only when `other.Location is GeoPointShape`, true because Convoy link pushes points.
+  Lenses (`RxRxIntersection`) and zone overlaps (`RxIntersection`) are upserted per
+  `VehiclePair` / per vehicle-and-zone by `OverlapShapes`: a `GeoPolygon` or a contained
+  `GeoCircle` is drawn from its vertices (one convex ring, never holes or parts), the lens label
+  is `GeoOperations.Area` (exact curved area), and `GeoEmpty` or a touching point removes it —
+  which is why the tab uses the List backend (a tree/grid prunes the "no longer overlapping"
+  notification, so lenses would linger and markers fall back to Blue instead of Gray). Watch
+  all pairs there is RxRxIntersect only (with SQL Server's 128-gons, 380 intersects per tick
+  took ~40 ms; Geo's exact disc–disc test is ~23 ns, so the limit is now the drawing). map.html
+  batches the reach/lens/zone-overlap GeoJSON per animation frame (`OVERLAY_STYLES`, one source
+  per kind). The tab fits the map to the trajectories and restores the default view on leaving
   it; Clear pairs and Clear areas/zones now clear only their own kind.
+- WPF demo uses `RxSpatial.Geo.GeoPoint` for every map coordinate (the sample's own record was
+  deleted); it validates its range, so sentinels like `double.MaxValue` must stay in plain
+  doubles (see `MovingObjectManager.LoadTrajectories`). Drawn areas are
+  `GeoPolygon.Rectangle`; `PolygonManager.CreatePolygon` returns null (area ignored) for a
+  degenerate drag or one wider than 500 km.
 - The WPF demo requires `IsVisualized=true` (WebView2 must be driven from the UI thread and
   buffered mode notifies from the pool); `App.OnStartup` forces it over appsettings.json.
 - Residual uncovered `RStarCore` lines are defensive-by-invariant (single-chain condense,
@@ -235,28 +294,41 @@ cost traded for scheduling that depends on pool state.
   `MSTest.*` or `Microsoft.Testing.*` anywhere (Include duplicates → NU1506; Update in a csproj is
   a no-op because the SDK's items are declared after the project body). Visual Studio's
   package-update UI writes exactly those `Update` blocks into the test csproj — delete them.
-- Experiments harness: a geography `STIntersects` (point vs STBuffer polygon) costs ~50 µs
-  and SqlServer.Types caps at ~80k/s machine-wide (~4× one thread, any GC mode), so List/Grid
-  multi-object figures are library-bound, not core-bound. Max-load probes must run well past
-  `QueueLimit` rounds (a buffer grows ≤1 per round) and also fail on mean latency > interval;
-  tree/grid subscription to a polygon costs ~0.2 ms (WKB envelope), hence parallel fleet
-  builds. Don't build while it runs (locked DLLs; and it measures wall-clock).
-- `LibraryImport` is not usable here: its generated stub requires `AllowUnsafeBlocks` across
-  the assembly, which the single blittable P/Invoke does not justify.
-- Distance queries return `double` (the papers' signature, not the 2016 `SqlDouble`): a Null
-  `STDistance` (different SRIDs, empty geography) becomes `double.NaN`, converted only in
-  `SpatialDistance.ToDouble`, so each location update still yields one notification. NaN fails
-  every comparison, so classifiers must test it first — the demo's `DistanceBands` maps it to
-  `OutOfRange`. `DistanceQueryTests` pins the premise that those inputs really yield Null;
-  `PlanarDistanceQueryTests` pins the same premise for `SqlGeometry` (SRID 0 vs 3857, POINT EMPTY).
+- Experiments harness (on Geo since history item 12): a List update over 2,000 `GeoCircle`
+  fences costs ~67 µs (it was ~110 ms with SQL Server's ~50 µs `STIntersects`), so every
+  variant is now sub-ms and the paper's List/Grid-vs-tree gaps sit inside thread-pool dispatch
+  noise; the SQL-backed run is recorded in the README. The `service` scaling table still
+  flatlines (~1× at 2–20 threads, ~4 cores' CPU used) although Geo shapes share no mutable
+  state, so the earlier "SqlServer.Types caps at ~4× one thread" finding may be partly this
+  machine/environment (hybrid P/E cores, power throttling of background processes) — unproven.
+  Max-load probes must run well past `QueueLimit` rounds (a buffer grows ≤1 per round) and also
+  fail on mean latency > interval. Don't build while it runs (locked DLLs; and it measures
+  wall-clock).
+- Distance queries return `double` (the papers' signature, not the 2016 `SqlDouble`), NaN when
+  no distance exists, so each location update still yields one notification. Core:
+  `GeoOperations.Distance` gives NaN for `GeoEmpty` and for a non-converging (nearly antipodal)
+  geodesic — the Space Needle's antipode (−47.6205, 57.6507) is the test input; planar NaN only
+  for `PlanarEmpty`. RxSql* facades: a Null `STDistance` (different SRIDs, empty geography)
+  becomes NaN in `SpatialDistance.ToDouble`. NaN fails every comparison, so classifiers must test
+  it first — the demo's `DistanceBands` maps it to `OutOfRange`. The premise tests are
+  `Distance_IsNaN_ForTheInputsTheseTestsRelyOn` (core) and the Sql*DistanceQueryTests (SQL Null).
 - Two grid settings: `RxSpatialOptions.Grid` (lat/long, `RxSpatial:Grid:*`) serves
   `RxGeography`; `RxSpatialOptions.PlanarGrid` (X/Y, `RxSpatial:PlanarGrid:*`, default 10×10
   over 0..1000) serves `RxGeometry`. Each ops struct picks its own via `GridLayoutOf`.
 - `RxGeographyDataStruct` is a historic name: it selects the backend for both types.
 - Mixing `RxGeometry` and `RxGeography` (e.g. `geometry.RxRxDistance(geography, …)`) is a
   compile error by design — the concrete facades share no base type.
-- Empty shapes (`POINT EMPTY`) pushed into the Tree/Grid backends throw for both types (the
-  point fast path reads a Null coordinate); only the List backend accepts them.
+- Empty shapes pushed into (or subscribed on) the Tree/Grid backends throw: `GeoEmpty`/
+  `PlanarEmpty` → `InvalidOperationException` from `Bounds` (pinned by
+  `SpatialBackends_RejectEmptyLocations_WhichHaveNoBounds`); `POINT EMPTY` on the RxSql*
+  facades throws too (the point fast path reads a Null coordinate). Only the List backend accepts them.
+- Cross-platform builds: never build the slnx, `*.SqlServer*` or the WPF project on
+  Linux/macOS — build by path (see CI). On Linux `dotnet test` needs
+  `--project <csproj>` (MTP mode from global.json). MTP reports the net10.0-windows test DLL
+  as `(net10.0|x64)`; that is normal.
+- `GeoPolygon`/`PlanarPolygon` reject concave or self-intersecting rings (`ArgumentException`)
+  and any shape over 500 km; concave fences need `RxSqlGeography`. Polygon–polygon overlap and
+  clipping are local-plane approximations (documented); point/distance-to-polygon are exact.
 - The grid's region path is Rect-based since history item 10: the HashMap benchmark rows dropped
   ~5 KB/push at 8dae8d1. A multi-cell push reports each observer once (from the first cell the
   two blocks share), not once per shared cell.
