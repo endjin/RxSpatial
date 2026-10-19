@@ -125,5 +125,11 @@ cost traded for scheduling that depends on pool state.
   exemptions belong in `.editorconfig` with the reason, not in the code. Verify an analyzer
   change with a real recompile (`--no-incremental` or after an edit) — an up-to-date build
   reports nothing and reads as clean.
+- Package versions live only in `Directory.Packages.props` (CPM). The MSTest/MTP stack is the
+  exception by design: `MSTest.Sdk` in `global.json` is its single version knob — under CPM the
+  SDK emits its own `PackageVersion` items, so never add `PackageVersion Include`/`Update` for
+  `MSTest.*` or `Microsoft.Testing.*` anywhere (Include duplicates → NU1506; Update in a csproj is
+  a no-op because the SDK's items are declared after the project body). Visual Studio's
+  package-update UI writes exactly those `Update` blocks into the test csproj — delete them.
 - `LibraryImport` is not usable here: its generated stub requires `AllowUnsafeBlocks` across
   the assembly, which the single blittable P/Invoke does not justify.

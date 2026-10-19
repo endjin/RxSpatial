@@ -125,13 +125,13 @@ RxSpatialOptions.Default =
 }
 ```
 
-| Option | Meaning | Default |
-| --- | --- | --- |
-| `PreferredDataStruct` | Spatial index for observers: `List`, `HashMap` (grid), `RTree` (R*-tree), or `RumTree`. Historic setting values (`RTREE`, `hashmap`, ...) bind case-insensitively. | `List` |
-| `RumTreeCleaningInterval` | Cleaning-token interval of the RUM-tree backend: garbage-creating operations between purges of one leaf (successor to the legacy `RUMTreeGCInspectionInterval` appSetting). | `5` |
-| `QueueLimit` | Location-push buffer size before `RxSpatialOverloadException` is thrown (buffered mode). | `1` |
-| `IsVisualized` | `true` processes pushes synchronously and forwards raw locations to direct subscribers (used by the WPF demo, the examples and the benchmarks); `false` is the buffered throughput mode. | `false` |
-| `Grid` | Grid backend dimensions and coverage rectangle. | `10×10` over `46,-124 .. 49,-120` |
+| Option                    | Meaning                                                                                                                                                                                  | Default                           |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------|
+| `PreferredDataStruct`     | Spatial index for observers: `List`, `HashMap` (grid), `RTree` (R*-tree), or `RumTree`. Historic setting values (`RTREE`, `hashmap`, ...) bind case-insensitively.                       | `List`                            |
+| `RumTreeCleaningInterval` | Cleaning-token interval of the RUM-tree backend: garbage-creating operations between purges of one leaf (successor to the legacy `RUMTreeGCInspectionInterval` appSetting).              | `5`                               |
+| `QueueLimit`              | Location-push buffer size before `RxSpatialOverloadException` is thrown (buffered mode).                                                                                                 | `1`                               |
+| `IsVisualized`            | `true` processes pushes synchronously and forwards raw locations to direct subscribers (used by the WPF demo, the examples and the benchmarks); `false` is the buffered throughput mode. | `false`                           |
+| `Grid`                    | Grid backend dimensions and coverage rectangle.                                                                                                                                          | `10×10` over `46,-124 .. 49,-120` |
 
 
 ## Modernisation notes (2026)
