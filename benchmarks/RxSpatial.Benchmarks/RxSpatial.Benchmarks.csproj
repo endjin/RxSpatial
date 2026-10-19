@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\RxSpatial.Geo\RxSpatial.Geo.csproj" />
     <ProjectReference Include="..\..\src\RxSpatial.Index\RxSpatial.Index.csproj" />
     <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
   </ItemGroup>
