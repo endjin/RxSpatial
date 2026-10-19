@@ -13,9 +13,10 @@ before .NET work.
 
 ```shell
 dotnet build RxSpatial.slnx -c Release   # TreatWarningsAsErrors in Release; must stay warning-free (Windows: the slnx has Windows-only projects)
-dotnet test -c Release                   # 372 MSTest tests, ~3s: RxSpatial.Tests 280 + RxSpatial.SqlServer.Tests 92 (1 golden recorder skipped); MTP runner via global.json "test" key
+dotnet test -c Release                   # 377 MSTest tests, ~3s: RxSpatial.Tests 285 + RxSpatial.SqlServer.Tests 92 (1 golden recorder skipped); MTP runner via global.json "test" key
 dotnet run --project samples/RxSpatial.Examples -c Release   # end-to-end smoke: "All scenarios passed." (any OS)
 dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*TreeIndexBenchmarks*"
+dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*Geo*" "*Outline*" "*ShapeConstruction*"   # RxSpatial.Geo: ops, primitives, construction, outlines, 1–20-thread scaling (~20 min)
 dotnet run --project benchmarks/RxSpatial.SqlServer.Benchmarks -c Release -- --filter "*SqlVsGeo*" --job short   # SQL baseline vs Geo, per operation
 dotnet run --project benchmarks/RxSpatial.Experiments -c Release -- all   # ICDE 2017 Figs 6–12, ~45 min wall-clock
 
@@ -148,6 +149,19 @@ project; Linux/macOS build the cross-platform projects by path and run RxSpatial
     226 µs, lens 21 µs vs 190 µs; point–point distance is the one op SQL wins (86 vs 152 ns). The
     experiments' List ("SqlSpatial") update fell 109 ms → 67 µs, so the paper's orders-of-magnitude
     gaps between List and the trees collapse to sub-ms dispatch noise on Geo.
+13. Geo performance pass (Oct 2026; 44cea45..0038414). Scaling mystery solved: Windows 11
+    power-throttles (EcoQoS) background-console processes, ~6.7× slower per core ~4 s into load
+    on this hybrid laptop; the `service` table measured 1 thread fresh and the rest throttled
+    (~1×). Harness now opts out (`benchmarks/Shared/PowerThrottling.cs`, env
+    `RXSPATIAL_ALLOW_POWER_THROTTLING=1` to compare) and reports busy cores + a repeated
+    1-thread row: 7.88×. New benchmarks: Geodesy, ShapeConstruction, Outline, GeoScaling
+    (dedicated threads, padded counter/slots, Mops/s + Scaling columns). Optimisations, all
+    bit-identical (100k-pair differential vs the pre-optimisation build): IEEERemainder skipped
+    for |Δλ| ≤ 180; bounds by `ref readonly` (AVX–SSE penalty, see Gotchas); `ReducedPoint`
+    hoisting; polygon distance shortlists edges in the polygon's plane within a proven slack;
+    circle–polygon Intersects decided in that plane (1,036 → 173 ns); point-in-polygon guarded
+    by `Wgs84.FastOffset` with a 2×-measured bound (54 → 28 ns); `ToVertices(shape, Span)`
+    overloads (0 B). Vincenty itself and backend push rows unchanged.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
@@ -297,13 +311,28 @@ cost traded for scheduling that depends on pool state.
 - Experiments harness (on Geo since history item 12): a List update over 2,000 `GeoCircle`
   fences costs ~67 µs (it was ~110 ms with SQL Server's ~50 µs `STIntersects`), so every
   variant is now sub-ms and the paper's List/Grid-vs-tree gaps sit inside thread-pool dispatch
-  noise; the SQL-backed run is recorded in the README. The `service` scaling table still
-  flatlines (~1× at 2–20 threads, ~4 cores' CPU used) although Geo shapes share no mutable
-  state, so the earlier "SqlServer.Types caps at ~4× one thread" finding may be partly this
-  machine/environment (hybrid P/E cores, power throttling of background processes) — unproven.
+  noise; the SQL-backed run is recorded in the README. Its `service` scaling table read ~1×
+  only because Windows power-throttled the harness (history item 13); it now opts out and
+  shows 7.88× at 20 threads. Every pre-fix multi-object figure on this machine, including the
+  SQL-backed ~4× `STIntersects` ceiling, ran throttled — re-run before relying on it.
   Max-load probes must run well past `QueueLimit` rounds (a buffer grows ≤1 per round) and also
   fail on mean latency > interval. Don't build while it runs (locked DLLs; and it measures
   wall-clock).
+- Windows power throttling (EcoQoS): a process started from a non-foreground console (an
+  agent's or CI shell) slows ~6.7× per core a few seconds into sustained load on this hybrid
+  i7-13700H. Any hand-rolled timing loop or harness must call `PowerThrottling.OptOut()`
+  (benchmarks/Shared, linked into Benchmarks and Experiments); the tell is a single-thread
+  rate that decays over consecutive 2 s cells. BenchmarkDotNet children run at high priority
+  and were not throttled (A/B identical); the module initializer still opts them out.
+- AVX–SSE transition penalty: a 32-byte struct copy (GeoBounds, ReducedPoint) can make the JIT
+  use a 256-bit register; with the upper half dirty, the native `Math.SinCos`/`Math.Tan` that
+  follow pay a transition penalty (a 20 ns point-in-circle test measured 295 ns). Keep hot Geo paths
+  free of 32-byte copies (bounds are `ref readonly`), and when a short benchmark jumps by
+  ~270 ns, rerun with `DOTNET_PreferredVectorBitWidth=128`: if it recovers, this is the cause.
+- Geo optimisations must stay bit-identical or justify the change against the fidelity budget.
+  The check used in history item 13 is a differential run: a console that prints every public
+  operation's result as raw bits over seeded random pairs, built once against a `git worktree`
+  of the old commit and once against HEAD, then `cmp`.
 - Distance queries return `double` (the papers' signature, not the 2016 `SqlDouble`), NaN when
   no distance exists, so each location update still yields one notification. Core:
   `GeoOperations.Distance` gives NaN for `GeoEmpty` and for a non-converging (nearly antipodal)

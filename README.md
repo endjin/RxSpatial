@@ -23,7 +23,7 @@ Open [`RxSpatial.slnx`](RxSpatial.slnx) at the repository root.
 | `src/RxSpatial.SqlServer` | Windows only | `RxSqlGeography` and `RxSqlGeometry`: the same moving objects over Microsoft.SqlServer.Types' `SqlGeography` / `SqlGeometry`, for code that must keep SQL Server's types or results (see [SQL Server types](#sql-server-types-rxspatialsqlserver)). |
 | `samples/RxSpatial.Examples` | Windows, Linux, macOS | Runnable example / smoke test: Rx.NET v7 sequences feeding and consuming RxSpatial streams on every backend. |
 | `samples/MapRunRxSpatial` | Windows only (WPF) | WPF demo that visualises moving objects and continuous queries on a MapLibre GL JS map hosted in WebView2 (OpenStreetMap tiles, no API key). |
-| `benchmarks/RxSpatial.Benchmarks` | Windows, Linux, macOS | BenchmarkDotNet suite: per-backend location-update cost, the RxSpatial.Geo operations, plus R*-tree vs RUM-tree bulk-insert / update / query comparisons with allocation statistics. |
+| `benchmarks/RxSpatial.Benchmarks` | Windows, Linux, macOS | BenchmarkDotNet suite: per-backend location-update cost, the RxSpatial.Geo operations, geodesic primitives, polygon construction, outlines and multi-core scaling, plus R*-tree vs RUM-tree bulk-insert / update / query comparisons with allocation statistics. |
 | `benchmarks/RxSpatial.SqlServer.Benchmarks` | Windows only | The SQL Server baselines: the per-backend workloads through `RxSqlGeography` / `RxSqlGeometry`, and each shape operation on SQL Server against RxSpatial.Geo. |
 | `benchmarks/RxSpatial.Experiments` | Windows, Linux, macOS | Wall-clock harness that reproduces the ICDE 2017 paper's experiments (Figs. 6–12): latency, maximum load and dropped updates under paced location-update streams. |
 | `tests/RxSpatial.Tests` | Windows, Linux, macOS | MSTest (MSTest.Sdk + Shouldly) tests for the core, the indexes and RxSpatial.Geo, including GeographicLib oracle tests and the fidelity tests against the recorded SQL Server values in `tests/golden`. |
@@ -88,6 +88,50 @@ Allocation per push is 40–116 B on Geo, against 29–328 KB (geodetic) and 1.2
 
 ¹ A Geo shape computes its bounds (and a polygon its area) when it is constructed, so these rows read a field: the work moves to the constructor. SQL Server's bounds row is the WKB-envelope path that `RxSqlGeography`'s tree and grid backends take. ² Rejected by the bounding box before any geodesic. SQL Server stays faster for a single point–point distance (Geo iterates Vincenty's solution to 1e-14), and the lens allocates more on Geo, because it builds a polygon with its arc vertices.
 
+The table above was recorded before the optimisation pass described next; the Geo column is now faster on every row it shares with that pass.
+
+#### RxSpatial.Geo optimisation pass (October 2026)
+
+More benchmarks now cover the geodesic primitives (`GeodesyBenchmarks`: Vincenty inverse and direct, `FastDistance`, `LocalPlane.Project` / `Unproject`), polygon construction (`ShapeConstructionBenchmarks`: `Rectangle`, `FromVertices`, `FromWkt` at 4 and 64 vertices, and the convexity validation on its own), outlines (`OutlineBenchmarks`: `ToVertices` at 64 and 128 segments, which the WPF demo calls on every update for each reach circle) and multi-core throughput (`GeoScalingBenchmarks`, below). A profile of these runs led to four changes. Each change gives bit-identical results: a 100,000-pair differential run of every public operation matched the earlier build bit for bit, and the golden fidelity, GeographicLib oracle, property and allocation tests pass unchanged.
+
+- **Longitude wrapping without `Math.IEEERemainder`.** The remainder returns its argument unchanged in [−180°, 180°], so that range now skips the helper call (about 3 ns of the 12.6 ns `FastDistance`).
+- **Bounds read in place.** A copy of the 32-byte `GeoBounds` let the JIT use a 256-bit register. Its dirty upper half then caused an AVX–SSE transition penalty in the native `Math.SinCos` that `FastDistance` calls, and point-in-circle tests ran at ~295 ns instead of 20 ns. Shapes now expose their bounds by `ref readonly`.
+- **Reduced latitude worked out once per start point** (`ReducedPoint`), when many geodesics share a start: projecting a ring, polygon construction, intersection results and circle outlines.
+- **Fewer exact geodesics for polygons.** The distance to a polygon measures only the edges that can be nearest, which the polygon's own plane shortlists within a proven error bound. Circle–polygon `Intersects` decides in that plane when the plane distance is clear of the radius, instead of running `Contains` twice and measuring every edge. Point-in-polygon tries the flat-earth offset first, within a bound of twice its worst measured error, and runs the Vincenty projection only near an edge.
+
+`GeoOperations.ToVertices` and `PlanarOperations.ToVertices` also gained overloads that write into a `Span` and allocate nothing. Same machine, same session, default BenchmarkDotNet job, the baseline run before and after the optimised one (the before column is their mean; no row drifted by more than 1% between them except the noisy sub-100 ns backend rows):
+
+| Benchmark | Before | After | After ÷ before |
+|---|---:|---:|---:|
+| Point in circle, inside (guarded) | 20.2 ns | 13.9 ns | 0.69 |
+| Point in polygon, inside | 54.0 ns | 27.6 ns | 0.51 |
+| Disc–disc intersects | 23.3 ns | 17.3 ns | 0.74 |
+| Circle–polygon intersects | 1,036 ns | 173 ns | **0.17** |
+| Circle–polygon distance | 880 ns | 558 ns | 0.63 |
+| Point–polygon distance | 887 ns | 738 ns | 0.83 |
+| Lens (disc ∩ disc) | 20.96 µs | 18.64 µs | 0.89 |
+| Disc ∩ rectangle | 10.28 µs | 8.39 µs | 0.82 |
+| `FastDistance` | 12.6 ns | 9.9 ns | 0.79 |
+| `Wgs84.Direct` | 168 ns | 155 ns | 0.93 |
+| `ToVertices`, 2 km circle, 64 segments | 10.57 µs / 1,048 B | 9.03 µs / 1,048 B (span overload: 8.96 µs / 0 B) | 0.85 |
+| `GeoPolygon.FromVertices`, 64 vertices | 15.86 µs | 14.60 µs | 0.92 |
+| Mixed Distance/Intersects, 1 thread | 290 ns | 248 ns | 0.85 |
+
+Vincenty's inverse itself (131 ns at 1.4 km, 176 ns at 230 km) and the backend push rows did not change beyond noise: a push is dominated by the index and the observers, not by the maths. Two rows read slower, and neither is a regression in the maths. The `Bounds` rows went from "indistinguishable from an empty method" to 0.2 ns, but a re-check with three launches of each build gave the reverse (0.24 ns before, 0.003 ns after), so this is BenchmarkDotNet's zero-measurement floor. `PlanarPolygon.FromVertices` with 4 vertices read 88 → 94 ns, and 88.7 → 92.7 ns (+4%, within 2σ) in the re-check, although its code path did not change: this is code layout, not work.
+
+**Multi-core scaling.** `GeoScalingBenchmarks` runs the shape maths alone on 1–20 dedicated threads. Each thread pulls one route point at a time from a padded shared counter and tests it against shared fences. Results are kept in locals and published once, into padded slots. On the i7-13700H (6 performance cores with hyper-threading and 8 efficiency cores, 20 logical processors):
+
+| Threads | 2,000-fence `Intersects` (Mops/s, speed-up) | Mixed Distance/Intersects (Mops/s, speed-up) |
+|---:|---:|---:|
+| 1 | 205 (1.00×) | 4.0 (1.00×) |
+| 2 | 436 (2.12×) | 8.0 (1.99×) |
+| 4 | 730 (3.56×) | 14.6 (3.63×) |
+| 8 | 966 (4.71×) | 21.7 (5.38×) |
+| 14 | 1,079 (5.26×) | 28.9 (7.17×) |
+| 20 | 1,191 (5.81×) | 33.8 (8.37×) |
+
+The maths scales. The compute-heavy mix reaches 8.4× at 20 threads. The cheap fence loop (about 5 ns an operation, mostly the bounding-box test) reaches 5.8×, because it is limited by memory more than by arithmetic. Past 6 threads the extra threads are hyper-threads and efficiency cores, so the speed-up is sub-linear on this hardware.
+
 `TreeIndexBenchmarks` compares the R*-tree (the per-category baseline) against the RUM-tree for bulk insertion, the frequent-update workload the RUM-tree was designed for, and intersection queries (including the allocation-free buffered `Search` overload). Because both trees share the same R* engine, the measured delta is purely the update-memo strategy. After profile-guided optimisation of the engine (a containment fast path in ChooseSubtree found via dotnet-trace, and pooled reinsertion scratch found via dotnet-dump heap analysis), the paper's thesis holds in memory too: RUM-tree updates run at roughly 0.6× the cost of an R* remove-and-reinsert (~0.6 µs vs ~1.0 µs at N=1000, and ~375× the original vendored port's 229 µs) with near-zero steady-state allocation. Coverage-driven `Churn` (delete + reinsert) and `UpdateLocal` (small-delta tracking moves) categories then motivated a bottom-up fast path: when a moved entry still fits its leaf's recorded cover it is rewritten in place, dropping local moves to ~0.42× the cost of a teleporting update with ~zero allocation — so the R*-tree now wins tracking workloads while the RUM-tree wins teleport-heavy ones.
 
 ### Reproducing the ICDE 2017 experiments
@@ -127,8 +171,8 @@ Recorded with SQL Server's spatial types (Microsoft.SqlServer.Types 170.1000.7),
 How to read these results:
 
 - **Why the trees win by orders of magnitude, not by the paper's factors.** A geography `STIntersects` of a point against an `STBuffer` polygon still costs ~50 µs in Microsoft.SqlServer.Types 17.0. With 2,000 fences, an update costs ~110 ms on the List variant, which is in line with the paper's 2016 figures. The clean-room trees, however, evaluate only the 0.25 fences whose bounding box contains the point, so an update costs 6–18 µs and the measured latency (~0.2–2 ms) is almost entirely the thread-pool dispatch of the drainer. Neither the R-tree vs RUM-tree latency gap (13.3%, 11.2%, 12.2% in the paper) nor their maximum-load gap (3.7%) can be resolved: both are below this noise floor, and the trees outrun the object cap. The in-memory comparison of the two trees is `TreeIndexBenchmarks`.
+- **The multi-object figures did not scale with the cores, because Windows throttled the harness.** The `service` scaling table read ~1× from 2 to 20 threads on RxSpatial.Geo, while a research spike on the same machine measured 7.5×. Windows 11 power-throttles (EcoQoS) a process that it judges to be in the background, such as one started from a console that is not the foreground window. On this hybrid laptop (i7-13700H, Balanced power plan, on AC power), a throttled process slows about 6.7× per core about 4 s into sustained load: one thread of Vincenty distances fell from 6.0 to 0.9 million/s, and per-core utility fell from ~100% to ~12% while the thread stayed 100% busy. The harness measured one thread first, while it was still fast, and every later cell throttled. The spike ran 10 s of SQL Server cells first, so every one of its clean-room cells was throttled alike, and its ratios looked clean. The harness now opts out with `SetProcessInformation(ProcessPowerThrottling)` (set `RXSPATIAL_ALLOW_POWER_THROTTLING=1` to keep the default). Its scaling table also reports busy cores and repeats the single-thread run at the end, so that any drift shows. Same session: **7.88× at 20 threads**, with the repeat at 1.03, against 0.97× and a repeat at 0.14 with throttling allowed. `GeoScalingBenchmarks` gives 5.8× (fence loop) to 8.4× (mixed maths). BenchmarkDotNet's child processes were not affected: they run at high priority, which Windows does not throttle, and an A/B run measured identical times. Every earlier harness figure on this machine ran throttled, including the SQL-backed ~4× `STIntersects` ceiling, so re-run any multi-object figure before you rely on it.
 - **The Grid is the default 10 × 10 grid over Washington State**, so all of Seattle falls in two cells and the grid evaluates ~1,500 of the 2,000 fences per update. This is the degeneration into "a small number of linear lists" that the paper describes.
-- **The multi-object figures did not scale with the cores.** With SQL Server's types, the aggregate `STIntersects` rate stopped at ~80,000/s, about 4× one thread, whatever the thread count or GC mode (the `service` scaling table), so the List and Grid maximum loads sat near cores × interval ÷ (4 × service time). The same table on RxSpatial.Geo, whose immutable shapes share no mutable state, does not scale either (~1× from 2 to 20 threads, with about four cores busy), so at least part of that limit is this machine or its environment (a laptop with performance and efficiency cores), not the spatial library. Treat the scaling table as unexplained until it is measured on another machine.
 - **What the paper leaves out, and what the harness assumes:** the per-object workload of Figs. 7, 8 and 10 (2,000, N and 500 fences), the interval of Figs. 8–10 (20 ms, 200 ms and 1 s), the update count per point, the input buffer outside Fig. 12 (10 everywhere), the observer type of Fig. 12 (`RxIntersect`), the fence shapes and their distribution (the paper used MNTG-generated data that it did not publish), and the hardware beyond "Windows 8.1". A maximum-load probe of 20 (or 50) updates per object passes only if it drops nothing *and* its mean latency stays below the interval. A backlogged system has not dropped yet only because the probe is finite, and it would drop on a longer run.
 - `RxGeography.AverageLatency` now records total, fractional milliseconds. The 2016 code averaged the integer `TimeSpan.Milliseconds` component, which read every sub-millisecond update as 0 and wrapped latencies over one second, so Fig. 6(b) could not be measured on current hardware.
 
@@ -248,7 +292,7 @@ forklift.OnNext(new PlanarPointShape(400, 500));   // 50 m: reported
 | `GeoPolygon.Rectangle(south, west, north, east)`, `.FromVertices(...)`, `.FromWkt("POLYGON ((lon lat, ...))")` | `PlanarPolygon.Rectangle(minX, minY, maxX, maxY)`, `.FromVertices(...)`, `.FromWkt(...)` | A **convex** polygon. Either winding order is accepted and stored counter-clockwise; `ToString()` gives WKT. |
 | `GeoEmpty.Instance` | `PlanarEmpty.Instance` | The empty shape (an intersection that does not overlap). |
 
-`GeoOperations` and `PlanarOperations` hold the maths: `Intersects`, `Intersection`, `Distance`, `Area`, `Bounds` and `ToVertices` (an outline for drawing or export, 128 segments per circle by default, like SQL Server's buffer). `Wgs84` exposes the geodesic itself (`Inverse`, `Distance`, `Direct`).
+`GeoOperations` and `PlanarOperations` hold the maths: `Intersects`, `Intersection`, `Distance`, `Area`, `Bounds` and `ToVertices` (an outline for drawing or export, 128 segments per circle by default, like SQL Server's buffer; an overload writes into a `Span` without allocating, for redrawing on every update). `Wgs84` exposes the geodesic itself (`Inverse`, `Distance`, `Direct`).
 
 ```csharp
 using RxSpatial.Geo;
