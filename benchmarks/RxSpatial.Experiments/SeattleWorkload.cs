@@ -1,4 +1,4 @@
-using Microsoft.SqlServer.Types;
+using RxSpatial.Geo;
 
 namespace RxSpatial.Experiments;
 
@@ -6,10 +6,10 @@ namespace RxSpatial.Experiments;
 /// Deterministic Seattle-area workload. The paper's §VI-A scenario is "a moving vehicle's
 /// location against 2000 geofences that represent the polygons of shopping malls and points of
 /// interest"; it used MNTG-generated trajectories and does not publish the fences. Here the
-/// fences are <c>STBuffer</c> circles (100–400 m radius), three quarters of them clustered
-/// around 25 hot spots (malls and POIs bunch together) and the rest uniform, and every moving
-/// object follows its own random walk. Everything derives from one seed, so every variant sees
-/// identical fences and routes.
+/// fences are exact <see cref="GeoCircle"/> discs (100–400 m radius), three quarters of them
+/// clustered around 25 hot spots (malls and POIs bunch together) and the rest uniform, and
+/// every moving object follows its own random walk. Everything derives from one seed, so every
+/// variant sees identical fences and routes.
 /// </summary>
 internal sealed class SeattleWorkload
 {
@@ -18,7 +18,6 @@ internal sealed class SeattleWorkload
     public const double MinLongitude = -122.45;
     public const double MaxLongitude = -122.20;
 
-    private const int Srid = 4326;
     private const double MetresPerDegreeLatitude = 111_320;
     private const int HotSpots = 25;
 
@@ -26,7 +25,7 @@ internal sealed class SeattleWorkload
         MetresPerDegreeLatitude * Math.Cos((MinLatitude + MaxLatitude) / 2 * Math.PI / 180);
 
     private readonly int seed;
-    private readonly SqlGeography[] fences;
+    private readonly GeoCircle[] fences;
 
     public SeattleWorkload(int seed, int fenceCount)
     {
@@ -36,35 +35,35 @@ internal sealed class SeattleWorkload
         for (int i = 0; i < hotSpots.Length; i++)
             hotSpots[i] = UniformPoint(random);
 
-        fences = new SqlGeography[fenceCount];
+        fences = new GeoCircle[fenceCount];
         for (int i = 0; i < fenceCount; i++)
         {
             (double latitude, double longitude) = random.NextDouble() < 0.75
                 ? NearHotSpot(random, hotSpots[random.Next(HotSpots)])
                 : UniformPoint(random);
             double radius = 100 + (random.NextDouble() * 300);
-            fences[i] = SqlGeography.Point(latitude, longitude, Srid).STBuffer(radius);
+            fences[i] = new GeoCircle(new GeoPoint(latitude, longitude), radius);
         }
     }
 
     /// <summary>The geofence pool; experiments subscribe to a prefix of it.</summary>
-    public IReadOnlyList<SqlGeography> Fences => fences;
+    public IReadOnlyList<GeoCircle> Fences => fences;
 
     /// <summary>
     /// The route of moving object <paramref name="objectIndex"/>: a random walk of 100–500 m
     /// steps that turns gradually and reflects off the edges of the area. Bare points, as GPS
     /// updates are.
     /// </summary>
-    public SqlGeography[] Route(int objectIndex, int length)
+    public GeoShape[] Route(int objectIndex, int length)
     {
         // Not HashCode.Combine: it is randomised per process, and routes must repeat across runs.
         Random random = new(unchecked((seed * 1_000_003) + objectIndex));
         (double latitude, double longitude) = UniformPoint(random);
         double heading = random.NextDouble() * 2 * Math.PI;
-        SqlGeography[] route = new SqlGeography[length];
+        GeoShape[] route = new GeoShape[length];
         for (int i = 0; i < length; i++)
         {
-            route[i] = SqlGeography.Point(latitude, longitude, Srid);
+            route[i] = new GeoPointShape(latitude, longitude);
             heading += (random.NextDouble() - 0.5) * Math.PI / 3;
             double step = 100 + (random.NextDouble() * 400);
             latitude = Reflect(latitude + (step * Math.Cos(heading) / MetresPerDegreeLatitude), MinLatitude, MaxLatitude);

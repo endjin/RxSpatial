@@ -39,9 +39,9 @@ internal sealed class Fleet : IDisposable
 
     /// <summary>
     /// The first <paramref name="count"/> objects, building any that do not exist yet. Objects
-    /// are built in parallel: a tree or grid subscription computes the fence's bounding box
-    /// through a WKB round-trip (~0.2 ms for an <c>STBuffer</c> polygon), so a thousand
-    /// objects × 2000 fences would otherwise take minutes.
+    /// are built in parallel: every tree or grid subscription computes a fence's bounding box
+    /// and inserts it into the object's index, two million times for a thousand objects × 2000
+    /// fences.
     /// </summary>
     public IReadOnlyList<TrackedObject> Take(int count)
     {

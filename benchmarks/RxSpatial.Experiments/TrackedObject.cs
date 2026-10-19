@@ -1,31 +1,30 @@
-using Microsoft.SqlServer.Types;
-using RxSpatial.SqlServer;
+using RxSpatial.Geo;
 
 namespace RxSpatial.Experiments;
 
 /// <summary>
-/// One stream source: an <see cref="RxSqlGeography"/> with an <c>RxIntersect</c> per geofence,
+/// One stream source: an <see cref="RxGeography"/> with an <c>RxIntersect</c> per geofence,
 /// the route it replays, and the producer-side counters of accepted and dropped pushes. A push
-/// is dropped when the moving object's input buffer is full and <see cref="RxSqlGeography.OnNext"/>
+/// is dropped when the moving object's input buffer is full and <see cref="RxGeography.OnNext"/>
 /// throws <see cref="RxSpatialOverloadException"/> — the paper's load shedding.
 /// </summary>
 internal sealed class TrackedObject : IDisposable
 {
-    private readonly SqlGeography[] route;
+    private readonly GeoShape[] route;
     private readonly List<IDisposable> subscriptions;
     private readonly QueryCounter counter = new();
     private int cursor;
 
-    public TrackedObject(RxSpatialOptions options, IReadOnlyList<SqlGeography> fences, int fenceCount, SqlGeography[] route)
+    public TrackedObject(RxSpatialOptions options, IReadOnlyList<GeoShape> fences, int fenceCount, GeoShape[] route)
     {
         this.route = route;
-        Geography = new RxSqlGeography(options);
+        Geography = new RxGeography(options);
         subscriptions = new List<IDisposable>(fenceCount);
         for (int i = 0; i < fenceCount; i++)
             subscriptions.Add(Geography.RxIntersect(fences[i], counter));
     }
 
-    public RxSqlGeography Geography { get; }
+    public RxGeography Geography { get; }
 
     /// <summary>Pushes accepted into the input buffer (producer thread only).</summary>
     public long Accepted { get; private set; }
@@ -47,7 +46,7 @@ internal sealed class TrackedObject : IDisposable
     public bool TryPush()
     {
         PeakQueue = Math.Max(PeakQueue, Geography.QueuedPushCount);
-        SqlGeography location = route[cursor];
+        GeoShape location = route[cursor];
         cursor = (cursor + 1) % route.Length;
         try
         {

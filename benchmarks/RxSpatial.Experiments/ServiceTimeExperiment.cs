@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Microsoft.SqlServer.Types;
+using RxSpatial.Geo;
 
 namespace RxSpatial.Experiments;
 
@@ -7,7 +7,7 @@ namespace RxSpatial.Experiments;
 /// Not a paper figure: the cost of processing one location update with nothing queued,
 /// measured synchronously (visualised mode) for one moving object with the 2000 geofences of
 /// Fig. 6. It adds a fifth row the paper did not have, <c>NaiveLoop</c>: a plain loop of
-/// <c>STIntersects</c> over the same fences with no RxSpatial at all, to check that the List
+/// <see cref="GeoOperations.Intersects"/> over the same fences with no RxSpatial at all, to check that the List
 /// variant is a faithful stand-in for "every operation from scratch". The service time
 /// explains the other figures: latency is service time plus queueing, and a system of n
 /// sources at inter-arrival T saturates near cores × T ÷ service time.
@@ -20,8 +20,8 @@ internal static class ServiceTimeExperiment
     {
         int warmup = 20;
         int updates = context.Scale(200, 2000);
-        SqlGeography[] route = context.Workload.Route(0, warmup + updates);
-        IReadOnlyList<SqlGeography> fences = context.Workload.Fences;
+        GeoShape[] route = context.Workload.Route(0, warmup + updates);
+        IReadOnlyList<GeoCircle> fences = context.Workload.Fences;
         List<IReadOnlyList<object>> rows = [];
         Dictionary<string, double> meanMicroseconds = [];
         Dictionary<string, long> matches = [];
@@ -42,10 +42,10 @@ internal static class ServiceTimeExperiment
         long naiveMatches = 0;
         double[] naive = Measure(warmup, updates, () =>
         {
-            SqlGeography location = route[cursor++];
-            foreach (SqlGeography fence in fences)
+            GeoShape location = route[cursor++];
+            foreach (GeoCircle fence in fences)
             {
-                if (fence.STIntersects(location).IsTrue)
+                if (GeoOperations.Intersects(fence, location))
                     naiveMatches++;
             }
         });
@@ -61,41 +61,41 @@ internal static class ServiceTimeExperiment
         context.Report.Section(FormattableString.Invariant($"""
             ## Service time per location update (not a paper figure)
 
-            One moving object, {fences.Count} `RxIntersect` geofences, {updates} updates processed synchronously (visualised mode) after {warmup} warm-up updates. `NaiveLoop` is a plain `STIntersects` loop over the same fences with no RxSpatial.
+            One moving object, {fences.Count} `RxIntersect` geofences, {updates} updates processed synchronously (visualised mode) after {warmup} warm-up updates. `NaiveLoop` is a plain `GeoOperations.Intersects` loop over the same fences with no RxSpatial.
 
             {Report.Table(["Variant", "Mean (µs)", "Median (µs)", "p99 (µs)", "Observers evaluated / update", "Subscribe time (ms)"], rows)}
             List (SqlSpatial) ÷ NaiveLoop mean: **{list / meanMicroseconds[NaiveLoop]:F2}×**. Matches per variant: {string.Join(", ", matches.Select(m => FormattableString.Invariant($"{m.Key} {m.Value}")))} — {(consistent ? "identical, the indexes prune without losing answers" : "**MISMATCH**")}.
             """));
 
         List<IReadOnlyList<object>> scaling = Scaling(context, route, fences);
-        context.Report.WriteCsv("service-scaling", ["threads", "fence_instances", "stintersects_per_second", "speedup"], scaling);
+        context.Report.WriteCsv("service-scaling", ["threads", "fence_instances", "intersects_per_second", "speedup"], scaling);
         context.Report.Section($"""
-            ### Parallel scaling of `STIntersects`
+            ### Parallel scaling of `GeoOperations.Intersects`
 
-            Each thread loops `STIntersects` of its own route points against the fences for 2 s; "shared" threads use the same `SqlGeography` instances (as every moving object in the experiments does), "copies" give each thread its own deserialised copies. This bounds every multi-object experiment: the drainers of many moving objects run in parallel only as far as SQL Server's spatial library does.
+            Each thread loops `GeoOperations.Intersects` of its own route points against the fences for 2 s; "shared" threads use the same `GeoCircle` instances (as every moving object in the experiments does), "copies" give each thread its own copies. This bounds every multi-object experiment: the drainers of many moving objects run in parallel only as far as the shape maths does. (The immutable Geo shapes share no mutable state; SQL Server's spatial library, which the earlier runs used, did not scale this way.)
 
-            {Report.Table(["Threads", "Fence instances", "STIntersects / s", "Speed-up vs 1 thread"], scaling)}
+            {Report.Table(["Threads", "Fence instances", "Intersects / s", "Speed-up vs 1 thread"], scaling)}
             """);
         return meanMicroseconds;
     }
 
-    private static List<IReadOnlyList<object>> Scaling(ExperimentContext context, SqlGeography[] route, IReadOnlyList<SqlGeography> fences)
+    private static List<IReadOnlyList<object>> Scaling(ExperimentContext context, GeoShape[] route, IReadOnlyList<GeoCircle> fences)
     {
         int processors = Environment.ProcessorCount;
         int[] threadCounts = [.. new[] { 1, 2, 4, 8, processors }.Where(t => t <= processors).Distinct()];
-        ExperimentContext.Log(FormattableString.Invariant($"service: STIntersects scaling over {string.Join('/', threadCounts)} threads"));
+        ExperimentContext.Log(FormattableString.Invariant($"service: Intersects scaling over {string.Join('/', threadCounts)} threads"));
         List<IReadOnlyList<object>> rows = [];
         double single = 0;
         foreach (int threads in threadCounts)
             Add(threads.ToString(System.Globalization.CultureInfo.InvariantCulture), "shared", threads, _ => fences);
 
         Add(FormattableString.Invariant($"{processors}"), "copies", processors, _ =>
-            [.. fences.Select(f => SqlGeography.STGeomFromWKB(f.STAsBinary(), f.STSrid.Value))]);
+            [.. fences.Select(f => new GeoCircle(f.Center, f.RadiusMetres))]);
         return rows;
 
-        void Add(string label, string kind, int threads, Func<int, IReadOnlyList<SqlGeography>> fencesFor)
+        void Add(string label, string kind, int threads, Func<int, IReadOnlyList<GeoCircle>> fencesFor)
         {
-            double rate = Throughput(threads, route, fencesFor, context.Workload);
+            double rate = Throughput(threads, route, fencesFor);
             if (single == 0)
                 single = rate;
 
@@ -103,8 +103,8 @@ internal static class ServiceTimeExperiment
         }
     }
 
-    // Aggregate STIntersects per second of `threads` threads looping for two seconds.
-    private static double Throughput(int threads, SqlGeography[] route, Func<int, IReadOnlyList<SqlGeography>> fencesFor, SeattleWorkload workload)
+    // Aggregate Intersects calls per second of `threads` threads looping for two seconds.
+    private static double Throughput(int threads, GeoShape[] route, Func<int, IReadOnlyList<GeoCircle>> fencesFor)
     {
         TimeSpan duration = TimeSpan.FromSeconds(2);
         long total = 0;
@@ -120,16 +120,15 @@ internal static class ServiceTimeExperiment
 
         void Work(int t)
         {
-            IReadOnlyList<SqlGeography> own = fencesFor(t);
-            SqlGeography[] points = t == 0 ? route : workload.Route(t, route.Length);
+            IReadOnlyList<GeoCircle> own = fencesFor(t);
             long count = 0;
             barrier.SignalAndWait();
             long start = Stopwatch.GetTimestamp();
-            for (int i = 0; Stopwatch.GetElapsedTime(start) < duration; i++)
+            for (int i = t; Stopwatch.GetElapsedTime(start) < duration; i++)
             {
-                SqlGeography location = points[i % points.Length];
-                foreach (SqlGeography fence in own)
-                    _ = fence.STIntersects(location);
+                GeoShape location = route[i % route.Length];
+                foreach (GeoCircle fence in own)
+                    _ = GeoOperations.Intersects(fence, location);
 
                 count += own.Count;
             }

@@ -39,9 +39,11 @@ internal static class LoadExperiments
 
     /// <summary>
     /// Fig. 8: maximum load against stream observers per moving object (20–160 on the axis).
-    /// The paper states no inter-arrival time. With 20–160 observers a List update costs only
-    /// ~1–8 ms (~50 µs per geography <c>STIntersects</c>), so at Fig. 6's 200 ms even the List
-    /// variant would sustain thousands of objects; 20 ms brings its knee within the object cap.
+    /// The paper states no inter-arrival time. With SQL Server's spatial types, 20–160 observers
+    /// cost a List update ~1–8 ms (~50 µs per geography <c>STIntersects</c>), so at Fig. 6's
+    /// 200 ms even the List variant sustained thousands of objects and 20 ms brought its knee
+    /// within the object cap. On RxSpatial.Geo the same update costs microseconds, so every
+    /// variant can reach the cap here.
     /// </summary>
     public static void Figure8(ExperimentContext context)
     {

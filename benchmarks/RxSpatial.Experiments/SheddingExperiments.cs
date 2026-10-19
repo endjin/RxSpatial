@@ -1,12 +1,10 @@
-using RxSpatial.SqlServer;
-
 namespace RxSpatial.Experiments;
 
 /// <summary>
 /// The load-shedding figures of ICDE 2017 §VI-D: Fig. 11 (dropped updates against a 5–40 ms
 /// inter-arrival time) and Fig. 12 (dropped updates against the number of moving objects).
 /// An update is dropped when the moving object's input buffer is full and
-/// <see cref="RxSqlGeography.OnNext"/> throws <see cref="RxSpatialOverloadException"/>.
+/// <see cref="RxGeography.OnNext"/> throws <see cref="RxSpatialOverloadException"/>.
 /// </summary>
 internal static class SheddingExperiments
 {
