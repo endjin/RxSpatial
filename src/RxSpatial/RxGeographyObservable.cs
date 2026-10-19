@@ -1,4 +1,3 @@
-using System.Data.SqlTypes;
 using System.Reactive.Linq;
 using Microsoft.SqlServer.Types;
 
@@ -24,17 +23,20 @@ public static class RxGeographyObservable
 
         /// <summary>
         /// Stream of distances (in metres) from the moving object to a stationary geography,
-        /// re-evaluated on every location update of the moving object.
+        /// re-evaluated on every location update of the moving object. A value is
+        /// <see cref="double.NaN"/> when SQL Server cannot compute a distance, e.g. different
+        /// SRIDs or an empty geography.
         /// </summary>
-        public IObservable<SqlDouble> DistanceTo(SqlGeography target)
-            => Observable.Create<SqlDouble>(observer => source.RxDistance(target, observer));
+        public IObservable<double> DistanceTo(SqlGeography target)
+            => Observable.Create<double>(observer => source.RxDistance(target, observer));
 
         /// <summary>
         /// Stream of distances (in metres) between two moving objects, re-evaluated on every
-        /// location update of the moving object.
+        /// location update of the moving object. A value is <see cref="double.NaN"/> when SQL
+        /// Server cannot compute a distance, e.g. different SRIDs or an empty geography.
         /// </summary>
-        public IObservable<SqlDouble> DistanceTo(RxGeography target)
-            => Observable.Create<SqlDouble>(observer => source.RxRxDistance(target, observer));
+        public IObservable<double> DistanceTo(RxGeography target)
+            => Observable.Create<double>(observer => source.RxRxDistance(target, observer));
 
         /// <summary>
         /// Stream of intersection tests between the moving object and a stationary geography.

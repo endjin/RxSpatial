@@ -9,7 +9,7 @@ modernised to .NET 10 / C# 14 / System.Reactive 7 in July 2026. House standards 
 
 ```shell
 dotnet build RxSpatial.slnx -c Release   # TreatWarningsAsErrors in Release; must stay warning-free
-dotnet test -c Release                   # 89 MSTest tests, ~1s (MTP runner, opted in via global.json "test" key)
+dotnet test -c Release                   # 98 MSTest tests, ~1s (MTP runner, opted in via global.json "test" key)
 dotnet run --project samples/RxSpatial.Examples -c Release   # end-to-end smoke: "All scenarios passed."
 dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*TreeIndexBenchmarks*"
 ```
@@ -149,3 +149,8 @@ cost traded for scheduling that depends on pool state.
   package-update UI writes exactly those `Update` blocks into the test csproj — delete them.
 - `LibraryImport` is not usable here: its generated stub requires `AllowUnsafeBlocks` across
   the assembly, which the single blittable P/Invoke does not justify.
+- Distance queries return `double` (the papers' signature, not the 2016 `SqlDouble`): a Null
+  `STDistance` (different SRIDs, empty geography) becomes `double.NaN`, converted only in
+  `SpatialDistance.Between`, so each location update still yields one notification. NaN fails
+  every comparison, so classifiers must test it first — the demo's `DistanceBands` maps it to
+  `OutOfRange`. `DistanceQueryTests` pins the premise that those inputs really yield Null.

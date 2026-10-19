@@ -71,7 +71,6 @@ internal static class Program
         List<SqlGeography> positions = [];
 
         using IDisposable distanceSub = vehicle.DistanceTo(Fence)
-                                               .Select(d => (double)d)
                                                .DistinctUntilChanged()
                                                .Subscribe(distances.Add);
         using IDisposable intersectSub = vehicle.Intersects(Fence)

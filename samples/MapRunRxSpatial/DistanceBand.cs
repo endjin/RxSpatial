@@ -18,13 +18,26 @@ internal static class DistanceBands
     /// <summary>Below this fraction two vehicles breach the minimum safe distance.</summary>
     public const double TooCloseFraction = 1.0 / 7;
 
-    /// <summary>Area scenario: red only at distance 0, i.e. inside the area.</summary>
-    public static DistanceBand ForArea(double distance, double observeDistance)
-        => distance <= 0 ? DistanceBand.TooClose : Classify(distance, observeDistance);
+    // RxSpatial reports NaN when SQL Server cannot compute a distance (different SRIDs, an
+    // empty geography). Every comparison with NaN is false, so without the explicit check NaN
+    // would skip TooClose and OutOfRange and land in NearLimit (green). An unknown distance
+    // is not "near": it is OutOfRange.
 
-    /// <summary>Vehicle-pair scenario: red below the minimum safe distance.</summary>
-    public static DistanceBand ForPair(double distance, double observeDistance)
-        => distance < observeDistance * TooCloseFraction ? DistanceBand.TooClose : Classify(distance, observeDistance);
+    /// <summary>Area scenario: red only at distance 0, i.e. inside the area. NaN is out of range.</summary>
+    public static DistanceBand ForArea(double distance, double observeDistance) => distance switch
+    {
+        double.NaN => DistanceBand.OutOfRange,
+        <= 0 => DistanceBand.TooClose,
+        _ => Classify(distance, observeDistance),
+    };
+
+    /// <summary>Vehicle-pair scenario: red below the minimum safe distance. NaN is out of range.</summary>
+    public static DistanceBand ForPair(double distance, double observeDistance) => distance switch
+    {
+        double.NaN => DistanceBand.OutOfRange,
+        _ when distance < observeDistance * TooCloseFraction => DistanceBand.TooClose,
+        _ => Classify(distance, observeDistance),
+    };
 
     /// <summary>
     /// The out-of-range colour differs by scenario: Blue (not watched) for areas, Gray

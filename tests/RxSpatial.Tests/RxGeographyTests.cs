@@ -23,7 +23,6 @@ public class RxGeographyTests
         RxGeography vehicle = new(VisualizedOptions());
         List<double> distances = [];
         using IDisposable subscription = vehicle.DistanceTo(Fence)
-                                                .Select(d => (double)d)
                                                 .Subscribe(distances.Add);
 
         foreach (SqlGeography position in Route())
@@ -110,7 +109,6 @@ public class RxGeographyTests
 
         List<double> distances = [];
         using IDisposable subscription = a.DistanceTo(b)
-                                          .Select(d => (double)d)
                                           .Subscribe(distances.Add);
 
         a.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326));
@@ -205,7 +203,6 @@ public class RxGeographyTests
 
         List<double> distances = [];
         using IDisposable subscription = a.DistanceTo(b)
-                                          .Select(d => (double)d)
                                           .Subscribe(distances.Add);
 
         // Move B (exercises the location-tracking observer), then push A inside B's zone.

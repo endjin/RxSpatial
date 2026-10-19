@@ -1,4 +1,3 @@
-using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
 using RxSpatial.Backends;
 
@@ -107,7 +106,13 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
     public IDisposable RxRxIntersection(RxGeography other, IObserver<SqlGeography> observer)
         => SubscribeToMoving(new RxRxIntersectionObserver(other, observer), other);
 
-    public IDisposable RxRxDistance(RxGeography other, IObserver<SqlDouble> observer)
+    /// <summary>
+    /// Continuous distance query to another moving object: <paramref name="observer"/> receives
+    /// the distance in metres on every location update of this object, or
+    /// <see cref="double.NaN"/> when SQL Server cannot compute a distance, e.g. different SRIDs
+    /// or an empty geography.
+    /// </summary>
+    public IDisposable RxRxDistance(RxGeography other, IObserver<double> observer)
         => SubscribeToMoving(new RxRxDistanceObserver(other, observer), other);
 
     public IDisposable RxIntersect(SqlGeography geography, IObserver<bool> observer)
@@ -116,7 +121,13 @@ public class RxGeography : IObserver<SqlGeography>, IObservable<SqlGeography>
     public IDisposable RxIntersection(SqlGeography geography, IObserver<SqlGeography> observer)
         => SubscribeToStationary(new RxIntersectionObserver(geography, observer), geography);
 
-    public IDisposable RxDistance(SqlGeography geography, IObserver<SqlDouble> observer)
+    /// <summary>
+    /// Continuous distance query to a stationary geography: <paramref name="observer"/>
+    /// receives the distance in metres on every location update of this object, or
+    /// <see cref="double.NaN"/> when SQL Server cannot compute a distance, e.g. different SRIDs
+    /// or an empty geography.
+    /// </summary>
+    public IDisposable RxDistance(SqlGeography geography, IObserver<double> observer)
         => SubscribeToStationary(new RxDistanceObserver(geography, observer), geography);
 
     private Unsubscriber<SqlGeography> SubscribeToMoving(IObserver<SqlGeography> observer, RxGeography other)

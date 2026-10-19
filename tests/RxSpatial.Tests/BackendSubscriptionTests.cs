@@ -1,4 +1,3 @@
-using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -47,7 +46,7 @@ public class BackendSubscriptionTests
         RxGeography b = new(VisualizedOptions(backend));
         b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500));
 
-        Recorder<SqlDouble> recorder = new();
+        Recorder<double> recorder = new();
         IDisposable subscription = a.RxRxDistance(b, recorder);
 
         a.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500));
@@ -74,7 +73,7 @@ public class BackendSubscriptionTests
         RxGeography b = new(VisualizedOptions(RxGeographyDataStruct.HashMap));
         b.OnNext(SqlGeography.Point(46.2000, -123.5000, 4326).STBuffer(500));
 
-        Recorder<SqlDouble> recorder = new();
+        Recorder<double> recorder = new();
         using IDisposable subscription = a.RxRxDistance(b, recorder);
 
         // Walk the tracked object across several grid cells, then push A into the last one.

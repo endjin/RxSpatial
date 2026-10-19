@@ -1,4 +1,3 @@
-using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
 using RxSpatial;
 
@@ -51,7 +50,7 @@ internal sealed class MovingObject
         if (subscriptions.ContainsKey(pair.SubscriptionKey))
             return false;
 
-        IObserver<SqlDouble> observer = drawConnection
+        IObserver<double> observer = drawConnection
             ? new VehiclePairConnectionObserver(pair, other, marker)
             : new VehiclePairDistanceObserver(marker);
         subscriptions.Add(pair.SubscriptionKey, Geography.RxRxDistance(other, observer));

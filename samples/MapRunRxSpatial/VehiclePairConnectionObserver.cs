@@ -1,4 +1,3 @@
-using System.Data.SqlTypes;
 using RxSpatial;
 
 namespace MapRunRxSpatial;
@@ -8,11 +7,11 @@ namespace MapRunRxSpatial;
 /// styled by the distance band. The line is redrawn in every band, so it never goes stale.
 /// </summary>
 internal sealed class VehiclePairConnectionObserver(VehiclePair pair, RxGeography other, VehicleMarker marker)
-    : VehicleObserverBase<SqlDouble>(marker)
+    : VehicleObserverBase<double>(marker)
 {
-    public override void OnNext(SqlDouble distance)
+    public override void OnNext(double distance)
     {
-        DistanceBand band = DistanceBands.ForPair(distance.Value, DemoParameters.ObserveDistance);
+        DistanceBand band = DistanceBands.ForPair(distance, DemoParameters.ObserveDistance);
         Marker.ApplyColor(DistanceBands.ToColor(band, VehicleColor.Gray));
 
         // An RxRx result is only produced once both vehicles have a location.
