@@ -51,10 +51,18 @@ dotnet run --project samples/MapRunRxSpatial
 
 The control panel has one tab per scenario — **Inside area** (`RxIntersect`), **Near area** (`RxDistance`), **Near vehicle** (`RxRxDistance`) and **Convoy link** (`RxRxDistance` with a connection line) — and each tab shows its own steps and colour legend. *Inside area* uses the spatial index configured in `appsettings.json` (the **RUM-tree by default**); the other tabs always use the List index, because spatial pruning would suppress their continuous distance streams. The panel footer shows the index in use.
 
-Nothing moves until you press **Start**:
+Each tab starts with the settings of the matching figure in the RxSpatial papers, so pressing **Start** reproduces it. Nothing moves until you press **Start**, and switching tabs restores these defaults:
 
-1. On *Inside area* or *Near area*, set **Vehicles** (20 shows the whole fleet) and **Replay rate** (try 25), press **Start**, then press **Add area** and click two corners on the map. On *Near area*, also raise **Observe distance** — it starts at 1 m; try 2,000 m.
-2. On *Near vehicle* or *Convoy link* (always all 20 vehicles), press **Start**, choose a **First vehicle** and a **Second vehicle**, and press **Watch pair**. Vehicles **3 and 6** at an **Observe distance** of 3,500 m pass through every colour band.
+| Tab | Vehicles | Observe distance | Watched pairs | Reproduces |
+| --- | --- | --- | --- | --- |
+| *Inside area* | 20 | — | — | DEBS 2016 Fig. 5 |
+| *Near area* | 20 | 4,600 m | — | DEBS 2016 Fig. 4 (family locator, 4,610.93 m) |
+| *Near vehicle* | 20 (fixed) | 5,000 m | 10–12, 15–16 | SIGMOD 2016 control panel (5,065.43 m); ICDE Fig. 4c pairs |
+| *Convoy link* | 20 (fixed) | 8,000 m | 4–18, 10–12, 7–9 | ICDE Fig. 5 / DEBS 2016 Fig. 3 |
+
+**Replay rate** is 25 updates/s on every tab. The papers do not give a consistent value (their screenshots show 1, 48 and 56 on a differently scaled slider), so this is a readable middle value. The papers give no area coordinates, so on the area tabs press **Add area** and click two corners on the map. The pre-set pairs are watched as soon as their vehicles appear after **Start**. To watch more pairs, choose a **First vehicle** and a **Second vehicle** and press **Watch pair**. **Clear pairs** removes every pair, the pre-set pairs too, until the next tab switch.
+
+The *Convoy link* figure shows 9,935 m. On the recorded trajectories, pair 4–18 is beyond that distance only for the first few updates, so it would turn green almost at once. At 8,000 m, the pairs stay in the states the figure describes for most of the replay: 4–18 is gray (beyond the limit) 53% of the time, 10–12 is yellow (stable) 94% of the time, and 7–9 is green (near the limit) more often than any other colour (40%).
 
 Colours, where *d* is the observe distance (a vehicle in several queries shows its most urgent colour):
 

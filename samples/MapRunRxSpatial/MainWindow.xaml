@@ -263,7 +263,7 @@
                             <TextBlock Style="{StaticResource GuidanceHeading}"
                                        Text="Inside area - an offender enters a restricted zone (RxIntersect)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Set Vehicles (markers are numbered 0-19) and Replay rate (try 25), then press Start. Vehicles replay recorded Seattle GPS trajectories; nothing moves until you press Start."/>
+                                       Text="1. Press Start. All 20 vehicles (numbered 0-19) replay recorded Seattle GPS trajectories at 25 updates/s, as in the DEBS 2016 Fig. 5 set-up; nothing moves until you press Start."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="2. Press Add area and click two corners on the map. Every vehicle gets a continuous RxIntersect query against each orange area."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
@@ -282,9 +282,9 @@
                             <TextBlock Style="{StaticResource GuidanceHeading}"
                                        Text="Near area - an offender approaches a restricted zone (RxDistance)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Set Vehicles and Replay rate, press Start, then Add area as on the first tab."/>
+                                       Text="1. Press Start, then Add area as on the first tab."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="2. Raise Observe distance. It starts at 1 m, so vehicles stay blue until you move it; try 2,000 m."/>
+                                       Text="2. Observe distance is pre-set to 4,600 m, the family-locator set-up of DEBS 2016 Fig. 4. Move it to widen or narrow the bands."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
@@ -310,11 +310,11 @@
                             <TextBlock Style="{StaticResource GuidanceHeading}"
                                        Text="Near vehicle - two offenders who must not meet (RxRxDistance)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start. This tab always replays all 20 vehicles."/>
+                                       Text="1. Press Start. This tab always replays all 20 vehicles, with Observe distance pre-set to 5,000 m (SIGMOD 2016)."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="2. Pick two vehicles with the sliders and press Watch pair; repeat for more pairs. Try 3 and 6: the pair turns gray at once (watched, out of range)."/>
+                                       Text="2. Pairs 10-12 and 15-16 are watched from Start: the offenders close enough to meet in the ICDE paper's Fig. 4c, mostly yellow."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="3. Raise Observe distance; try 3,500 m."/>
+                                       Text="3. To watch more pairs, pick two vehicles with the sliders and press Watch pair."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
@@ -337,14 +337,16 @@
                                 <TextBlock TextWrapping="Wrap" Text="Red - closer than 1/7 of it: minimum safe distance (alert)."/>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="A vehicle in several pairs shows its most urgent colour. Clear pairs stops all watching. List index, as on Near area."/>
+                                       Text="A vehicle in several pairs shows its most urgent colour. Clear pairs stops all watching, pre-set pairs included. List index, as on Near area."/>
                         </StackPanel>
 
                         <StackPanel x:Name="GuidanceConvoyLink" Visibility="Collapsed">
                             <TextBlock Style="{StaticResource GuidanceHeading}"
                                        Text="Convoy link - vehicles sharing data while they stay in range (RxRxDistance with a connection line)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start (all 20 vehicles), pick two vehicles and press Watch pair. Try 3 and 6 with Observe distance 3,500 m; both ends of the pair move the line."/>
+                                       Text="1. Press Start (all 20 vehicles). Pairs 4-18, 10-12 and 7-9 are watched from Start at an Observe distance of 8,000 m, as in the ICDE paper's Fig. 5 (DEBS 2016 Fig. 3): 4-18 mostly gray, 10-12 mostly yellow, 7-9 mostly green."/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="2. To link more pairs, pick two vehicles and press Watch pair; both ends of a pair move its line."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend (marker and line)"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#757575"/>
@@ -379,7 +381,7 @@
                         <!-- Shared footer: the live backend (set by ShowGuidance) and the reset rule. -->
                         <TextBlock x:Name="BackendText" Style="{StaticResource SectionLabel}" TextWrapping="Wrap"/>
                         <TextBlock Style="{StaticResource GuidanceText}"
-                                   Text="Switching tabs resets all controls, areas, pairs and vehicles."/>
+                                   Text="Switching tabs restores the tab's pre-set controls and pairs, and removes every area, other pair and vehicle."/>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

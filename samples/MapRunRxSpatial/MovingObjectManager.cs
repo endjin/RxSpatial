@@ -27,6 +27,8 @@ internal sealed class MovingObjectManager
     private readonly MapLibreMap map;
     private readonly PolygonManager polygons;
     private readonly ConnectionLines lines;
+    private readonly List<VehiclePair> pendingPairs = [];
+    private bool pendingPairsDrawConnection;
     private DispatcherTimer? timer;
     private int previousVehicleCount = -1;
 
@@ -97,8 +99,23 @@ internal sealed class MovingObjectManager
         return PairSubscriptionResult.Added;
     }
 
+    /// <summary>
+    /// Watches the given pairs as soon as both of their vehicles are on the map: vehicles
+    /// appear only on the first traffic tick after Start or a reset. Replaces any pairs still
+    /// pending.
+    /// </summary>
+    public void WatchPairsWhenOnMap(IEnumerable<VehiclePair> pairs, bool drawConnection)
+    {
+        pendingPairs.Clear();
+        pendingPairs.AddRange(pairs);
+        pendingPairsDrawConnection = drawConnection;
+        WatchPendingPairs();
+    }
+
+    /// <summary>Stops watching every pair and area, including pairs not yet on the map.</summary>
     public void UnsubscribeAll()
     {
+        pendingPairs.Clear();
         foreach (MovingObject vehicle in vehicles.Values)
             vehicle.UnsubscribeAll();
     }
@@ -177,6 +194,15 @@ internal sealed class MovingObjectManager
         }
 
         previousVehicleCount = DemoParameters.VehicleCount;
+        WatchPendingPairs();
+    }
+
+    private void WatchPendingPairs()
+    {
+        // Only a vehicle that is not on the map yet keeps a pair pending; added, already
+        // watched and same-vehicle pairs are settled.
+        pendingPairs.RemoveAll(pair =>
+            WatchPair(pair.First, pair.Second, pendingPairsDrawConnection) != PairSubscriptionResult.NotOnMap);
     }
 
     private void Apply(TrajectoryAction action)

@@ -38,6 +38,7 @@ public partial class MainWindow : Window
         polygons = new PolygonManager(map);
         lines = new ConnectionLines(map);
         fleet = new MovingObjectManager(map, polygons, lines);
+        ApplyControlDefaults(DemoParameters.ActiveScenario);
         ShowGuidance(DemoParameters.ActiveScenario);
     }
 
@@ -72,7 +73,10 @@ public partial class MainWindow : Window
     /// <summary>Clears areas and watched pairs alike (Clear areas / Clear pairs).</summary>
     private void OnClearClick(object sender, RoutedEventArgs e)
     {
+        // Also drops the tab's pre-set pairs; they come back only on the next tab reset.
         fleet.UnsubscribeAll();
+        TrackedPairStatus.Text = string.Empty;
+        ConnectionPairStatus.Text = string.Empty;
         polygons.ClearAllPolygons();
         lines.Clear();
         CancelAreaDrawing();
@@ -149,7 +153,7 @@ public partial class MainWindow : Window
 
     private void OnVehicleSpeedChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        DemoParameters.MovementIntervalMilliseconds = 1000 / (int)e.NewValue;
+        DemoParameters.MovementIntervalMilliseconds = DemoParameters.ReplayIntervalMilliseconds((int)e.NewValue);
 
         // Fires during InitializeComponent (Minimum coerces Value) before the fleet exists.
         if (fleet is not null && !isPaused)
@@ -209,25 +213,7 @@ public partial class MainWindow : Window
         isPaused = false;
         SetPauseResumeLabels("Pause");
 
-        TrackedPairStatus.Text = string.Empty;
-        ConnectionPairStatus.Text = string.Empty;
-
-        foreach (Slider slider in (Slider[])
-            [
-                VehicleCountSlider, VehicleCountSlider1, VehicleSpeedSlider, VehicleSpeedSlider1,
-                VehicleSpeedSlider2, VehicleSpeedSlider3, ObserveDistanceSlider, ObserveDistanceSlider1,
-                ObserveDistanceSlider2, TrackedPairSlider1, TrackedPairSlider2, ConnectionPairSlider1,
-                ConnectionPairSlider2,
-            ])
-        {
-            slider.Value = slider.Minimum;
-        }
-
-        DemoParameters.MovementIntervalMilliseconds = 1000;
-        DemoParameters.ObserveDistance = 1;
-        DemoParameters.VehicleCount =
-            scenario is Scenario.RxRxDistance or Scenario.RxRxDistanceConnection ? 20 : 1;
-        DemoParameters.ActiveScenario = scenario;
+        ApplyControlDefaults(scenario);
 
         RxSpatialOptions.Default.PreferredDataStruct = scenario == Scenario.Intersect
             ? configuredBackend
@@ -240,7 +226,49 @@ public partial class MainWindow : Window
         polygons.ClearAllPolygons();
         lines.Clear();
         CancelAreaDrawing();
+
+        // Watched from the first tick that puts both vehicles on the map.
+        fleet.WatchPairsWhenOnMap(
+            DemoParameters.DefaultPairs(scenario),
+            drawConnection: scenario == Scenario.RxRxDistanceConnection);
     }
+
+    /// <summary>
+    /// Sets every tab's controls and the shared demo state to the scenario's defaults, taken
+    /// from the papers' figures (see <see cref="DemoParameters"/>). Safe to call from the
+    /// constructor: the slider handlers it triggers tolerate traffic that has not started.
+    /// </summary>
+    private void ApplyControlDefaults(Scenario scenario)
+    {
+        IReadOnlyList<VehiclePair> nearVehiclePairs = DemoParameters.DefaultPairs(Scenario.RxRxDistance);
+        IReadOnlyList<VehiclePair> convoyPairs = DemoParameters.DefaultPairs(Scenario.RxRxDistanceConnection);
+
+        VehicleCountSlider.Value = DemoParameters.DefaultVehicleCount;
+        VehicleCountSlider1.Value = DemoParameters.DefaultVehicleCount;
+        foreach (Slider slider in (Slider[])[VehicleSpeedSlider, VehicleSpeedSlider1, VehicleSpeedSlider2, VehicleSpeedSlider3])
+            slider.Value = DemoParameters.DefaultReplayRate;
+
+        ObserveDistanceSlider.Value = DemoParameters.DefaultObserveDistance(Scenario.Distance);
+        ObserveDistanceSlider1.Value = DemoParameters.DefaultObserveDistance(Scenario.RxRxDistance);
+        ObserveDistanceSlider2.Value = DemoParameters.DefaultObserveDistance(Scenario.RxRxDistanceConnection);
+        (TrackedPairSlider1.Value, TrackedPairSlider2.Value) = (nearVehiclePairs[0].First, nearVehiclePairs[0].Second);
+        (ConnectionPairSlider1.Value, ConnectionPairSlider2.Value) = (convoyPairs[0].First, convoyPairs[0].Second);
+
+        TrackedPairStatus.Text = DescribePresetPairs(nearVehiclePairs);
+        ConnectionPairStatus.Text = DescribePresetPairs(convoyPairs);
+
+        // The slider handlers above overwrite the shared state in whichever order they fire,
+        // so assign it explicitly last.
+        DemoParameters.MovementIntervalMilliseconds = DemoParameters.ReplayIntervalMilliseconds(DemoParameters.DefaultReplayRate);
+        DemoParameters.ObserveDistance = DemoParameters.DefaultObserveDistance(scenario);
+        DemoParameters.VehicleCount = DemoParameters.DefaultVehicleCount;
+        DemoParameters.ActiveScenario = scenario;
+    }
+
+    private static string DescribePresetPairs(IReadOnlyList<VehiclePair> pairs)
+        => "Pre-set pairs, watched from Start: "
+            + string.Join(", ", pairs.Select(pair => FormattableString.Invariant($"{pair.First}-{pair.Second}")))
+            + ".";
 
     /// <summary>
     /// Shows the active tab's guidance and the backend its vehicles were built with. Call
