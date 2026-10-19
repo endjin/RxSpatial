@@ -5,7 +5,7 @@ namespace RxSpatial.Geo;
 /// <summary>
 /// A geodesic disc: every point within <see cref="RadiusMetres"/> metres of <see cref="Center"/>
 /// along the ellipsoid. It is an exact shape, not a polygon (SQL Server's <c>STBuffer</c>
-/// gives a 128-vertex polygon instead); <see cref="GeoOperations.ToVertices"/> polygonises
+/// gives a 128-vertex polygon instead); <see cref="GeoOperations.ToVertices(GeoShape, int)"/> polygonises
 /// it for drawing.
 /// </summary>
 public sealed class GeoCircle : GeoShape
@@ -13,6 +13,8 @@ public sealed class GeoCircle : GeoShape
     /// <summary>The smallest meridional radius of curvature (at the equator), in metres.</summary>
     private const double MinMeridionalRadius = Wgs84.SemiMajorAxis * (1 - (Wgs84.Flattening * (2 - Wgs84.Flattening)));
     private const double DegreesPerRadian = 180 / Math.PI;
+
+    private readonly GeoBounds bounds;
 
     /// <summary>Creates a geodesic disc.</summary>
     /// <param name="center">The centre.</param>
@@ -31,7 +33,7 @@ public sealed class GeoCircle : GeoShape
 
         Center = center;
         RadiusMetres = radiusMetres;
-        Bounds = ComputeBounds(center, radiusMetres);
+        bounds = ComputeBounds(center, radiusMetres);
     }
 
     /// <summary>The centre.</summary>
@@ -40,7 +42,13 @@ public sealed class GeoCircle : GeoShape
     /// <summary>The radius in metres.</summary>
     public double RadiusMetres { get; }
 
-    internal GeoBounds Bounds { get; }
+    /// <summary>
+    /// The degree bounds, by reference: the hot tests read them in place. Copying the 32-byte
+    /// struct lets the JIT use a 256-bit register, and a dirty upper half then costs an AVX–SSE
+    /// transition penalty in the native maths that follows (Math.SinCos in FastDistance):
+    /// measured at ~270 ns on a 20 ns point-in-circle test.
+    /// </summary>
+    internal ref readonly GeoBounds Bounds => ref bounds;
 
     /// <summary>The circle as <c>CIRCLE (longitude latitude, radius)</c> in the invariant culture.</summary>
     public override string ToString() => Invariant($"CIRCLE ({Center.Longitude} {Center.Latitude}, {RadiusMetres})");

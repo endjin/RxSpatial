@@ -102,20 +102,43 @@ public static class Wgs84
 
     /// <summary><paramref name="to"/> − <paramref name="from"/> in degrees, wrapped into [−180, 180].</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static double LongitudeDifference(double from, double to) => Math.IEEERemainder(to - from, 360);
+    internal static double LongitudeDifference(double from, double to) => WrapLongitude(to - from);
+
+    /// <summary>
+    /// <see cref="Math.IEEERemainder"/>(<paramref name="degrees"/>, 360), skipping its
+    /// floating-point remainder (a helper call costing several nanoseconds) when the value is
+    /// already in [−180, 180]: there the quotient rounds to zero (±180 rounds half to even), so
+    /// the remainder is the value itself, signed zero included. Bit-identical everywhere; NaN
+    /// and infinities take the slow path.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static double WrapLongitude(double degrees)
+        => Math.Abs(degrees) <= 180 ? degrees : Math.IEEERemainder(degrees, 360);
 
     /// <summary>The distance and the initial azimuth in radians, for the local plane.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static double DistanceAndAzimuth(GeoPoint from, GeoPoint to, out double initialAzimuth)
-        => Solve(from, to, finalAzimuth: false, out initialAzimuth, out _);
+        => Solve(new ReducedPoint(from), new ReducedPoint(to), finalAzimuth: false, out initialAzimuth, out _);
+
+    /// <summary>
+    /// <see cref="DistanceAndAzimuth(GeoPoint, GeoPoint, out double)"/> from a start whose
+    /// reduced latitude is already worked out: for many geodesics from one point.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static double DistanceAndAzimuth(in ReducedPoint from, GeoPoint to, out double initialAzimuth)
+        => Solve(from, new ReducedPoint(to), finalAzimuth: false, out initialAzimuth, out _);
 
     /// <summary>Vincenty's direct solution with the azimuth in radians.</summary>
     internal static GeoPoint DirectRadians(GeoPoint from, double azimuth, double distance)
+        => DirectRadians(new ReducedPoint(from), azimuth, distance);
+
+    /// <summary>Vincenty's direct solution with the azimuth in radians, from a start whose reduced latitude is already worked out.</summary>
+    internal static GeoPoint DirectRadians(in ReducedPoint from, double azimuth, double distance)
     {
         (double sinAlpha1, double cosAlpha1) = Math.SinCos(azimuth);
-        double tanU1 = (1 - Flattening) * Math.Tan(from.Latitude * RadiansPerDegree);
-        double cosU1 = 1 / Math.Sqrt(1 + (tanU1 * tanU1));
-        double sinU1 = tanU1 * cosU1;
+        double tanU1 = from.TanU;
+        double cosU1 = from.CosU;
+        double sinU1 = from.SinU;
         double sigma1 = Math.Atan2(tanU1, cosAlpha1);
         double sinAlpha = cosU1 * sinAlpha1;
         double cos2Alpha = 1 - (sinAlpha * sinAlpha);
@@ -148,16 +171,20 @@ public static class Wgs84
         double c = Flattening / 16 * cos2Alpha * (4 + (Flattening * (4 - (3 * cos2Alpha))));
         double l = lambda - ((1 - c) * Flattening * sinAlpha
             * (sigma + (c * sinSigma * (cos2SigmaM + (c * cosSigma * (-1 + (2 * cos2SigmaM * cos2SigmaM)))))));
-        double longitude = Math.IEEERemainder(from.Longitude + (l / RadiansPerDegree), 360);
+        double longitude = WrapLongitude(from.Longitude + (l / RadiansPerDegree));
         return new(Math.Clamp(latitude / RadiansPerDegree, -90, 90), Math.Clamp(longitude, -180, 180));
     }
 
     /// <summary>Vincenty's inverse solution; azimuths in radians.</summary>
     private static double Solve(GeoPoint from, GeoPoint to, bool finalAzimuth, out double initialAzimuth, out double arrivalAzimuth)
+        => Solve(new ReducedPoint(from), new ReducedPoint(to), finalAzimuth, out initialAzimuth, out arrivalAzimuth);
+
+    /// <summary>Vincenty's inverse solution; azimuths in radians.</summary>
+    private static double Solve(in ReducedPoint from, in ReducedPoint to, bool finalAzimuth, out double initialAzimuth, out double arrivalAzimuth)
     {
         double l = LongitudeDifference(from.Longitude, to.Longitude) * RadiansPerDegree;
-        (double sinU1, double cosU1) = ReducedLatitude(from.Latitude);
-        (double sinU2, double cosU2) = ReducedLatitude(to.Latitude);
+        double sinU1 = from.SinU, cosU1 = from.CosU;
+        double sinU2 = to.SinU, cosU2 = to.CosU;
 
         double lambda = l;
         double sinLambda, cosLambda, sinSigma, cosSigma, sigma, sinAlpha, cos2Alpha, cos2SigmaM;
@@ -207,14 +234,6 @@ public static class Wgs84
             ? Math.Atan2(cosU1 * sinLambda, (-sinU1 * cosU2) + (cosU1 * sinU2 * cosLambda))
             : double.NaN;
         return SemiMinorAxis * bigA * (sigma - deltaSigma);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (double Sin, double Cos) ReducedLatitude(double latitude)
-    {
-        double tanU = (1 - Flattening) * Math.Tan(latitude * RadiansPerDegree);
-        double cosU = 1 / Math.Sqrt(1 + (tanU * tanU));
-        return (tanU * cosU, cosU);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

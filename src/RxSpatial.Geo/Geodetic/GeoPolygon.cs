@@ -15,6 +15,8 @@ public sealed class GeoPolygon : GeoShape
 {
     private const double DegreesPerRadian = 180 / Math.PI;
 
+    private readonly GeoBounds bounds;
+
     /// <summary>The smallest radius of curvature of the ellipsoid (meridional, at the equator), in metres.</summary>
     private const double MinRadiusOfCurvature = Wgs84.SemiMajorAxis * (1 - (Wgs84.Flattening * (2 - Wgs84.Flattening)));
 
@@ -31,9 +33,8 @@ public sealed class GeoPolygon : GeoShape
         this.vertices = vertices;
         this.ring = ring;
         Plane = plane;
-        Vertices = Array.AsReadOnly(vertices);
         Area = double.IsNaN(exactArea) ? ConvexMath.SignedArea(ring) : exactArea;
-        Bounds = ComputeBounds(vertices, plane, ring);
+        bounds = ComputeBounds(vertices, plane, ring);
 
         edgeLengths = new double[ring.Length];
         double reach = 0;
@@ -45,6 +46,9 @@ public sealed class GeoPolygon : GeoShape
             longest = Math.Max(longest, edgeLengths[i]);
         }
 
+        Reach = reach;
+        LongestEdge = longest;
+
         // A geodesic edge that does not pass through the plane's origin bows in the plane by
         // about ρ s² / 2R² (ρ: distance from the origin, s: half the edge). Twice ρ L² / R²
         // bounds that comfortably: 0.8 mm for a 3 km zone, a few kilometres at 500 km.
@@ -52,7 +56,8 @@ public sealed class GeoPolygon : GeoShape
     }
 
     /// <summary>The vertices, counter-clockwise, without a closing repeat of the first.</summary>
-    public IReadOnlyList<GeoPoint> Vertices { get; }
+    /// <remarks>The read-only wrapper is made on first use: polygons the kernel builds (intersection results) rarely need it.</remarks>
+    public IReadOnlyList<GeoPoint> Vertices => field ??= Array.AsReadOnly(vertices);
 
     /// <summary>The local plane the polygon's maths runs in, centred inside the polygon.</summary>
     internal LocalPlane Plane { get; }
@@ -68,13 +73,25 @@ public sealed class GeoPolygon : GeoShape
     /// </summary>
     internal double Area { get; }
 
-    internal GeoBounds Bounds { get; }
+    /// <summary>
+    /// The degree bounds, by reference: the hot tests read them in place. Copying the 32-byte
+    /// struct lets the JIT use a 256-bit register, and a dirty upper half then costs an AVX–SSE
+    /// transition penalty in the native maths that follows (Math.SinCos in FastDistance):
+    /// measured at ~270 ns on a 20 ns point-in-circle test.
+    /// </summary>
+    internal ref readonly GeoBounds Bounds => ref bounds;
 
     /// <summary>
     /// How far, in metres, an edge may stray from its straight image in <see cref="Plane"/>:
-    /// within this band of an edge, <see cref="Contains"/> decides with the exact geodesic.
+    /// within this band of an edge, <see cref="Contains(GeoPoint)"/> decides with the exact geodesic.
     /// </summary>
     internal double EdgeBow { get; }
+
+    /// <summary>The largest distance, in metres, of a vertex from the plane's origin.</summary>
+    internal double Reach { get; }
+
+    /// <summary>The longest edge in the plane, in metres.</summary>
+    internal double LongestEdge { get; }
 
     /// <summary>
     /// Whether the polygon contains the position (boundary included, within
@@ -83,9 +100,12 @@ public sealed class GeoPolygon : GeoShape
     /// geodesic decides: a position is inside an edge when its azimuth from the edge's start
     /// turns left (counter-clockwise) of the edge's own azimuth.
     /// </summary>
-    internal bool Contains(GeoPoint point)
+    internal bool Contains(GeoPoint point) => Contains(point, out _);
+
+    /// <summary><see cref="Contains(GeoPoint)"/>, also giving the position projected into <see cref="Plane"/>.</summary>
+    internal bool Contains(GeoPoint point, out PlanarPoint projected)
     {
-        PlanarPoint p = Plane.Project(point);
+        PlanarPoint p = projected = Plane.Project(point);
         for (int i = 0, j = ring.Length - 1; i < ring.Length; j = i++)
         {
             double offset = ConvexMath.Cross(ring[j], ring[i], p) / edgeLengths[j];
@@ -144,10 +164,10 @@ public sealed class GeoPolygon : GeoShape
         GeoPoint[] geoRing = [.. distinct];
         LocalPlane plane = new(Centroid(geoRing));
         PlanarPoint[] ring = new PlanarPoint[geoRing.Length];
-        for (int i = 0; i < geoRing.Length; i++)
+        plane.Project(geoRing, ring);
+        foreach (PlanarPoint point in ring)
         {
-            ring[i] = plane.Project(geoRing[i]);
-            if (!ring[i].IsFinite)
+            if (!point.IsFinite)
                 throw TooLarge(nameof(vertices));
         }
 
@@ -158,7 +178,9 @@ public sealed class GeoPolygon : GeoShape
         {
             for (int j = i + 1; j < ring.Length; j++)
             {
-                if (ring[i].DistanceTo(ring[j]) > MaxExtent)
+                // The square root only where the squared distance already exceeds the limit (a
+                // necessary condition, as the root is correctly rounded): same decision, O(n²) cheaper.
+                if (ConvexMath.DistanceSquared(ring[i], ring[j]) > MaxExtent * MaxExtent && ring[i].DistanceTo(ring[j]) > MaxExtent)
                     throw TooLarge(nameof(vertices));
             }
         }
@@ -234,8 +256,7 @@ public sealed class GeoPolygon : GeoShape
     internal static GeoPolygon FromTrustedRing(LocalPlane plane, PlanarPoint[] ring, double exactArea)
     {
         GeoPoint[] geoRing = new GeoPoint[ring.Length];
-        for (int i = 0; i < ring.Length; i++)
-            geoRing[i] = plane.Unproject(ring[i]);
+        plane.Unproject(ring, geoRing);
 
         return new(geoRing, plane, ring, exactArea);
     }
@@ -251,7 +272,7 @@ public sealed class GeoPolygon : GeoShape
             longitudeOffset += Wgs84.LongitudeDifference(points[0].Longitude, point.Longitude);
         }
 
-        double longitude = Math.IEEERemainder(points[0].Longitude + (longitudeOffset / points.Length), 360);
+        double longitude = Wgs84.WrapLongitude(points[0].Longitude + (longitudeOffset / points.Length));
         return new(latitude / points.Length, Math.Clamp(longitude, -180, 180));
     }
 

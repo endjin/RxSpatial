@@ -249,7 +249,7 @@ public static class GeoOperations
     }
 
     /// <summary>
-    /// The distance from a position to a polygon. Inside (see <see cref="GeoPolygon.Contains"/>) it
+    /// The distance from a position to a polygon. Inside (see <see cref="GeoPolygon.Contains(GeoPoint)"/>) it
     /// is 0; outside, the polygon is projected into a plane centred on the position, where
     /// distances from the position are exact.
     /// </summary>
