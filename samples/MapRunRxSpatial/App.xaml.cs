@@ -33,6 +33,9 @@ public partial class App : Application
         // zone observers from the thread pool.
         RxSpatialOptions.Default.IsVisualized = true;
 
+        // Before the main window (StartupUri) is created, so it never draws the failing colours.
+        AccessibleTheme.Apply(this);
+
         base.OnStartup(e);
     }
 }

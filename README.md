@@ -71,10 +71,12 @@ Colours, where *d* is the observe distance (a vehicle in several queries shows i
 | Colour | Area tabs (vehicle vs area) | Pair tabs (vehicle vs vehicle; *Convoy link* line) |
 | --- | --- | --- |
 | Blue | No alert: outside every restricted area (and inside a confinement area, if any), or farther than *d* from an area | Not watched |
-| Gray | — | Watched, farther apart than *d* (dark dotted line) |
+| Gray (dashed ring) | — | Watched, farther apart than *d* (dark dotted line) |
 | Green | Within *d* | Within *d*, near the limit (thin line) |
 | Yellow | Closer than 4/7 *d* | Closer than 4/7 *d*: stable working distance (thick line) |
-| Red | Inside a restricted area, or outside every confinement area | Closer than 1/7 *d*: the minimum safe distance is breached (thickest line) |
+| Red (diamond) | Inside a restricted area, or outside every confinement area | Closer than 1/7 *d*: the minimum safe distance is breached (thickest line) |
+
+Accessibility: the panel meets WCAG 2.2 AA contrast (4.5:1 text, 3:1 control states) in the Fluent light theme, whatever the Windows accent colour (a light accent is replaced with a dark blue). Marker state does not rely on colour alone: an alert is a diamond and an out-of-range vehicle has a dashed ring. Drawing an area needs a mouse drag; every other control works from the keyboard and has an accessible name.
 
 ## Using RxSpatial with System.Reactive v7
 

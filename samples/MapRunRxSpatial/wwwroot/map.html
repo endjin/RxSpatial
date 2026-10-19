@@ -20,15 +20,25 @@
     }
     html, body, #map { margin: 0; padding: 0; height: 100%; }
     body, .maplibregl-map { font-family: var(--font); }
+    /* A vehicle marker. Its body is the ::before box, not the element: MapLibre positions the
+       element with its own transform, so only the body may rotate (the alert diamond). The
+       shape classes keep state from relying on colour alone (WCAG 1.4.1): an alert is a
+       diamond, an out-of-range pair a dashed ring. */
     .vehicle-marker {
       display: flex; align-items: center; justify-content: center;
-      width: 26px; height: 26px; border-radius: 50%;
-      border: 2px solid #ffffff;
-      box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 3px 8px rgba(0,0,0,.22); cursor: default;
+      width: 30px; height: 30px; cursor: default; /* 26px body + 2px ring each side */
       z-index: 1; /* above the area labels */
+      --fill: #1565C0; --border: #ffffff; --text: #ffffff;
     }
+    .vehicle-marker::before {
+      content: ''; position: absolute; inset: 0; box-sizing: border-box;
+      background: var(--fill); border: 2px solid var(--border); border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 3px 8px rgba(0,0,0,.22);
+    }
+    .vehicle-marker.dashed::before { border-style: dashed; }
+    .vehicle-marker.diamond::before { border-radius: 3px; transform: rotate(45deg) scale(.8); }
     .vehicle-marker span {
-      color: #fff; font: 600 11px var(--font);
+      position: relative; color: var(--text); font: 600 11px var(--font);
     }
     .area-label {
       background: var(--surface); color: var(--text);
@@ -70,6 +80,9 @@
       font: 12px/20px var(--font); color: var(--text);
     }
     .maplibregl-ctrl-attrib a { color: rgba(0, 0, 0, .62); }
+    /* Keyboard focus on the map (arrows pan, +/- zoom): a clear inset ring, not Chrome's
+       hairline (WCAG 2.4.7). */
+    .maplibregl-canvas:focus-visible { outline: 2px solid rgba(0, 0, 0, .8); outline-offset: -2px; }
     /* Draw mode: a crosshair over the whole map, vehicle markers included. */
     body.drawing .maplibregl-canvas-container,
     body.drawing .maplibregl-canvas,
@@ -267,12 +280,15 @@
       if (marker) applyMarkerStyle(marker, m);
     }
 
-    // Fill, border and label colours travel together: a light fill needs a dark label.
+    // Fill, border and label colours travel together (a light fill needs a dark label), and
+    // with them the shape: 'circle', 'dashed' or 'diamond'.
+    const MARKER_SHAPES = ['circle', 'dashed', 'diamond'];
     function applyMarkerStyle(marker, m) {
       const el = marker.getElement();
-      el.style.background = m.fill;
-      el.style.borderColor = m.border;
-      el.querySelector('span').style.color = m.text;
+      el.style.setProperty('--fill', m.fill);
+      el.style.setProperty('--border', m.border);
+      el.style.setProperty('--text', m.text);
+      for (const shape of MARKER_SHAPES) el.classList.toggle(shape, shape === m.shape);
     }
 
     function removeMarker(m) {

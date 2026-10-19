@@ -40,11 +40,11 @@ internal sealed class MapLibreMap(WebView2 webView)
         => Send(new
         {
             cmd = "setMarker", id, label, lat = latitude, lon = longitude,
-            fill = style.Fill, border = style.Border, text = style.Text,
+            fill = style.Fill, border = style.Border, text = style.Text, shape = style.Shape,
         });
 
     public void SetMarkerColor(string id, MarkerStyle style)
-        => Send(new { cmd = "setMarkerColor", id, fill = style.Fill, border = style.Border, text = style.Text });
+        => Send(new { cmd = "setMarkerColor", id, fill = style.Fill, border = style.Border, text = style.Text, shape = style.Shape });
 
     public void RemoveMarker(string id)
         => Send(new { cmd = "removeMarker", id });

@@ -133,6 +133,16 @@ cost traded for scheduling that depends on pool state.
   or the control silently falls back to the classic grey look. The custom `TabControl`
   template must name its presenter `PART_SelectedContentHost`, or UI Automation cannot see
   any tab content (every button "not found").
+- WPF demo contrast floor is WCAG 2.2 AA (4.5:1 text, 3:1 control states). Never use
+  `TextFillColorTertiaryBrush` for meaningful text (3.3:1). WPF renders *translucent* text
+  far lighter than its composited colour (Fluent secondary #9E000000: 6.1:1 on paper, 3.2:1
+  in pixels), so `AccessibleTheme` (App.OnStartup) swaps the secondary brush for opaque
+  #5C5C5C, and pins the accent brushes to #005A9E when white text on the user's accent (80%
+  pressed state) would fail; both are skipped under high contrast. Measure from PrintWindow
+  pixels (darkest glyph pixel vs background), not just composited values. Marker state is
+  never colour-only: alert = diamond, gray = dashed ring (`VehicleColors`, map.html, legends).
+  Keep the tab header panel `TabNavigation="Once"`: focusing a TabItem selects it, which
+  resets the scenario.
 - MapLibre zoom uses the 512px-tile convention (one level lower than Bing/Leaflet).
 - WPF demo colours: `RxGeography` notifies location observers before zone observers, so
   `VehicleMarker.MoveTo` resets the marker to Blue and each query observer may only *raise*

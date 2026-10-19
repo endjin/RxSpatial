@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -46,7 +48,19 @@ public partial class MainWindow : Window
         fleet.PendingPairsWatched += OnPendingPairsWatched;
         ApplyControlDefaults(DemoParameters.ActiveScenario);
         ShowGuidance(DemoParameters.ActiveScenario);
+        AnnounceChanges(TrackedPairStatus);
+        AnnounceChanges(ConnectionPairStatus);
+        AnnounceChanges(BackendText);
     }
+
+    /// <summary>
+    /// The status lines are polite live regions (WCAG 4.1.3): a text change is announced by
+    /// screen readers without moving focus. WPF raises no live-region event by itself.
+    /// </summary>
+    private static void AnnounceChanges(TextBlock status)
+        => DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(
+            status,
+            (_, _) => UIElementAutomationPeer.FromElement(status)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged));
 
     /// <summary>
     /// The XAML size is a preference: shrink it to the primary screen's work area so a small
