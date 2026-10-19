@@ -1,38 +1,35 @@
-using Microsoft.SqlServer.Types;
 using RxSpatial.Backends;
+using RxSpatial.Geo;
 using RxSpatial.Index;
 
 namespace RxSpatial;
 
 /// <summary>
-/// Geodetic operations for <see cref="RxGeography"/>: SQL Server's ellipsoidal
-/// <see cref="SqlGeography"/> methods, with rectangles in longitude (X) and latitude (Y).
+/// Geodetic operations for <see cref="RxGeography"/>: the WGS84 shape maths of
+/// <see cref="GeoOperations"/>, with rectangles in longitude (X) and latitude (Y).
 /// </summary>
-internal readonly struct GeographyOperations : ISpatialOperations<SqlGeography>
+internal readonly struct GeographyOperations : ISpatialOperations<GeoShape>
 {
-    public static Rect BoundsOf(SqlGeography shape)
+    /// <summary>
+    /// The shape's degree bounds. Throws <see cref="InvalidOperationException"/> for
+    /// <see cref="GeoEmpty"/>, which has none — as an empty SQL Server geography did — so an
+    /// empty location cannot be pushed on the grid and tree backends.
+    /// </summary>
+    public static Rect BoundsOf(GeoShape shape)
     {
-        if (shape.STGeometryType().Value == "Point")
-        {
-            // Fast path for bare position pushes; also avoids the WKB round-trip.
-            double x = shape.Long.Value;
-            double y = shape.Lat.Value;
-            return new Rect(x, y, x, y);
-        }
-
-        return SpatialBounds.OfEnvelope(
-            SqlGeometry.STGeomFromWKB(shape.STAsBinary(), shape.STSrid.Value).STEnvelope());
+        GeoBounds bounds = GeoOperations.Bounds(shape);
+        return new Rect(bounds.MinLongitude, bounds.MinLatitude, bounds.MaxLongitude, bounds.MaxLatitude);
     }
 
-    public static bool Intersects(SqlGeography a, SqlGeography b) => a.STIntersects(b).IsTrue;
+    public static bool Intersects(GeoShape a, GeoShape b) => GeoOperations.Intersects(a, b);
 
-    public static SqlGeography Intersection(SqlGeography a, SqlGeography b) => a.STIntersection(b);
+    public static GeoShape Intersection(GeoShape a, GeoShape b) => GeoOperations.Intersection(a, b);
 
     /// <summary>
-    /// The distance in metres, or <see cref="double.NaN"/> when SQL Server cannot compute one
-    /// (different SRIDs, an empty geography).
+    /// The geodesic distance in metres, or <see cref="double.NaN"/> when there is none: an
+    /// empty shape, or a nearly antipodal pair whose geodesic does not converge.
     /// </summary>
-    public static double Distance(SqlGeography a, SqlGeography b) => SpatialDistance.ToDouble(a.STDistance(b));
+    public static double Distance(GeoShape a, GeoShape b) => GeoOperations.Distance(a, b);
 
     public static GridLayout GridLayoutOf(RxSpatialOptions options) => GridLayout.From(options.Grid);
 }

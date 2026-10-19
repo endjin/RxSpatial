@@ -1,11 +1,12 @@
 using System.Reactive.Disposables;
 using Microsoft.SqlServer.Types;
 using RxSpatial;
+using RxSpatial.SqlServer;
 
 namespace MapRunRxSpatial;
 
 /// <summary>
-/// One vehicle: an <see cref="RxGeography"/> fed from a recorded trajectory, its map marker,
+/// One vehicle: an <see cref="RxSqlGeography"/> fed from a recorded trajectory, its map marker,
 /// and the keyed continuous-query subscriptions attached to it. Area keys ("area:0") and pair
 /// keys ("pair:3-6") are prefixed so the two kinds can never collide.
 /// </summary>
@@ -24,14 +25,14 @@ internal sealed class MovingObject
     public MovingObject(int id, MapLibreMap map, ConnectionLines lines, OverlapShapes overlaps)
     {
         this.id = id;
-        Geography = new RxGeography();
+        Geography = new RxSqlGeography();
         marker = new VehicleMarker(id, map, lines, overlaps);
         movementObserver = new MarkerMovementObserver(marker, () => fix);
         movementObserver.Attach(Geography);
     }
 
     /// <summary>The moving object other vehicles subscribe against.</summary>
-    public RxGeography Geography { get; }
+    public RxSqlGeography Geography { get; }
 
     /// <summary>
     /// Pushes a position and, once every observer has seen it, raises a confinement breach if
@@ -46,7 +47,7 @@ internal sealed class MovingObject
     /// location, so a vehicle far outside a confinement area never hears from that area's
     /// observer at all. Instead each push is bracketed: the flag is cleared, the
     /// <see cref="ConfinementObserver"/>s set it if any area contains the vehicle, and the
-    /// decision is taken after <see cref="RxGeography.OnNext"/> returns. That relies on the
+    /// decision is taken after <see cref="RxSqlGeography.OnNext"/> returns. That relies on the
     /// demo's visualised mode (forced in <see cref="App"/>), which notifies location and zone
     /// observers synchronously inside OnNext, so the marker's reset to Blue has happened by then.
     /// </remarks>
@@ -103,7 +104,7 @@ internal sealed class MovingObject
     /// Watches this vehicle's relation to <paramref name="other"/> with the given query.
     /// Returns false if the pair is already watched.
     /// </summary>
-    public bool WatchPair(VehiclePair pair, RxGeography other, PairQuery query)
+    public bool WatchPair(VehiclePair pair, RxSqlGeography other, PairQuery query)
     {
         if (subscriptions.ContainsKey(pair.SubscriptionKey))
             return false;

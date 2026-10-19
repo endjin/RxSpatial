@@ -1,9 +1,11 @@
+using RxSpatial.SqlServer;
+
 namespace RxSpatial.Experiments;
 
 /// <summary>
 /// The latency figures of ICDE 2017 §VI: Fig. 6 (inter-arrival time), Fig. 9 (observers per
 /// object) and Fig. 10 (number of moving objects). Latency is the library's own measure,
-/// <see cref="RxGeography.AverageLatency"/>: from the update entering the input buffer until
+/// <see cref="RxSqlGeography.AverageLatency"/>: from the update entering the input buffer until
 /// its results have been pushed to the output observers.
 /// </summary>
 internal static class LatencyExperiments

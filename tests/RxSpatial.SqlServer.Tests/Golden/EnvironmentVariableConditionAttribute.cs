@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace RxSpatial.Tests.Golden;
+namespace RxSpatial.SqlServer.Tests.Golden;
 
 /// <summary>
 /// Runs a test only when an environment variable has a given value; otherwise the test is

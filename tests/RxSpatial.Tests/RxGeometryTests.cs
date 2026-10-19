@@ -1,21 +1,21 @@
 using System.Reactive.Linq;
 using Microsoft.Extensions.Configuration;
-using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RxSpatial.Geo;
 using Shouldly;
 
 namespace RxSpatial.Tests;
 
 /// <summary>
 /// Behavioural tests for <see cref="RxGeometry"/>, the planar moving object, and its Rx.NET v7
-/// bridge: a forklift on a warehouse floor (SRID 0, metres) approaching a loading bay.
+/// bridge: a forklift on a warehouse floor (metres) approaching a loading bay.
 /// </summary>
 [TestClass]
 public class RxGeometryTests
 {
     // A rectangle rather than a buffered point, so every distance to it is exact.
-    private static readonly SqlGeometry Bay =
-        SqlGeometry.Parse("POLYGON ((450 450, 550 450, 550 550, 450 550, 450 450))");
+    private static readonly PlanarShape Bay =
+        PlanarPolygon.FromWkt("POLYGON ((450 450, 550 450, 550 550, 450 550, 450 450))");
 
     [TestMethod]
     public void DistanceStream_DecreasesToZero_WhileApproachingBay()
@@ -24,7 +24,7 @@ public class RxGeometryTests
         List<double> distances = [];
         using IDisposable subscription = forklift.DistanceTo(Bay).Subscribe(distances.Add);
 
-        foreach (SqlGeometry position in Route())
+        foreach (PlanarShape position in Route())
             forklift.OnNext(position);
 
         distances.ShouldBe([350, 150, 50, 0]);
@@ -39,7 +39,7 @@ public class RxGeometryTests
                                                  .DistinctUntilChanged()
                                                  .Subscribe(events.Add);
 
-        foreach (SqlGeometry position in Route())
+        foreach (PlanarShape position in Route())
             forklift.OnNext(position);
 
         events.ShouldBe([false, true]);
@@ -49,10 +49,10 @@ public class RxGeometryTests
     public void Locations_ForwardsEveryUpdate_InVisualizedMode()
     {
         RxGeometry forklift = new(VisualizedOptions());
-        List<SqlGeometry> positions = [];
+        List<PlanarShape> positions = [];
         using IDisposable subscription = forklift.Locations.Subscribe(positions.Add);
 
-        foreach (SqlGeometry position in Route())
+        foreach (PlanarShape position in Route())
             forklift.OnNext(position);
 
         positions.Count.ShouldBe(4);
@@ -71,9 +71,9 @@ public class RxGeometryTests
         using IDisposable subscription = forklift.Intersects(Bay).Subscribe(events.Add);
 
         // Far from the bay (a different grid cell, outside the bay's bounding box), then at its
-        // centre, as small buffered regions like the geographic tests push.
-        forklift.OnNext(Point(50, 50).STBuffer(5));
-        forklift.OnNext(Point(500, 500).STBuffer(5));
+        // centre, as small discs like the geographic tests push.
+        forklift.OnNext(Disc(50, 50, 5));
+        forklift.OnNext(Disc(500, 500, 5));
 
         events.Count.ShouldBe(expectedEvents);
         events[^1].ShouldBeTrue();
@@ -134,15 +134,15 @@ public class RxGeometryTests
     public void IntersectionWithStationaryGeometry_StreamsIntersectionGeometry()
     {
         RxGeometry pallet = new(VisualizedOptions());
-        List<SqlGeometry> intersections = [];
+        List<PlanarShape> intersections = [];
         using IDisposable subscription = pallet.IntersectionWith(Bay).Subscribe(intersections.Add);
 
-        pallet.OnNext(Point(50, 50).STBuffer(5));
+        pallet.OnNext(Disc(50, 50, 5));
         pallet.OnNext(Rectangle(400, 450, 500, 550));
 
         intersections.Count.ShouldBe(2);
-        intersections[0].STIsEmpty().Value.ShouldBeTrue();
-        intersections[1].STArea().Value.ShouldBe(5000);
+        intersections[0].IsEmpty.ShouldBeTrue();
+        PlanarOperations.Area(intersections[1]).ShouldBe(5000, 1e-9);
     }
 
     [TestMethod]
@@ -150,17 +150,17 @@ public class RxGeometryTests
     {
         RxGeometry a = new(VisualizedOptions());
         RxGeometry b = new(VisualizedOptions());
-        b.OnNext(Point(500, 500).STBuffer(20));
+        b.OnNext(Disc(500, 500, 20));
 
-        List<SqlGeometry> intersections = [];
+        List<PlanarShape> intersections = [];
         using IDisposable subscription = a.IntersectionWith(b).Subscribe(intersections.Add);
 
-        a.OnNext(Point(100, 100).STBuffer(20));
-        a.OnNext(Point(510, 500).STBuffer(20));
+        a.OnNext(Disc(100, 100, 20));
+        a.OnNext(Disc(510, 500, 20));
 
         intersections.Count.ShouldBe(2);
-        intersections[0].STIsEmpty().Value.ShouldBeTrue();
-        intersections[1].STIsEmpty().Value.ShouldBeFalse();
+        intersections[0].IsEmpty.ShouldBeTrue();
+        intersections[1].IsEmpty.ShouldBeFalse();
     }
 
     [TestMethod]
@@ -168,13 +168,13 @@ public class RxGeometryTests
     {
         RxGeometry a = new(VisualizedOptions());
         RxGeometry b = new(VisualizedOptions());
-        b.OnNext(Point(500, 500).STBuffer(20));
+        b.OnNext(Disc(500, 500, 20));
 
         List<bool> events = [];
         using IDisposable subscription = a.Intersects(b).Subscribe(events.Add);
 
-        a.OnNext(Point(100, 100).STBuffer(20));
-        a.OnNext(Point(510, 500).STBuffer(20));
+        a.OnNext(Disc(100, 100, 20));
+        a.OnNext(Disc(510, 500, 20));
 
         events.ShouldBe([false, true]);
     }
@@ -190,14 +190,14 @@ public class RxGeometryTests
         // location stream through the backend's location tracker.
         RxGeometry a = new(VisualizedOptions(backend));
         RxGeometry b = new(VisualizedOptions(backend));
-        b.OnNext(Point(500, 500).STBuffer(50));
+        b.OnNext(Disc(500, 500, 50));
 
         List<double> distances = [];
         using IDisposable subscription = a.DistanceTo(b).Subscribe(distances.Add);
 
         // Move B (exercises the location tracker), then push A inside B's zone.
-        b.OnNext(Point(650, 650).STBuffer(50));
-        a.OnNext(Point(650, 650).STBuffer(50));
+        b.OnNext(Disc(650, 650, 50));
+        a.OnNext(Disc(650, 650, 50));
 
         distances.Count.ShouldBeGreaterThanOrEqualTo(1);
         distances[^1].ShouldBe(0);
@@ -213,11 +213,25 @@ public class RxGeometryTests
         List<bool> events = [];
         IDisposable subscription = forklift.Intersects(Bay).Subscribe(events.Add);
 
-        forklift.OnNext(Point(500, 500).STBuffer(5));
+        forklift.OnNext(Disc(500, 500, 5));
         subscription.Dispose();
-        forklift.OnNext(Point(500, 500).STBuffer(5));
+        forklift.OnNext(Disc(500, 500, 5));
 
         events.Count.ShouldBe(1);
+    }
+
+    [TestMethod]
+    [DataRow(RxGeographyDataStruct.HashMap)]
+    [DataRow(RxGeographyDataStruct.RTree)]
+    [DataRow(RxGeographyDataStruct.RumTree)]
+    public void SpatialBackends_RejectEmptyLocations_WhichHaveNoBounds(RxGeographyDataStruct backend)
+    {
+        // The grid and tree backends index by bounds; an empty shape has none. The list
+        // backend needs no bounds: see PlanarDistanceQueryTests.
+        RxGeometry forklift = new(VisualizedOptions(backend));
+        using IDisposable subscription = forklift.Intersects(Bay).Subscribe(_ => { });
+
+        Should.Throw<InvalidOperationException>(() => forklift.OnNext(PlanarEmpty.Instance));
     }
 
     [TestMethod]
@@ -235,9 +249,9 @@ public class RxGeometryTests
         List<bool> events = [];
         IDisposable subscription = forklift.Intersects(Bay).Subscribe(events.Add);
 
-        forklift.OnNext(Point(500, 500).STBuffer(5));
+        forklift.OnNext(Disc(500, 500, 5));
         subscription.Dispose();
-        forklift.OnNext(Point(500, 500).STBuffer(5));
+        forklift.OnNext(Disc(500, 500, 5));
 
         events.Count.ShouldBe(1);
     }
@@ -294,13 +308,14 @@ public class RxGeometryTests
             QueueLimit = 64,
         };
 
-    private static SqlGeometry Point(double x, double y) => SqlGeometry.Point(x, y, 0);
+    private static PlanarPointShape Point(double x, double y) => new(x, y);
 
-    private static SqlGeometry Rectangle(double minX, double minY, double maxX, double maxY)
-        => SqlGeometry.Parse(FormattableString.Invariant(
-            $"POLYGON (({minX} {minY}, {maxX} {minY}, {maxX} {maxY}, {minX} {maxY}, {minX} {minY}))"));
+    private static PlanarCircle Disc(double x, double y, double radius) => new(new PlanarPoint(x, y), radius);
 
-    private static IEnumerable<SqlGeometry> Route()
+    private static PlanarPolygon Rectangle(double minX, double minY, double maxX, double maxY)
+        => PlanarPolygon.Rectangle(minX, minY, maxX, maxY);
+
+    private static IEnumerable<PlanarShape> Route()
     {
         yield return Point(100, 500);
         yield return Point(300, 500);

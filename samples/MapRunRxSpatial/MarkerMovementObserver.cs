@@ -1,5 +1,6 @@
 using Microsoft.SqlServer.Types;
 using RxSpatial;
+using RxSpatial.SqlServer;
 
 namespace MapRunRxSpatial;
 
@@ -12,7 +13,7 @@ internal sealed class MarkerMovementObserver(VehicleMarker marker, Func<VehicleF
 {
     private IDisposable? subscription;
 
-    public void Attach(RxGeography source) => subscription = source.Subscribe(this);
+    public void Attach(RxSqlGeography source) => subscription = source.Subscribe(this);
 
     public void OnNext(SqlGeography location) => marker.MoveTo(currentFix());
 

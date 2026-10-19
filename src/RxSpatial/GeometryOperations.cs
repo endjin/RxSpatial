@@ -1,37 +1,35 @@
-using Microsoft.SqlServer.Types;
 using RxSpatial.Backends;
+using RxSpatial.Geo;
 using RxSpatial.Index;
 
 namespace RxSpatial;
 
 /// <summary>
-/// Planar operations for <see cref="RxGeometry"/>: SQL Server's flat-earth
-/// <see cref="SqlGeometry"/> methods, with rectangles in the geometry's own X and Y.
+/// Planar operations for <see cref="RxGeometry"/>: the exact Euclidean shape maths of
+/// <see cref="PlanarOperations"/>, with rectangles in the shapes' own X and Y.
 /// </summary>
-internal readonly struct GeometryOperations : ISpatialOperations<SqlGeometry>
+internal readonly struct GeometryOperations : ISpatialOperations<PlanarShape>
 {
-    public static Rect BoundsOf(SqlGeometry shape)
+    /// <summary>
+    /// The shape's bounds. Throws <see cref="InvalidOperationException"/> for
+    /// <see cref="PlanarEmpty"/>, which has none, so an empty location cannot be pushed on the
+    /// grid and tree backends.
+    /// </summary>
+    public static Rect BoundsOf(PlanarShape shape)
     {
-        if (shape.STGeometryType().Value == "Point")
-        {
-            // Fast path for bare position pushes.
-            double x = shape.STX.Value;
-            double y = shape.STY.Value;
-            return new Rect(x, y, x, y);
-        }
-
-        return SpatialBounds.OfEnvelope(shape.STEnvelope());
+        PlanarBounds bounds = PlanarOperations.Bounds(shape);
+        return new Rect(bounds.MinX, bounds.MinY, bounds.MaxX, bounds.MaxY);
     }
 
-    public static bool Intersects(SqlGeometry a, SqlGeometry b) => a.STIntersects(b).IsTrue;
+    public static bool Intersects(PlanarShape a, PlanarShape b) => PlanarOperations.Intersects(a, b);
 
-    public static SqlGeometry Intersection(SqlGeometry a, SqlGeometry b) => a.STIntersection(b);
+    public static PlanarShape Intersection(PlanarShape a, PlanarShape b) => PlanarOperations.Intersection(a, b);
 
     /// <summary>
-    /// The Euclidean distance in the geometries' coordinate units, or <see cref="double.NaN"/>
-    /// when SQL Server cannot compute one (different SRIDs, an empty geometry).
+    /// The Euclidean distance in the shapes' coordinate units, or <see cref="double.NaN"/>
+    /// when either shape is empty.
     /// </summary>
-    public static double Distance(SqlGeometry a, SqlGeometry b) => SpatialDistance.ToDouble(a.STDistance(b));
+    public static double Distance(PlanarShape a, PlanarShape b) => PlanarOperations.Distance(a, b);
 
     public static GridLayout GridLayoutOf(RxSpatialOptions options) => GridLayout.From(options.PlanarGrid);
 }

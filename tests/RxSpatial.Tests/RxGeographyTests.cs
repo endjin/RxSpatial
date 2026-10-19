@@ -1,7 +1,7 @@
 using System.Reactive.Linq;
 using Microsoft.Extensions.Configuration;
-using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RxSpatial.Geo;
 using Shouldly;
 
 namespace RxSpatial.Tests;
@@ -14,8 +14,8 @@ namespace RxSpatial.Tests;
 public class RxGeographyTests
 {
     // 500 m geofence around the Seattle Space Needle.
-    private static readonly SqlGeography Fence =
-        SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500);
+    private static readonly GeoShape Fence =
+        Disc(47.6205, -122.3493, 500);
 
     [TestMethod]
     public void DistanceStream_DecreasesToZero_WhileApproachingFence()
@@ -25,7 +25,7 @@ public class RxGeographyTests
         using IDisposable subscription = vehicle.DistanceTo(Fence)
                                                 .Subscribe(distances.Add);
 
-        foreach (SqlGeography position in Route())
+        foreach (GeoShape position in Route())
             vehicle.OnNext(position);
 
         distances.Count.ShouldBe(4);
@@ -42,7 +42,7 @@ public class RxGeographyTests
                                                 .DistinctUntilChanged()
                                                 .Subscribe(events.Add);
 
-        foreach (SqlGeography position in Route())
+        foreach (GeoShape position in Route())
             vehicle.OnNext(position);
 
         events.ShouldBe([false, true]);
@@ -52,10 +52,10 @@ public class RxGeographyTests
     public void Locations_ForwardsEveryUpdate_InVisualizedMode()
     {
         RxGeography vehicle = new(VisualizedOptions());
-        List<SqlGeography> positions = [];
+        List<GeoShape> positions = [];
         using IDisposable subscription = vehicle.Locations.Subscribe(positions.Add);
 
-        foreach (SqlGeography position in Route())
+        foreach (GeoShape position in Route())
             vehicle.OnNext(position);
 
         positions.Count.ShouldBe(4);
@@ -75,9 +75,9 @@ public class RxGeographyTests
 
         // Far away from the fence (a different grid zone, outside the fence's bounding box),
         // then right at its centre. The tree backends index bounding boxes, so the vehicle
-        // reports a small buffered region rather than a bare point.
-        vehicle.OnNext(SqlGeography.Point(46.2000, -123.5000, 4326).STBuffer(50));
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        // reports a small disc rather than a bare point.
+        vehicle.OnNext(Disc(46.2000, -123.5000, 50));
+        vehicle.OnNext(Disc(47.6205, -122.3493, 50));
 
         events.Count.ShouldBe(expectedEvents);
         events[^1].ShouldBeTrue();
@@ -94,8 +94,8 @@ public class RxGeographyTests
         List<bool> events = [];
         using IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
 
-        vehicle.OnNext(SqlGeography.Point(46.2000, -123.5000, 4326));
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326));
+        vehicle.OnNext(Point(46.2000, -123.5000));
+        vehicle.OnNext(Point(47.6205, -122.3493));
 
         events.ShouldBe([true]);
     }
@@ -105,14 +105,14 @@ public class RxGeographyTests
     {
         RxGeography a = new(VisualizedOptions());
         RxGeography b = new(VisualizedOptions());
-        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326));
+        b.OnNext(Point(47.6205, -122.3493));
 
         List<double> distances = [];
         using IDisposable subscription = a.DistanceTo(b)
                                           .Subscribe(distances.Add);
 
-        a.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326));
-        a.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326));
+        a.OnNext(Point(47.7000, -122.4000));
+        a.OnNext(Point(47.6205, -122.3493));
 
         distances.Count.ShouldBe(2);
         distances[0].ShouldBeGreaterThan(0);
@@ -129,7 +129,7 @@ public class RxGeographyTests
             RxGeography vehicle = new();
             List<bool> events = [];
             using IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
-            vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326));
+            vehicle.OnNext(Point(47.6205, -122.3493));
             events.ShouldBe([true]);
         }
         finally
@@ -142,15 +142,15 @@ public class RxGeographyTests
     public void IntersectionWithStationaryGeography_StreamsIntersectionGeometry()
     {
         RxGeography vehicle = new(VisualizedOptions());
-        List<SqlGeography> intersections = [];
+        List<GeoShape> intersections = [];
         using IDisposable subscription = vehicle.IntersectionWith(Fence).Subscribe(intersections.Add);
 
-        vehicle.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326).STBuffer(100));
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(100));
+        vehicle.OnNext(Disc(47.7000, -122.4000, 100));
+        vehicle.OnNext(Disc(47.6205, -122.3493, 100));
 
         intersections.Count.ShouldBe(2);
-        intersections[0].STIsEmpty().Value.ShouldBeTrue();
-        intersections[1].STIsEmpty().Value.ShouldBeFalse();
+        intersections[0].IsEmpty.ShouldBeTrue();
+        intersections[1].IsEmpty.ShouldBeFalse();
     }
 
     [TestMethod]
@@ -158,17 +158,17 @@ public class RxGeographyTests
     {
         RxGeography a = new(VisualizedOptions());
         RxGeography b = new(VisualizedOptions());
-        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(200));
+        b.OnNext(Disc(47.6205, -122.3493, 200));
 
-        List<SqlGeography> intersections = [];
+        List<GeoShape> intersections = [];
         using IDisposable subscription = a.IntersectionWith(b).Subscribe(intersections.Add);
 
-        a.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326).STBuffer(200));
-        a.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(200));
+        a.OnNext(Disc(47.7000, -122.4000, 200));
+        a.OnNext(Disc(47.6205, -122.3493, 200));
 
         intersections.Count.ShouldBe(2);
-        intersections[0].STIsEmpty().Value.ShouldBeTrue();
-        intersections[1].STIsEmpty().Value.ShouldBeFalse();
+        intersections[0].IsEmpty.ShouldBeTrue();
+        intersections[1].IsEmpty.ShouldBeFalse();
     }
 
     [TestMethod]
@@ -176,13 +176,13 @@ public class RxGeographyTests
     {
         RxGeography a = new(VisualizedOptions());
         RxGeography b = new(VisualizedOptions());
-        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(200));
+        b.OnNext(Disc(47.6205, -122.3493, 200));
 
         List<bool> events = [];
         using IDisposable subscription = a.Intersects(b).Subscribe(events.Add);
 
-        a.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326).STBuffer(200));
-        a.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(200));
+        a.OnNext(Disc(47.7000, -122.4000, 200));
+        a.OnNext(Disc(47.6205, -122.3493, 200));
 
         events.ShouldBe([false, true]);
     }
@@ -195,19 +195,19 @@ public class RxGeographyTests
     public void RxRxDistance_WorksOnEveryBackend_TrackingTheMovingObserver(RxGeographyDataStruct backend)
     {
         // The moving observer is registered in A's index at B's location and follows B's
-        // location stream (the Tree/Grid LocationObsvr trackers) — with buffered regions so
+        // location stream (the Tree/Grid LocationObsvr trackers) — with discs so
         // the tree backends can index the observer's zone.
         RxGeography a = new(VisualizedOptions(backend));
         RxGeography b = new(VisualizedOptions(backend));
-        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500));
+        b.OnNext(Disc(47.6205, -122.3493, 500));
 
         List<double> distances = [];
         using IDisposable subscription = a.DistanceTo(b)
                                           .Subscribe(distances.Add);
 
         // Move B (exercises the location-tracking observer), then push A inside B's zone.
-        b.OnNext(SqlGeography.Point(47.6300, -122.3550, 4326).STBuffer(500));
-        a.OnNext(SqlGeography.Point(47.6300, -122.3550, 4326).STBuffer(500));
+        b.OnNext(Disc(47.6300, -122.3550, 500));
+        a.OnNext(Disc(47.6300, -122.3550, 500));
 
         distances.Count.ShouldBeGreaterThanOrEqualTo(1);
         distances[^1].ShouldBe(0);
@@ -223,11 +223,25 @@ public class RxGeographyTests
         List<bool> events = [];
         IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
 
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        vehicle.OnNext(Disc(47.6205, -122.3493, 50));
         subscription.Dispose();
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        vehicle.OnNext(Disc(47.6205, -122.3493, 50));
 
         events.Count.ShouldBe(1);
+    }
+
+    [TestMethod]
+    [DataRow(RxGeographyDataStruct.HashMap)]
+    [DataRow(RxGeographyDataStruct.RTree)]
+    [DataRow(RxGeographyDataStruct.RumTree)]
+    public void SpatialBackends_RejectEmptyLocations_WhichHaveNoBounds(RxGeographyDataStruct backend)
+    {
+        // The grid and tree backends index by bounds; an empty shape has none (as an empty SQL
+        // Server geography had none). The list backend needs no bounds: see DistanceQueryTests.
+        RxGeography vehicle = new(VisualizedOptions(backend));
+        using IDisposable subscription = vehicle.Intersects(Fence).Subscribe(_ => { });
+
+        Should.Throw<InvalidOperationException>(() => vehicle.OnNext(GeoEmpty.Instance));
     }
 
     [TestMethod]
@@ -236,7 +250,7 @@ public class RxGeographyTests
         RxGeography vehicle = new(new RxSpatialOptions { IsVisualized = false, QueueLimit = 0 });
 
         Should.Throw<RxSpatialOverloadException>(
-            () => vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326)));
+            () => vehicle.OnNext(Point(47.6205, -122.3493)));
     }
 
     [TestMethod]
@@ -246,9 +260,9 @@ public class RxGeographyTests
         List<bool> events = [];
         IDisposable subscription = vehicle.Intersects(Fence).Subscribe(events.Add);
 
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        vehicle.OnNext(Disc(47.6205, -122.3493, 50));
         subscription.Dispose();
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        vehicle.OnNext(Disc(47.6205, -122.3493, 50));
 
         events.Count.ShouldBe(1);
     }
@@ -288,11 +302,16 @@ public class RxGeographyTests
             QueueLimit = 64,
         };
 
-    private static IEnumerable<SqlGeography> Route()
+    private static IEnumerable<GeoShape> Route()
     {
-        yield return SqlGeography.Point(47.7000, -122.4000, 4326);
-        yield return SqlGeography.Point(47.6600, -122.3700, 4326);
-        yield return SqlGeography.Point(47.6300, -122.3550, 4326);
-        yield return SqlGeography.Point(47.6205, -122.3493, 4326); // inside the fence
+        yield return Point(47.7000, -122.4000);
+        yield return Point(47.6600, -122.3700);
+        yield return Point(47.6300, -122.3550);
+        yield return Point(47.6205, -122.3493); // inside the fence
     }
+
+    private static GeoPointShape Point(double latitude, double longitude) => new(latitude, longitude);
+
+    private static GeoCircle Disc(double latitude, double longitude, double radiusMetres)
+        => new(new GeoPoint(latitude, longitude), radiusMetres);
 }

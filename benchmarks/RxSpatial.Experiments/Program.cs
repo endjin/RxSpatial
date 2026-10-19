@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using RxSpatial.SqlServer;
 
 namespace RxSpatial.Experiments;
 
@@ -88,7 +89,7 @@ internal static class Program
             - Run: {DateTime.Now:yyyy-MM-dd HH:mm}, `{string.Join(' ', names)}`, {(context.Full ? "full (`--full`)" : "default (quick) scale")}, seed {context.Seed}, object cap {context.ObjectCap}
             - Machine: {Environment.ProcessorCount} logical processors, {RuntimeInformation.OSDescription}, {RuntimeInformation.FrameworkDescription}
             - Workload: Seattle area ({SeattleWorkload.MinLatitude}–{SeattleWorkload.MaxLatitude} N, {SeattleWorkload.MinLongitude}–{SeattleWorkload.MaxLongitude} E), `STBuffer` geofences of 100–400 m (75% clustered round 25 hot spots), random-walk routes of bare points; buffered mode, input buffer {ExperimentContext.InputBuffer}; Grid = the default 10×10 grid over 46–49 N, 124–120 W
-            - "SqlSpatial" = the List backend (the paper's own "List based (SQLSpatial)"); latency = `RxGeography.AverageLatency`, input buffer → results propagated
+            - "SqlSpatial" = the List backend (the paper's own "List based (SQLSpatial)"); latency = `RxSqlGeography.AverageLatency`, input buffer → results propagated
             """);
 
     // artifacts/experiments/<timestamp> under the repository root, or %TEMP% outside the repository.

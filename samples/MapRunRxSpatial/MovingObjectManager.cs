@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows.Threading;
 using Microsoft.SqlServer.Types;
+using RxSpatial.SqlServer;
 
 namespace MapRunRxSpatial;
 
@@ -192,7 +193,7 @@ internal sealed class MovingObjectManager
 
     /// <summary>
     /// Removes every vehicle so the next traffic tick recreates them - used when the
-    /// active tab changes the spatial backend, which is baked into each RxGeography
+    /// active tab changes the spatial backend, which is baked into each RxSqlGeography
     /// at construction.
     /// </summary>
     public void ClearAllVehicles()

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.SqlServer.Types;
+using RxSpatial.SqlServer;
 
 namespace MapRunRxSpatial;
 
@@ -55,7 +56,7 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lin
     }
 
     /// <summary>
-    /// Moves the marker (and its reach circle, if any) and resets it to Blue. RxGeography
+    /// Moves the marker (and its reach circle, if any) and resets it to Blue. RxSqlGeography
     /// notifies location observers before query observers, so this runs first and the queries
     /// then raise the colour again.
     /// </summary>

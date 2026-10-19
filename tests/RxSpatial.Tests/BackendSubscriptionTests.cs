@@ -1,5 +1,5 @@
-using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RxSpatial.Geo;
 using Shouldly;
 
 namespace RxSpatial.Tests;
@@ -12,8 +12,8 @@ namespace RxSpatial.Tests;
 [TestClass]
 public class BackendSubscriptionTests
 {
-    private static readonly SqlGeography Fence =
-        SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500);
+    private static readonly GeoShape Fence =
+        Disc(47.6205, -122.3493, 500);
 
     [TestMethod]
     [DataRow(RxGeographyDataStruct.List)]
@@ -28,9 +28,9 @@ public class BackendSubscriptionTests
         Recorder<bool> recorder = new();
         IDisposable subscription = vehicle.RxIntersect(Fence, recorder);
 
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        vehicle.OnNext(Disc(47.6205, -122.3493, 50));
         subscription.Dispose();
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(50));
+        vehicle.OnNext(Disc(47.6205, -122.3493, 50));
 
         recorder.Values.Count.ShouldBe(1);
     }
@@ -44,12 +44,12 @@ public class BackendSubscriptionTests
     {
         RxGeography a = new(VisualizedOptions(backend));
         RxGeography b = new(VisualizedOptions(backend));
-        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500));
+        b.OnNext(Disc(47.6205, -122.3493, 500));
 
         Recorder<double> recorder = new();
         IDisposable subscription = a.RxRxDistance(b, recorder);
 
-        a.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500));
+        a.OnNext(Disc(47.6205, -122.3493, 500));
         int afterFirst = recorder.Values.Count;
         afterFirst.ShouldBeGreaterThan(0);
 
@@ -57,8 +57,8 @@ public class BackendSubscriptionTests
 
         // The tracked object's push drives the backend's location tracker. While the tracker
         // outlived the subscription it re-indexed (Update is an upsert) the removed observer.
-        b.OnNext(SqlGeography.Point(47.6300, -122.3550, 4326).STBuffer(500));
-        a.OnNext(SqlGeography.Point(47.6300, -122.3550, 4326).STBuffer(500));
+        b.OnNext(Disc(47.6300, -122.3550, 500));
+        a.OnNext(Disc(47.6300, -122.3550, 500));
 
         recorder.Values.Count.ShouldBe(afterFirst);
     }
@@ -71,15 +71,15 @@ public class BackendSubscriptionTests
         // could notify it several times.
         RxGeography a = new(VisualizedOptions(RxGeographyDataStruct.HashMap));
         RxGeography b = new(VisualizedOptions(RxGeographyDataStruct.HashMap));
-        b.OnNext(SqlGeography.Point(46.2000, -123.5000, 4326).STBuffer(500));
+        b.OnNext(Disc(46.2000, -123.5000, 500));
 
         Recorder<double> recorder = new();
         using IDisposable subscription = a.RxRxDistance(b, recorder);
 
         // Walk the tracked object across several grid cells, then push A into the last one.
-        b.OnNext(SqlGeography.Point(47.0000, -123.0000, 4326).STBuffer(500));
-        b.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500));
-        a.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500));
+        b.OnNext(Disc(47.0000, -123.0000, 500));
+        b.OnNext(Disc(47.6205, -122.3493, 500));
+        a.OnNext(Disc(47.6205, -122.3493, 500));
 
         recorder.Values.Count.ShouldBe(1);
     }
@@ -106,4 +106,9 @@ public class BackendSubscriptionTests
         {
         }
     }
+
+    private static GeoPointShape Point(double latitude, double longitude) => new(latitude, longitude);
+
+    private static GeoCircle Disc(double latitude, double longitude, double radiusMetres)
+        => new(new GeoPoint(latitude, longitude), radiusMetres);
 }

@@ -1,12 +1,13 @@
 using System.Reactive.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SqlServer.Types;
+using RxSpatial.SqlServer;
 
 namespace RxSpatial.Examples;
 
 /// <summary>
 /// Demonstrates — and smoke-tests — RxSpatial composed with System.Reactive v7 on .NET 10:
-/// an Rx sequence feeds position updates into an <see cref="RxGeography"/> (which is an
+/// an Rx sequence feeds position updates into an <see cref="RxSqlGeography"/> (which is an
 /// <c>IObserver&lt;SqlGeography&gt;</c>), and the spatio-temporal query streams coming back
 /// out are consumed through ordinary Rx operators. Configuration comes from
 /// Microsoft.Extensions.Configuration (appsettings.json + RXSPATIAL_-prefixed environment
@@ -67,7 +68,7 @@ internal static class Program
     {
         Console.WriteLine("-- Continuous distance query (configured backend, Rx Interval position feed) --");
 
-        RxGeography vehicle = new();
+        RxSqlGeography vehicle = new();
         List<SqlGeography> route =
         [
             SqlGeography.Point(47.7000, -122.4000, 4326),
@@ -114,7 +115,7 @@ internal static class Program
     {
         Console.WriteLine($"-- Intersection query, '{backend}' backend --");
 
-        RxGeography vehicle = new(new RxSpatialOptions
+        RxSqlGeography vehicle = new(new RxSpatialOptions
         {
             PreferredDataStruct = backend,
             IsVisualized = true,
@@ -135,15 +136,15 @@ internal static class Program
     }
 
     /// <summary>
-    /// The planar sibling: a forklift (<see cref="RxGeometry"/>, SRID 0, metres) drives across a
+    /// The planar sibling: a forklift (<see cref="RxSqlGeometry"/>, SRID 0, metres) drives across a
     /// warehouse floor towards a loading bay. The bay is a rectangle, so every Euclidean
     /// distance is exact.
     /// </summary>
     private static async Task PlanarDistanceStreamAsync()
     {
-        Console.WriteLine("-- Planar distance query (RxGeometry, warehouse floor in metres) --");
+        Console.WriteLine("-- Planar distance query (RxSqlGeometry, warehouse floor in metres) --");
 
-        RxGeometry forklift = new();
+        RxSqlGeometry forklift = new();
         List<SqlGeometry> route =
         [
             SqlGeometry.Point(100, 500, 0),
@@ -184,7 +185,7 @@ internal static class Program
     {
         Console.WriteLine($"-- Planar intersection query, '{backend}' backend --");
 
-        RxGeometry forklift = new(new RxSpatialOptions
+        RxSqlGeometry forklift = new(new RxSpatialOptions
         {
             PreferredDataStruct = backend,
             IsVisualized = true,

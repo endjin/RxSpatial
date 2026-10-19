@@ -1,4 +1,5 @@
 using RxSpatial;
+using RxSpatial.SqlServer;
 
 namespace MapRunRxSpatial;
 
@@ -6,7 +7,7 @@ namespace MapRunRxSpatial;
 /// Like <see cref="VehiclePairDistanceObserver"/>, but also draws the pair's connection line,
 /// styled by the distance band. The line is redrawn in every band, so it never goes stale.
 /// </summary>
-internal sealed class VehiclePairConnectionObserver(VehiclePair pair, RxGeography other, VehicleMarker marker)
+internal sealed class VehiclePairConnectionObserver(VehiclePair pair, RxSqlGeography other, VehicleMarker marker)
     : VehicleObserverBase<double>(marker)
 {
     public override void OnNext(double distance)

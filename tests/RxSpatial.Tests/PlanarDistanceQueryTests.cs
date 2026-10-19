@@ -1,37 +1,31 @@
-using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RxSpatial.Geo;
 using Shouldly;
 
 namespace RxSpatial.Tests;
 
 /// <summary>
-/// Planar distance queries report Euclidean distances in the geometries' coordinate units as
-/// <see cref="double"/>. Where SQL Server's <c>STDistance</c> returns <c>SqlDouble.Null</c>
-/// the query emits <see cref="double.NaN"/>, so every location update still produces one
-/// notification — the same rule as the geographic <see cref="DistanceQueryTests"/>.
+/// Planar distance queries report Euclidean distances in the shapes' coordinate units as
+/// <see cref="double"/>. Where <see cref="PlanarOperations.Distance"/> has no distance (an
+/// empty shape) the query emits <see cref="double.NaN"/>, so every location update still
+/// produces one notification — the same rule as the geographic <see cref="DistanceQueryTests"/>.
 /// </summary>
 [TestClass]
 public class PlanarDistanceQueryTests
 {
-    private static readonly SqlGeometry Needle = SqlGeometry.Point(0, 0, 0);
-    private static readonly SqlGeometry Nearby = SqlGeometry.Point(3, 4, 0);
+    private static readonly PlanarShape Needle = new PlanarPointShape(0, 0);
+    private static readonly PlanarShape Nearby = new PlanarPointShape(3, 4);
 
-    // The same coordinates in Web Mercator (SRID 3857): SQL Server will not measure across SRIDs.
-    private static readonly SqlGeometry NeedleInOtherSrid = SqlGeometry.Point(0, 0, 3857);
-    private static readonly SqlGeometry EmptyPoint = SqlGeometry.Parse("POINT EMPTY"); // SRID 0
-
-    public static IEnumerable<object[]> NullDistanceInputs =>
+    public static IEnumerable<object[]> NaNDistanceInputs =>
     [
-        ["different SRIDs", NeedleInOtherSrid],
-        ["empty geometry", EmptyPoint],
+        ["empty shape", PlanarEmpty.Instance],
     ];
 
     [TestMethod]
-    public void StDistance_ReturnsNull_ForTheInputsTheseTestsRelyOn()
+    public void Distance_IsNaN_ForTheInputsTheseTestsRelyOn()
     {
-        // Guards the premise: if SQL Server ever computes these, the NaN tests below test nothing.
-        Needle.STDistance(NeedleInOtherSrid).IsNull.ShouldBeTrue();
-        Needle.STDistance(EmptyPoint).IsNull.ShouldBeTrue();
+        // Guards the premise: if the maths ever computes this, the NaN tests below test nothing.
+        double.IsNaN(PlanarOperations.Distance(Needle, PlanarEmpty.Instance)).ShouldBeTrue();
     }
 
     [TestMethod]
@@ -47,8 +41,8 @@ public class PlanarDistanceQueryTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(NullDistanceInputs))]
-    public void RxDistance_ReportsNaN_WhenSqlServerCannotComputeADistance(string reason, SqlGeometry location)
+    [DynamicData(nameof(NaNDistanceInputs))]
+    public void RxDistance_ReportsNaN_WhenThereIsNoDistance(string reason, PlanarShape location)
     {
         RxGeometry forklift = new(VisualizedOptions());
         Recorder recorder = new();
@@ -77,8 +71,8 @@ public class PlanarDistanceQueryTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(NullDistanceInputs))]
-    public void RxRxDistance_ReportsNaN_WhenSqlServerCannotComputeADistance(string reason, SqlGeometry location)
+    [DynamicData(nameof(NaNDistanceInputs))]
+    public void RxRxDistance_ReportsNaN_WhenThereIsNoDistance(string reason, PlanarShape location)
     {
         RxGeometry a = new(VisualizedOptions());
         RxGeometry b = new(VisualizedOptions());
@@ -93,8 +87,8 @@ public class PlanarDistanceQueryTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(NullDistanceInputs))]
-    public void DistanceTo_StreamsNaN_WhenSqlServerCannotComputeADistance(string reason, SqlGeometry location)
+    [DynamicData(nameof(NaNDistanceInputs))]
+    public void DistanceTo_StreamsNaN_WhenThereIsNoDistance(string reason, PlanarShape location)
     {
         RxGeometry a = new(VisualizedOptions());
         RxGeometry b = new(VisualizedOptions());

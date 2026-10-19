@@ -8,7 +8,7 @@ namespace RxSpatial;
 /// observers. Shape-specific work comes from <typeparamref name="TOps"/>, a stateless struct
 /// whose static members the JIT calls directly.
 /// </summary>
-/// <typeparam name="TShape">The SQL Server spatial type of a location.</typeparam>
+/// <typeparam name="TShape">The shape type of a location.</typeparam>
 /// <typeparam name="TOps">The shape's spatial operations.</typeparam>
 internal sealed class MovingObjectCore<TShape, TOps> : IMovingObject<TShape>
     where TShape : class

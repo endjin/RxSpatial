@@ -8,20 +8,20 @@ namespace RxSpatial;
 /// <see cref="MovingObjectCore{TShape, TOps}"/>, the query observers and the backends call
 /// them directly (JIT-specialised static calls), never through virtual dispatch.
 /// </summary>
-/// <typeparam name="TShape">The SQL Server spatial type the operations work on.</typeparam>
+/// <typeparam name="TShape">The shape type the operations work on.</typeparam>
 internal interface ISpatialOperations<TShape>
     where TShape : class
 {
     /// <summary>The bounding rectangle the grid and tree backends index a shape by.</summary>
     static abstract Rect BoundsOf(TShape shape);
 
-    /// <summary><c>a.STIntersects(b)</c>; false when SQL Server returns Null.</summary>
+    /// <summary>Whether the shapes share at least one point.</summary>
     static abstract bool Intersects(TShape a, TShape b);
 
-    /// <summary><c>a.STIntersection(b)</c>, forwarded as-is.</summary>
+    /// <summary>The shapes' common region, forwarded as-is.</summary>
     static abstract TShape Intersection(TShape a, TShape b);
 
-    /// <summary><c>a.STDistance(b)</c>, or <see cref="double.NaN"/> when SQL Server returns Null.</summary>
+    /// <summary>The distance between the shapes, or <see cref="double.NaN"/> when there is none.</summary>
     static abstract double Distance(TShape a, TShape b);
 
     /// <summary>The grid backend's layout for this shape type, from its own options section.</summary>

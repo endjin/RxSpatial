@@ -1,5 +1,5 @@
 using System.Reactive.Linq;
-using Microsoft.SqlServer.Types;
+using RxSpatial.Geo;
 
 namespace RxSpatial;
 
@@ -18,30 +18,31 @@ public static class RxGeographyObservable
         /// forwarded to direct subscribers when <see cref="RxSpatialOptions.IsVisualized"/> is
         /// <c>true</c> (the original RxSpatial behaviour).
         /// </summary>
-        public IObservable<SqlGeography> Locations
-            => Observable.Create<SqlGeography>(observer => source.Subscribe(observer));
+        public IObservable<GeoShape> Locations
+            => Observable.Create<GeoShape>(observer => source.Subscribe(observer));
 
         /// <summary>
-        /// Stream of distances (in metres) from the moving object to a stationary geography,
-        /// re-evaluated on every location update of the moving object. A value is
-        /// <see cref="double.NaN"/> when SQL Server cannot compute a distance, e.g. different
-        /// SRIDs or an empty geography.
+        /// Stream of geodesic distances (in metres) from the moving object to a stationary
+        /// shape, re-evaluated on every location update of the moving object. A value is
+        /// <see cref="double.NaN"/> when there is no distance: an empty shape, or a nearly
+        /// antipodal pair whose geodesic does not converge.
         /// </summary>
-        public IObservable<double> DistanceTo(SqlGeography target)
+        public IObservable<double> DistanceTo(GeoShape target)
             => Observable.Create<double>(observer => source.RxDistance(target, observer));
 
         /// <summary>
-        /// Stream of distances (in metres) between two moving objects, re-evaluated on every
-        /// location update of the moving object. A value is <see cref="double.NaN"/> when SQL
-        /// Server cannot compute a distance, e.g. different SRIDs or an empty geography.
+        /// Stream of geodesic distances (in metres) between two moving objects, re-evaluated on
+        /// every location update of the moving object. A value is <see cref="double.NaN"/> when
+        /// there is no distance: an empty shape, or a nearly antipodal pair whose geodesic does
+        /// not converge.
         /// </summary>
         public IObservable<double> DistanceTo(RxGeography target)
             => Observable.Create<double>(observer => source.RxRxDistance(target, observer));
 
         /// <summary>
-        /// Stream of intersection tests between the moving object and a stationary geography.
+        /// Stream of intersection tests between the moving object and a stationary shape.
         /// </summary>
-        public IObservable<bool> Intersects(SqlGeography target)
+        public IObservable<bool> Intersects(GeoShape target)
             => Observable.Create<bool>(observer => source.RxIntersect(target, observer));
 
         /// <summary>
@@ -51,15 +52,15 @@ public static class RxGeographyObservable
             => Observable.Create<bool>(observer => source.RxRxIntersect(target, observer));
 
         /// <summary>
-        /// Stream of intersection geometries between the moving object and a stationary geography.
+        /// Stream of intersection shapes between the moving object and a stationary shape.
         /// </summary>
-        public IObservable<SqlGeography> IntersectionWith(SqlGeography target)
-            => Observable.Create<SqlGeography>(observer => source.RxIntersection(target, observer));
+        public IObservable<GeoShape> IntersectionWith(GeoShape target)
+            => Observable.Create<GeoShape>(observer => source.RxIntersection(target, observer));
 
         /// <summary>
-        /// Stream of intersection geometries between two moving objects.
+        /// Stream of intersection shapes between two moving objects.
         /// </summary>
-        public IObservable<SqlGeography> IntersectionWith(RxGeography target)
-            => Observable.Create<SqlGeography>(observer => source.RxRxIntersection(target, observer));
+        public IObservable<GeoShape> IntersectionWith(RxGeography target)
+            => Observable.Create<GeoShape>(observer => source.RxRxIntersection(target, observer));
     }
 }

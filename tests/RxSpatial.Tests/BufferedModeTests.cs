@@ -1,5 +1,5 @@
-using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RxSpatial.Geo;
 using Shouldly;
 
 namespace RxSpatial.Tests;
@@ -11,8 +11,8 @@ namespace RxSpatial.Tests;
 [TestClass]
 public class BufferedModeTests
 {
-    private static readonly SqlGeography Fence =
-        SqlGeography.Point(47.6205, -122.3493, 4326).STBuffer(500);
+    private static readonly GeoShape Fence =
+        Disc(47.6205, -122.3493, 500);
 
     [TestMethod]
     public void BufferedPushes_AreDrainedByTheNotificationThread_AndLatencyIsRecorded()
@@ -33,8 +33,8 @@ public class BufferedModeTests
             }
         });
 
-        vehicle.OnNext(SqlGeography.Point(47.7000, -122.4000, 4326));
-        vehicle.OnNext(SqlGeography.Point(47.6205, -122.3493, 4326));
+        vehicle.OnNext(Point(47.7000, -122.4000));
+        vehicle.OnNext(Point(47.6205, -122.3493));
 
         // The queue drains on a background thread; poll briefly for completion.
         bool drained = SpinWait.SpinUntil(
@@ -70,4 +70,9 @@ public class BufferedModeTests
         wrapped.Message.ShouldBe("outer");
         wrapped.InnerException.ShouldBeSameAs(inner);
     }
+
+    private static GeoPointShape Point(double latitude, double longitude) => new(latitude, longitude);
+
+    private static GeoCircle Disc(double latitude, double longitude, double radiusMetres)
+        => new(new GeoPoint(latitude, longitude), radiusMetres);
 }

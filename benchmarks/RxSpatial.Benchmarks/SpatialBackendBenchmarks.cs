@@ -1,5 +1,5 @@
 using BenchmarkDotNet.Attributes;
-using Microsoft.SqlServer.Types;
+using RxSpatial.Geo;
 
 namespace RxSpatial.Benchmarks;
 
@@ -9,7 +9,9 @@ namespace RxSpatial.Benchmarks;
 /// intersection observers in the same zone — for every backend. The push is processed
 /// synchronously (<c>isVisualized=true</c>), so the measured time is the full processing
 /// cost of an update rather than queueing latency. The 'list' backend evaluates every
-/// observer on every update; the grid and tree backends prune by zone.
+/// observer on every update; the grid and tree backends prune by zone. Zones and pushes are
+/// exact geodesic circles; RxSpatial.SqlServer.Benchmarks runs the same workload on SQL Server,
+/// whose STBuffer circles are 128-gons.
 /// </summary>
 [MemoryDiagnoser]
 public class SpatialBackendBenchmarks
@@ -25,7 +27,7 @@ public class SpatialBackendBenchmarks
     public int Observers;
 
     private RxGeography vehicle = null!;
-    private SqlGeography[] route = null!;
+    private GeoShape[] route = null!;
     private IDisposable[] subscriptions = null!;
     private int step;
 
@@ -45,16 +47,16 @@ public class SpatialBackendBenchmarks
         subscriptions = new IDisposable[Observers];
         for (int i = 0; i < Observers; i++)
         {
-            SqlGeography zone = RandomPoint(random).STBuffer(2000);
+            GeoCircle zone = new(RandomPoint(random), 2000);
             subscriptions[i] = vehicle.RxIntersect(zone, new NullObserver<bool>());
         }
 
         // Position updates are small buffered regions rather than bare points, matching the
         // original load-test traffic generator (the tree backends index bounding boxes).
-        route = new SqlGeography[64];
+        route = new GeoShape[64];
         for (int i = 0; i < route.Length; i++)
         {
-            route[i] = RandomPoint(random).STBuffer(50);
+            route[i] = new GeoCircle(RandomPoint(random), 50);
         }
     }
 
@@ -65,11 +67,11 @@ public class SpatialBackendBenchmarks
         step++;
     }
 
-    private static SqlGeography RandomPoint(Random random)
+    private static GeoPoint RandomPoint(Random random)
     {
         double lat = 46 + (random.NextDouble() * 3);
         double lon = -124 + (random.NextDouble() * 4);
-        return SqlGeography.Point(lat, lon, 4326);
+        return new GeoPoint(lat, lon);
     }
 
     private sealed class NullObserver<T> : IObserver<T>

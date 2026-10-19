@@ -1,7 +1,7 @@
 namespace RxSpatial.Backends;
 
 /// <summary>A spatial index of observers, queryable by zone.</summary>
-/// <typeparam name="TShape">The SQL Server spatial type of the indexed zones and locations.</typeparam>
+/// <typeparam name="TShape">The shape type of the indexed zones and locations.</typeparam>
 /// <typeparam name="T">The indexed observer type.</typeparam>
 public interface ISpatialBackend<TShape, T>
     where TShape : class

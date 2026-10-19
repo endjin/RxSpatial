@@ -1,36 +1,37 @@
-using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RxSpatial.Geo;
 using Shouldly;
 
 namespace RxSpatial.Tests;
 
 /// <summary>
 /// Distance queries report <see cref="double"/> metres, as the RxSpatial papers declare them.
-/// Where SQL Server's <c>STDistance</c> returns <c>SqlDouble.Null</c> the query emits
-/// <see cref="double.NaN"/>, so every location update still produces one notification.
+/// Where <see cref="GeoOperations.Distance"/> has no distance — an empty shape, or a nearly
+/// antipodal pair whose geodesic does not converge — the query emits <see cref="double.NaN"/>,
+/// so every location update still produces one notification.
 /// </summary>
 [TestClass]
 public class DistanceQueryTests
 {
-    private static readonly SqlGeography Needle = SqlGeography.Point(47.6205, -122.3493, 4326);
-    private static readonly SqlGeography Nearby = SqlGeography.Point(47.6300, -122.3550, 4326);
+    private static readonly GeoShape Needle = Point(47.6205, -122.3493);
+    private static readonly GeoShape Nearby = Point(47.6300, -122.3550);
 
-    // The same place in NAD83 (SRID 4269): SQL Server will not measure across SRIDs.
-    private static readonly SqlGeography NeedleInOtherSrid = SqlGeography.Point(47.6205, -122.3493, 4269);
-    private static readonly SqlGeography EmptyPoint = SqlGeography.Parse("POINT EMPTY"); // SRID 4326
+    // The Space Needle's antipode, in the southern Indian Ocean: Vincenty's inverse
+    // iteration does not converge there, and the distance is reported as NaN.
+    private static readonly GeoShape Antipode = Point(-47.6205, 57.6507);
 
-    public static IEnumerable<object[]> NullDistanceInputs =>
+    public static IEnumerable<object[]> NaNDistanceInputs =>
     [
-        ["different SRIDs", NeedleInOtherSrid],
-        ["empty geography", EmptyPoint],
+        ["antipodal point", Antipode],
+        ["empty shape", GeoEmpty.Instance],
     ];
 
     [TestMethod]
-    public void StDistance_ReturnsNull_ForTheInputsTheseTestsRelyOn()
+    public void Distance_IsNaN_ForTheInputsTheseTestsRelyOn()
     {
-        // Guards the premise: if SQL Server ever computes these, the NaN tests below test nothing.
-        Needle.STDistance(NeedleInOtherSrid).IsNull.ShouldBeTrue();
-        Needle.STDistance(EmptyPoint).IsNull.ShouldBeTrue();
+        // Guards the premise: if the maths ever computes these, the NaN tests below test nothing.
+        double.IsNaN(GeoOperations.Distance(Needle, Antipode)).ShouldBeTrue();
+        double.IsNaN(GeoOperations.Distance(Needle, GeoEmpty.Instance)).ShouldBeTrue();
     }
 
     [TestMethod]
@@ -43,13 +44,13 @@ public class DistanceQueryTests
         vehicle.OnNext(Nearby);
 
         recorder.Values.Count.ShouldBe(1);
-        recorder.Values[0].ShouldBe(Needle.STDistance(Nearby).Value);
+        recorder.Values[0].ShouldBe(GeoOperations.Distance(Needle, Nearby));
         recorder.Values[0].ShouldBeInRange(1_000, 1_300);
     }
 
     [TestMethod]
-    [DynamicData(nameof(NullDistanceInputs))]
-    public void RxDistance_ReportsNaN_WhenSqlServerCannotComputeADistance(string reason, SqlGeography location)
+    [DynamicData(nameof(NaNDistanceInputs))]
+    public void RxDistance_ReportsNaN_WhenThereIsNoDistance(string reason, GeoShape location)
     {
         RxGeography vehicle = new(VisualizedOptions());
         Recorder recorder = new();
@@ -74,12 +75,12 @@ public class DistanceQueryTests
 
         a.OnNext(Nearby);
 
-        recorder.Values.ShouldBe([Needle.STDistance(Nearby).Value]);
+        recorder.Values.ShouldBe([GeoOperations.Distance(Needle, Nearby)]);
     }
 
     [TestMethod]
-    [DynamicData(nameof(NullDistanceInputs))]
-    public void RxRxDistance_ReportsNaN_WhenSqlServerCannotComputeADistance(string reason, SqlGeography location)
+    [DynamicData(nameof(NaNDistanceInputs))]
+    public void RxRxDistance_ReportsNaN_WhenThereIsNoDistance(string reason, GeoShape location)
     {
         RxGeography a = new(VisualizedOptions());
         RxGeography b = new(VisualizedOptions());
@@ -94,8 +95,8 @@ public class DistanceQueryTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(NullDistanceInputs))]
-    public void DistanceTo_StreamsNaN_WhenSqlServerCannotComputeADistance(string reason, SqlGeography location)
+    [DynamicData(nameof(NaNDistanceInputs))]
+    public void DistanceTo_StreamsNaN_WhenThereIsNoDistance(string reason, GeoShape location)
     {
         RxGeography a = new(VisualizedOptions());
         RxGeography b = new(VisualizedOptions());
@@ -112,7 +113,7 @@ public class DistanceQueryTests
         {
             distances.Count.ShouldBe(2, reason);
             double.IsNaN(distances[0]).ShouldBeTrue(reason);
-            distances[1].ShouldBe(Needle.STDistance(Nearby).Value);
+            distances[1].ShouldBe(GeoOperations.Distance(Needle, Nearby));
         }
     }
 
@@ -138,4 +139,9 @@ public class DistanceQueryTests
         {
         }
     }
+
+    private static GeoPointShape Point(double latitude, double longitude) => new(latitude, longitude);
+
+    private static GeoCircle Disc(double latitude, double longitude, double radiusMetres)
+        => new(new GeoPoint(latitude, longitude), radiusMetres);
 }

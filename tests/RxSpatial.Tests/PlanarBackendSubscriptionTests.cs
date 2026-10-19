@@ -1,5 +1,5 @@
-using Microsoft.SqlServer.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RxSpatial.Geo;
 using Shouldly;
 
 namespace RxSpatial.Tests;
@@ -12,8 +12,8 @@ namespace RxSpatial.Tests;
 [TestClass]
 public class PlanarBackendSubscriptionTests
 {
-    private static readonly SqlGeometry Bay =
-        SqlGeometry.Parse("POLYGON ((450 450, 550 450, 550 550, 450 550, 450 450))");
+    private static readonly PlanarShape Bay =
+        PlanarPolygon.FromWkt("POLYGON ((450 450, 550 450, 550 550, 450 550, 450 450))");
 
     [TestMethod]
     [DataRow(RxGeographyDataStruct.List)]
@@ -26,9 +26,9 @@ public class PlanarBackendSubscriptionTests
         Recorder<bool> recorder = new();
         IDisposable subscription = forklift.RxIntersect(Bay, recorder);
 
-        forklift.OnNext(Point(500, 500).STBuffer(5));
+        forklift.OnNext(Disc(500, 500, 5));
         subscription.Dispose();
-        forklift.OnNext(Point(500, 500).STBuffer(5));
+        forklift.OnNext(Disc(500, 500, 5));
 
         recorder.Values.Count.ShouldBe(1);
     }
@@ -42,12 +42,12 @@ public class PlanarBackendSubscriptionTests
     {
         RxGeometry a = new(VisualizedOptions(backend));
         RxGeometry b = new(VisualizedOptions(backend));
-        b.OnNext(Point(500, 500).STBuffer(50));
+        b.OnNext(Disc(500, 500, 50));
 
         Recorder<double> recorder = new();
         IDisposable subscription = a.RxRxDistance(b, recorder);
 
-        a.OnNext(Point(500, 500).STBuffer(50));
+        a.OnNext(Disc(500, 500, 50));
         int afterFirst = recorder.Values.Count;
         afterFirst.ShouldBeGreaterThan(0);
 
@@ -55,8 +55,8 @@ public class PlanarBackendSubscriptionTests
 
         // The tracked object's push drives the backend's location tracker, which must have
         // ended with the subscription rather than re-index the removed observer.
-        b.OnNext(Point(530, 530).STBuffer(50));
-        a.OnNext(Point(530, 530).STBuffer(50));
+        b.OnNext(Disc(530, 530, 50));
+        a.OnNext(Disc(530, 530, 50));
 
         recorder.Values.Count.ShouldBe(afterFirst);
     }
@@ -66,16 +66,16 @@ public class PlanarBackendSubscriptionTests
     {
         RxGeometry a = new(VisualizedOptions(RxGeographyDataStruct.HashMap));
         RxGeometry b = new(VisualizedOptions(RxGeographyDataStruct.HashMap));
-        b.OnNext(Point(150, 150).STBuffer(5));
+        b.OnNext(Disc(150, 150, 5));
 
         Recorder<double> recorder = new();
         using IDisposable subscription = a.RxRxDistance(b, recorder);
 
         // Walk the tracked object across several grid cells, then push A as a region spanning
         // all of them: an observer left behind in a visited cell would be notified once per cell.
-        b.OnNext(Point(350, 350).STBuffer(5));
-        b.OnNext(Point(550, 550).STBuffer(5));
-        a.OnNext(Point(350, 350).STBuffer(250));
+        b.OnNext(Disc(350, 350, 5));
+        b.OnNext(Disc(550, 550, 5));
+        a.OnNext(Disc(350, 350, 250));
 
         recorder.Values.Count.ShouldBe(1);
     }
@@ -88,7 +88,9 @@ public class PlanarBackendSubscriptionTests
             QueueLimit = 64,
         };
 
-    private static SqlGeometry Point(double x, double y) => SqlGeometry.Point(x, y, 0);
+    private static PlanarPointShape Point(double x, double y) => new(x, y);
+
+    private static PlanarCircle Disc(double x, double y, double radius) => new(new PlanarPoint(x, y), radius);
 
     private sealed class Recorder<T> : IObserver<T>
     {

@@ -1,5 +1,5 @@
 using System.Reactive.Linq;
-using Microsoft.SqlServer.Types;
+using RxSpatial.Geo;
 
 namespace RxSpatial;
 
@@ -17,31 +17,29 @@ public static class RxGeometryObservable
         /// forwarded to direct subscribers when <see cref="RxSpatialOptions.IsVisualized"/> is
         /// <c>true</c> (the original RxSpatial behaviour).
         /// </summary>
-        public IObservable<SqlGeometry> Locations
-            => Observable.Create<SqlGeometry>(observer => source.Subscribe(observer));
+        public IObservable<PlanarShape> Locations
+            => Observable.Create<PlanarShape>(observer => source.Subscribe(observer));
 
         /// <summary>
-        /// Stream of Euclidean distances (in the geometries' coordinate units) from the moving
-        /// object to a stationary geometry, re-evaluated on every location update of the moving
-        /// object. A value is <see cref="double.NaN"/> when SQL Server cannot compute a
-        /// distance, e.g. different SRIDs or an empty geometry.
+        /// Stream of Euclidean distances (in the shapes' coordinate units) from the moving
+        /// object to a stationary shape, re-evaluated on every location update of the moving
+        /// object. A value is <see cref="double.NaN"/> when either shape is empty.
         /// </summary>
-        public IObservable<double> DistanceTo(SqlGeometry target)
+        public IObservable<double> DistanceTo(PlanarShape target)
             => Observable.Create<double>(observer => source.RxDistance(target, observer));
 
         /// <summary>
-        /// Stream of Euclidean distances (in the geometries' coordinate units) between two
-        /// moving objects, re-evaluated on every location update of the moving object. A value
-        /// is <see cref="double.NaN"/> when SQL Server cannot compute a distance, e.g.
-        /// different SRIDs or an empty geometry.
+        /// Stream of Euclidean distances (in the shapes' coordinate units) between two moving
+        /// objects, re-evaluated on every location update of the moving object. A value is
+        /// <see cref="double.NaN"/> when either shape is empty.
         /// </summary>
         public IObservable<double> DistanceTo(RxGeometry target)
             => Observable.Create<double>(observer => source.RxRxDistance(target, observer));
 
         /// <summary>
-        /// Stream of intersection tests between the moving object and a stationary geometry.
+        /// Stream of intersection tests between the moving object and a stationary shape.
         /// </summary>
-        public IObservable<bool> Intersects(SqlGeometry target)
+        public IObservable<bool> Intersects(PlanarShape target)
             => Observable.Create<bool>(observer => source.RxIntersect(target, observer));
 
         /// <summary>
@@ -51,15 +49,15 @@ public static class RxGeometryObservable
             => Observable.Create<bool>(observer => source.RxRxIntersect(target, observer));
 
         /// <summary>
-        /// Stream of intersection geometries between the moving object and a stationary geometry.
+        /// Stream of intersection shapes between the moving object and a stationary shape.
         /// </summary>
-        public IObservable<SqlGeometry> IntersectionWith(SqlGeometry target)
-            => Observable.Create<SqlGeometry>(observer => source.RxIntersection(target, observer));
+        public IObservable<PlanarShape> IntersectionWith(PlanarShape target)
+            => Observable.Create<PlanarShape>(observer => source.RxIntersection(target, observer));
 
         /// <summary>
-        /// Stream of intersection geometries between two moving objects.
+        /// Stream of intersection shapes between two moving objects.
         /// </summary>
-        public IObservable<SqlGeometry> IntersectionWith(RxGeometry target)
-            => Observable.Create<SqlGeometry>(observer => source.RxRxIntersection(target, observer));
+        public IObservable<PlanarShape> IntersectionWith(RxGeometry target)
+            => Observable.Create<PlanarShape>(observer => source.RxRxIntersection(target, observer));
     }
 }

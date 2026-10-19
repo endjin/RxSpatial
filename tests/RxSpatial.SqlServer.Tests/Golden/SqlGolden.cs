@@ -1,53 +1,33 @@
 using System.Data.SqlTypes;
 using System.Diagnostics;
 using Microsoft.SqlServer.Types;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RxSpatial.Tests.Golden;
 using static System.FormattableString;
 
-namespace RxSpatial.Tests.Golden;
+namespace RxSpatial.SqlServer.Tests.Golden;
 
 /// <summary>
-/// Records SQL Server's results for <see cref="GoldenCases"/> into <c>tests/golden/geodetic.json</c>
-/// and <c>tests/golden/planar.json</c>. It writes into the source tree, so it runs only when
-/// <c>RXSPATIAL_RECORD_GOLDEN=1</c>; otherwise it is reported as skipped.
+/// Evaluates golden cases with SQL Server (Microsoft.SqlServer.Types): the one place that
+/// turns a <see cref="GoldenShape"/> into a <see cref="SqlGeography"/> or
+/// <see cref="SqlGeometry"/> and reads back the results the golden files record. Used by the
+/// <see cref="GoldenValueRecorder"/> and the <see cref="GoldenValueGuardTests"/>.
 /// </summary>
-/// <remarks>
-/// Needs Windows: Microsoft.SqlServer.Types' spatial methods call a native library that ships
-/// only for Windows.
-/// </remarks>
-[TestClass]
-public class GoldenValueRecorder
+internal static class SqlGolden
 {
-    private const string Notes =
-        "Golden values recorded from SQL Server by tests/RxSpatial.Tests/Golden/GoldenValueRecorder.cs " +
-        "(set RXSPATIAL_RECORD_GOLDEN=1 and run the tests to re-record). Schema: see GoldenFile.cs. " +
-        "Circles are Point.STBuffer(radius): SQL Server approximates them with a 128-vertex polygon.";
+    /// <summary>The <c>source</c> recorded in the files: the Microsoft.SqlServer.Types version.</summary>
+    public static string Source
+        => "Microsoft.SqlServer.Types "
+           + FileVersionInfo.GetVersionInfo(typeof(SqlGeography).Assembly.Location).ProductVersion;
 
-    [TestMethod]
-    [EnvironmentVariableCondition("RXSPATIAL_RECORD_GOLDEN", "1")]
-    public void RecordGoldenValues()
-    {
-        string directory = Path.Combine(RepositoryRoot(), "tests", "golden");
-        Directory.CreateDirectory(directory);
-        string source = "Microsoft.SqlServer.Types " +
-            FileVersionInfo.GetVersionInfo(typeof(SqlGeography).Assembly.Location).ProductVersion;
+    /// <summary>A geodetic case (SqlGeography, SRID 4326) with SQL Server's results.</summary>
+    public static GoldenCase Geodetic(GoldenCases.Input input) => Record(input, ToSqlGeography);
 
-        GoldenFile geodetic = new(
-            GoldenFile.SchemaName,
-            "geodetic",
-            source + " SqlGeography, SRID 4326; metres and square metres",
-            Notes,
-            [.. GoldenCases.Geodetic().Select(c => Record(c, ToSqlGeography))]);
-        File.WriteAllText(Path.Combine(directory, "geodetic.json"), geodetic.ToJson());
+    /// <summary>A planar case (SqlGeometry, SRID 0) with SQL Server's results.</summary>
+    public static GoldenCase Planar(GoldenCases.Input input) => Record(input, ToSqlGeometry);
 
-        GoldenFile planar = new(
-            GoldenFile.SchemaName,
-            "planar",
-            source + " SqlGeometry, SRID 0; coordinate units",
-            Notes,
-            [.. GoldenCases.Planar().Select(c => Record(c, ToSqlGeometry))]);
-        File.WriteAllText(Path.Combine(directory, "planar.json"), planar.ToJson());
-    }
+    /// <summary>The inputs of a recorded case, for evaluating it again.</summary>
+    public static GoldenCases.Input InputOf(GoldenCase golden)
+        => new(golden.Id, golden.Category, golden.A, golden.B, golden.Clearance);
 
     private static GoldenCase Record(GoldenCases.Input input, Func<GoldenShape, ISqlShape> convert)
     {
@@ -96,18 +76,7 @@ public class GoldenValueRecorder
         => new(new SqlString(Invariant(
             $"POLYGON(({minX} {minY}, {maxX} {minY}, {maxX} {maxY}, {minX} {maxY}, {minX} {minY}))")));
 
-    private static string RepositoryRoot()
-    {
-        for (DirectoryInfo? directory = new(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "RxSpatial.slnx")))
-                return directory.FullName;
-        }
-
-        throw new InvalidOperationException("RxSpatial.slnx not found above the test assembly.");
-    }
-
-    /// <summary>The SQL Server operations the recorder needs, over geography and geometry alike.</summary>
+    /// <summary>The SQL Server operations the golden files need, over geography and geometry alike.</summary>
     private interface ISqlShape
     {
         double Distance(ISqlShape other);
