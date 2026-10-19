@@ -42,7 +42,9 @@ dotnet_diagnostic.CA1823.severity = warning
 
 # Rules above the Recommended analysis mode, each guarding a defect class this codebase has
 # actually shipped: culture-dependent formatting (the WKT bug), a discarded IDisposable (the
-# location-tracker leak), and an unqualified P/Invoke search path.
+# location-tracker leak), and an unqualified P/Invoke search path (the
+# GetSystemTimePreciseAsFileTime clock, since replaced by Stopwatch). No P/Invoke remains;
+# CA5392 stays on so that any future one names its search path.
 dotnet_diagnostic.CA1305.severity = warning
 dotnet_diagnostic.CA2000.severity = warning
 dotnet_diagnostic.CA5392.severity = warning
