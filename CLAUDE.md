@@ -68,7 +68,8 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
    Follow-ups: controls default to the ICDE 2017 / DEBS 2016 figure settings, including
    pre-watched pairs (aa8815d); window sized to the work area (bf9fe2d); darker out-of-range
    line (c838cf6); areas drawn by dragging in an explicit drawing mode, styled to keep the map
-   readable (slate hatch / purple dashed outline). The papers (ICDE full paper, DEBS and
+   readable (slate hatch / purple dashed outline); a live Spatial index selector on Geofence
+   (appsettings.json sets only its start/reset value). The papers (ICDE full paper, DEBS and
    SIGMOD demos) are in the authors' ZIP:
    homepage.cs.uri.edu/~ahendawi/materials/RxSpatilPublications.zip.
 
@@ -120,6 +121,11 @@ cost traded for scheduling that depends on pool state.
 - Windows FS is case-insensitive: case-only file renames need `git mv`.
 - WPF: shared slider handlers fire during InitializeComponent (Minimum coerces Value) before
   later tabs' named elements exist — cross-tab control access must be null-tolerant.
+- WPF Geofence Spatial index: the backend is baked into each `RxGeography`, so a switch sets
+  `RxSpatialOptions.Default.PreferredDataStruct` and calls `ClearAllVehicles()`; drawn areas
+  stay and `AddVehicle` re-subscribes each recreated vehicle (after its first push). The
+  handler acts only when `ActiveScenario` is Intersect, so `ApplyControlDefaults` checks the
+  reset button *after* assigning `ActiveScenario`; `ResetScenario` sets the backend itself.
 - MapLibre zoom uses the 512px-tile convention (one level lower than Bing/Leaflet).
 - WPF demo colours: `RxGeography` notifies location observers before zone observers, so
   `VehicleMarker.MoveTo` resets the marker to Blue and each query observer may only *raise*

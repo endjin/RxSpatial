@@ -16,9 +16,10 @@ public partial class MainWindow : Window
     private readonly ConnectionLines lines;
     private readonly MovingObjectManager fleet;
 
-    // The configured backend (RUM-tree by default) drives the intersect scenario; the
-    // distance-style tabs fall back to the list backend because spatial pruning would
-    // suppress their continuous distance streams.
+    // The appsettings.json backend (RUM-tree by default) is the Geofence tab's starting and
+    // reset index; its Spatial index buttons switch it live. The distance-style tabs always
+    // use the list backend because spatial pruning would suppress their continuous distance
+    // streams.
     private readonly RxGeographyDataStruct configuredBackend = RxSpatialOptions.Default.PreferredDataStruct;
 
     // The pressed area button while the map is in drawing mode; null when it is not.
@@ -326,6 +327,41 @@ public partial class MainWindow : Window
         DemoParameters.ObserveDistance = DemoParameters.DefaultObserveDistance(scenario);
         DemoParameters.VehicleCount = DemoParameters.DefaultVehicleCount;
         DemoParameters.ActiveScenario = scenario;
+
+        // After ActiveScenario: OnSpatialIndexChecked acts only on the Geofence tab, and
+        // ResetScenario assigns the backend itself.
+        SpatialIndexButton(configuredBackend).IsChecked = true;
+    }
+
+    private RadioButton SpatialIndexButton(RxGeographyDataStruct backend) => backend switch
+    {
+        RxGeographyDataStruct.List => IndexList,
+        RxGeographyDataStruct.HashMap => IndexGrid,
+        RxGeographyDataStruct.RTree => IndexRTree,
+        RxGeographyDataStruct.RumTree => IndexRumTree,
+        _ => throw new ArgumentOutOfRangeException(nameof(backend), backend, "Unknown spatial index."),
+    };
+
+    /// <summary>
+    /// A Geofence Spatial index button checked: rebuilds the vehicles on the new index (the
+    /// backend is baked into each RxGeography at construction). The drawn areas stay, and
+    /// each recreated vehicle subscribes to them as it reappears on the next traffic tick;
+    /// area drawing and the traffic timer are left alone.
+    /// </summary>
+    private void OnSpatialIndexChecked(object sender, RoutedEventArgs e)
+    {
+        // The constructor and tab resets check a button too (see ApplyControlDefaults); only a
+        // real change on the Geofence tab rebuilds the fleet. XAML loading checks none, but the
+        // managers are guarded all the same, as in the slider handlers.
+        RxGeographyDataStruct backend = (RxGeographyDataStruct)((RadioButton)sender).Tag;
+        if (fleet is null
+            || DemoParameters.ActiveScenario != Scenario.Intersect
+            || backend == RxSpatialOptions.Default.PreferredDataStruct)
+            return;
+
+        RxSpatialOptions.Default.PreferredDataStruct = backend;
+        ShowBackend();
+        fleet.ClearAllVehicles();
     }
 
     private static string DescribePresetPairs(IReadOnlyList<VehiclePair> pairs)
@@ -344,11 +380,12 @@ public partial class MainWindow : Window
         GuidanceNearVehicle.Visibility = VisibleWhen(scenario == Scenario.RxRxDistance);
         GuidanceConvoyLink.Visibility = VisibleWhen(scenario == Scenario.RxRxDistanceConnection);
 
-        string backend = DescribeBackend(RxSpatialOptions.Default.PreferredDataStruct);
-        BackendText.Text = scenario == Scenario.Intersect
-            ? $"Spatial index: {backend} (appsettings.json)"
-            : $"Spatial index: {backend}";
+        ShowBackend();
     }
+
+    /// <summary>Shows the backend the vehicles are built with in the guidance footer.</summary>
+    private void ShowBackend()
+        => BackendText.Text = $"Spatial index: {DescribeBackend(RxSpatialOptions.Default.PreferredDataStruct)}";
 
     // Collapsed, not Hidden: a hidden panel would still reserve its height.
     private static Visibility VisibleWhen(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
