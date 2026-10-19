@@ -13,6 +13,7 @@ dotnet build RxSpatial.slnx -c Release   # TreatWarningsAsErrors in Release; mus
 dotnet test -c Release                   # 142 MSTest tests, ~1s (MTP runner, opted in via global.json "test" key)
 dotnet run --project samples/RxSpatial.Examples -c Release   # end-to-end smoke: "All scenarios passed."
 dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*TreeIndexBenchmarks*"
+dotnet run --project benchmarks/RxSpatial.Experiments -c Release -- all   # ICDE 2017 Figs 6–12, ~45 min wall-clock
 ```
 
 Layout: `src/RxSpatial` (core), `src/RxSpatial.Index` (R*-tree + RUM-tree, zero deps),
@@ -90,6 +91,13 @@ management, artifacts output layout, global.json pins SDK + MSTest.Sdk.
     fixed per-shared-cell duplicate grid notifications. Public deltas: `ISpatialBackend<TShape,
     T>`, `Unsubscriber<TShape>`, `IMovingObject<TShape>`. `PlanarBackendBenchmarks` mirrors
     the geographic benchmark.
+11. ICDE 2017 §VI reproduction (Oct 2026): `benchmarks/RxSpatial.Experiments`, a paced
+    wall-clock harness (`service`, `fig6`…`fig12`, `all`, `--full`) writing CSV + summary.md to
+    `artifacts/experiments/`. SqlSpatial = List backend (the paper's own wording; a plain
+    STIntersects loop is within 8%). Reproduced: variant ordering, latency/max-load trends,
+    SqlSpatial/Grid drops (RUM 175× SqlSpatial at 200 ms vs the paper's 55×). Not resolvable:
+    R-tree vs RUM (both sub-ms, dispatch noise; both ≥ object cap). Not reproduced: Fig. 12
+    drops (load too light now). `AverageLatency` switched to total fractional ms.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
@@ -227,6 +235,12 @@ cost traded for scheduling that depends on pool state.
   `MSTest.*` or `Microsoft.Testing.*` anywhere (Include duplicates → NU1506; Update in a csproj is
   a no-op because the SDK's items are declared after the project body). Visual Studio's
   package-update UI writes exactly those `Update` blocks into the test csproj — delete them.
+- Experiments harness: a geography `STIntersects` (point vs STBuffer polygon) costs ~50 µs
+  and SqlServer.Types caps at ~80k/s machine-wide (~4× one thread, any GC mode), so List/Grid
+  multi-object figures are library-bound, not core-bound. Max-load probes must run well past
+  `QueueLimit` rounds (a buffer grows ≤1 per round) and also fail on mean latency > interval;
+  tree/grid subscription to a polygon costs ~0.2 ms (WKB envelope), hence parallel fleet
+  builds. Don't build while it runs (locked DLLs; and it measures wall-clock).
 - `LibraryImport` is not usable here: its generated stub requires `AllowUnsafeBlocks` across
   the assembly, which the single blittable P/Invoke does not justify.
 - Distance queries return `double` (the papers' signature, not the 2016 `SqlDouble`): a Null
