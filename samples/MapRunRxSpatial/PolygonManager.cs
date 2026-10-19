@@ -4,10 +4,12 @@ using Microsoft.SqlServer.Types;
 
 namespace MapRunRxSpatial;
 
-/// <summary>A named demo area: the backend geography plus its map shape id.</summary>
-internal sealed class DemoPolygon(string name, string shapeId, SqlGeography geography)
+/// <summary>A named demo area: the backend geography, its map shape id and what it means.</summary>
+internal sealed class DemoPolygon(string name, string shapeId, SqlGeography geography, AreaKind kind)
 {
     public string Name { get; } = name;
+
+    public AreaKind Kind { get; } = kind;
 
     /// <summary>Id of the visual shape on the MapLibre map.</summary>
     public string ShapeId { get; } = shapeId;
@@ -18,6 +20,9 @@ internal sealed class DemoPolygon(string name, string shapeId, SqlGeography geog
 /// <summary>Owns the demo's drawn areas (connection lines live in <see cref="ConnectionLines"/>).</summary>
 internal sealed class PolygonManager(MapLibreMap map)
 {
+    private const string RestrictedStroke = "orange";
+    private const string ConfinementStroke = "#6A1B9A";
+
     private readonly Dictionary<string, DemoPolygon> polygons = [];
     private int polygonCounter;
 
@@ -46,7 +51,10 @@ internal sealed class PolygonManager(MapLibreMap map)
         return SqlGeography.STPolyFromText(new SqlChars(new SqlString(wkt)), 4326);
     }
 
-    public DemoPolygon? AddPolygon(GeoPoint point1, GeoPoint point2)
+    /// <summary>Outline colour of an area of the given kind, also used for its drawing preview.</summary>
+    public static string StrokeColor(AreaKind kind) => kind == AreaKind.Confinement ? ConfinementStroke : RestrictedStroke;
+
+    public DemoPolygon? AddPolygon(GeoPoint point1, GeoPoint point2, AreaKind kind)
     {
         SqlGeography? geography = CreatePolygon(point1, point2);
         if (geography is null)
@@ -54,7 +62,7 @@ internal sealed class PolygonManager(MapLibreMap map)
 
         string name = Key(polygonCounter);
         string shapeId = $"area-{name}";
-        DemoPolygon polygon = new(name, shapeId, geography);
+        DemoPolygon polygon = new(name, shapeId, geography, kind);
         polygons.Add(name, polygon);
         polygonCounter++;
 
@@ -66,7 +74,14 @@ internal sealed class PolygonManager(MapLibreMap map)
             new GeoPoint(point2.Latitude, point1.Longitude),
             new GeoPoint(point1.Latitude, point1.Longitude),
         ];
-        map.SetPolygon(shapeId, ring, "orange", 2, 0.8, "orange", 0.4);
+
+        // Restricted areas keep the original solid orange; confinement areas get a dashed
+        // purple outline over a light fill, so the map stays readable inside a large one.
+        if (kind == AreaKind.Confinement)
+            map.SetPolygon(shapeId, ring, ConfinementStroke, 3, 0.9, "#CE93D8", 0.2, dashed: true);
+        else
+            map.SetPolygon(shapeId, ring, RestrictedStroke, 2, 0.8, RestrictedStroke, 0.4, dashed: false);
+
         return polygon;
     }
 

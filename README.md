@@ -62,7 +62,7 @@ Each tab starts with the settings of the matching figure in the RxSpatial papers
 | *Near vehicle* | 20 (fixed) | 5,000 m | 10–12, 15–16 | SIGMOD 2016 control panel (5,065.43 m); ICDE Fig. 4c pairs |
 | *Convoy link* | 20 (fixed) | 8,000 m | 4–18, 10–12, 7–9 | ICDE Fig. 5 / DEBS 2016 Fig. 3 |
 
-**Replay rate** is 25 updates/s on every tab. The papers do not give a consistent value (their screenshots show 1, 48 and 56 on a differently scaled slider), so this is a readable middle value. The papers give no area coordinates, so on the area tabs press **Add area** and click two corners on the map. The pre-set pairs are watched as soon as their vehicles appear after **Start**. To watch more pairs, choose a **First vehicle** and a **Second vehicle** and press **Watch pair**. On *Near vehicle*, **Watch all pairs** watches all 190 pairs: the self-join `RxRxDistance` of ICDE 2017 §V.B, which continuously evaluates the distance between every pair of cars (380 observers, because each pair is watched from both ends). Each vehicle then shows the colour of its nearest other vehicle. *Convoy link* does not offer this, because 190 connection lines would be unreadable. **Clear pairs** removes every pair, the pre-set pairs too, until the next tab switch.
+**Replay rate** is 25 updates/s on every tab. The papers do not give a consistent value (their screenshots show 1, 48 and 56 on a differently scaled slider), so this is a readable middle value. The papers give no area coordinates, so on the area tabs you draw them: press **Add area** (on *Inside area*, **Add: Restricted area** or **Add: Confinement area**) and click two corners on the map. *Inside area* has both kinds of zone from the restricted/confinement zone alert of ICDE 2017 Fig. 4a: an offender must stay out of every orange **restricted** area and inside a purple, dashed **confinement** area (a city or county; the DEBS 2016 §3.4 family locator's designated region for a child). Being inside any one confinement area is enough. The pre-set pairs are watched as soon as their vehicles appear after **Start**. To watch more pairs, choose a **First vehicle** and a **Second vehicle** and press **Watch pair**. On *Near vehicle*, **Watch all pairs** watches all 190 pairs: the self-join `RxRxDistance` of ICDE 2017 §V.B, which continuously evaluates the distance between every pair of cars (380 observers, because each pair is watched from both ends). Each vehicle then shows the colour of its nearest other vehicle. *Convoy link* does not offer this, because 190 connection lines would be unreadable. **Clear pairs** removes every pair, the pre-set pairs too, until the next tab switch.
 
 The *Convoy link* figure shows 9,935 m. On the recorded trajectories, pair 4–18 is beyond that distance only for the first few updates, so it would turn green almost at once. At 8,000 m, the pairs stay in the states the figure describes for most of the replay: 4–18 is gray (beyond the limit) 53% of the time, 10–12 is yellow (stable) 94% of the time, and 7–9 is green (near the limit) more often than any other colour (40%).
 
@@ -70,11 +70,11 @@ Colours, where *d* is the observe distance (a vehicle in several queries shows i
 
 | Colour | Area tabs (vehicle vs area) | Pair tabs (vehicle vs vehicle; *Convoy link* line) |
 | --- | --- | --- |
-| Blue | Not inside an area, or farther than *d* from one | Not watched |
+| Blue | No alert: outside every restricted area (and inside a confinement area, if any), or farther than *d* from an area | Not watched |
 | Gray | — | Watched, farther apart than *d* (dark dotted line) |
 | Green | Within *d* | Within *d*, near the limit (thin line) |
 | Yellow | Closer than 4/7 *d* | Closer than 4/7 *d*: stable working distance (thick line) |
-| Red | Inside an area | Closer than 1/7 *d*: the minimum safe distance is breached (thickest line) |
+| Red | Inside a restricted area, or outside every confinement area | Closer than 1/7 *d*: the minimum safe distance is breached (thickest line) |
 
 ## Using RxSpatial with System.Reactive v7
 

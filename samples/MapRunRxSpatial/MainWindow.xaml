@@ -101,8 +101,12 @@
                         <WrapPanel>
                             <Button Style="{StaticResource DemoButton}" Content="Start" Click="OnStartClick"/>
                             <Button x:Name="PauseResume2" Style="{StaticResource DemoButton}" Content="Pause" Click="OnPauseResumeClick"/>
-                            <Button Style="{StaticResource DemoButton}" Content="Add area" Click="OnAddAreaClick"/>
                             <Button Style="{StaticResource DemoButton}" Content="Clear areas" Click="OnClearClick"/>
+                        </WrapPanel>
+                        <WrapPanel>
+                            <TextBlock Text="Add:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,6,6,0"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Restricted area" Click="OnAddAreaClick"/>
+                            <Button Style="{StaticResource DemoButton}" Content="Confinement area" Click="OnAddConfinementAreaClick"/>
                         </WrapPanel>
                     </StackPanel>
                 </TabItem>
@@ -285,19 +289,31 @@
                     <StackPanel>
                         <StackPanel x:Name="GuidanceInsideArea">
                             <TextBlock Style="{StaticResource GuidanceHeading}"
-                                       Text="Inside area - an offender enters a restricted zone (RxIntersect)"/>
+                                       Text="Inside area - restricted and confinement zones (RxIntersect)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="1. Press Start. All 20 vehicles (numbered 0-19) replay recorded Seattle GPS trajectories at 25 updates/s, as in the DEBS 2016 Fig. 5 set-up; nothing moves until you press Start."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="2. Press Add area and click two corners on the map. Every vehicle gets a continuous RxIntersect query against each orange area."/>
+                                       Text="2. Press Add: Restricted area or Add: Confinement area and click two corners on the map. Every vehicle gets a continuous RxIntersect query against each area."/>
+                            <TextBlock Style="{StaticResource GuidanceText}"
+                                       Text="An offender must stay out of every restricted zone and inside a confinement zone, such as a city or county (ICDE 2017 Fig. 4a); a child must not leave a designated region (DEBS 2016 section 3.4). Being inside any one confinement area is enough."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
+                                <Rectangle Width="10" Height="10" Margin="0,3,6,0" VerticalAlignment="Top" DockPanel.Dock="Left"
+                                           Fill="#66FFA500" Stroke="Orange" StrokeThickness="1.5"/>
+                                <TextBlock TextWrapping="Wrap" Text="Orange area - restricted: a vehicle inside it turns red."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
+                                <Rectangle Width="10" Height="10" Margin="0,3,6,0" VerticalAlignment="Top" DockPanel.Dock="Left"
+                                           Fill="#33CE93D8" Stroke="#6A1B9A" StrokeThickness="1.5" StrokeDashArray="2 1"/>
+                                <TextBlock TextWrapping="Wrap" Text="Purple dashed area - confinement: a vehicle outside every confinement area turns red."/>
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/>
-                                <TextBlock TextWrapping="Wrap" Text="Blue - not inside any area."/>
+                                <TextBlock TextWrapping="Wrap" Text="Blue - no alert."/>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <Ellipse Style="{StaticResource LegendDot}" Fill="#D32F2F"/>
-                                <TextBlock TextWrapping="Wrap" Text="Red - inside an area (alert)."/>
+                                <TextBlock TextWrapping="Wrap" Text="Red - inside a restricted area or outside every confinement area (alert)."/>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceText}" Text="Clear areas removes every area and its queries."/>
                         </StackPanel>
@@ -306,7 +322,7 @@
                             <TextBlock Style="{StaticResource GuidanceHeading}"
                                        Text="Near area - an offender approaches a restricted zone (RxDistance)"/>
                             <TextBlock Style="{StaticResource GuidanceText}"
-                                       Text="1. Press Start, then Add area as on the first tab."/>
+                                       Text="1. Press Start, then Add area and click two corners on the map, as on the first tab."/>
                             <TextBlock Style="{StaticResource GuidanceText}"
                                        Text="2. Observe distance is pre-set to 4,600 m, the family-locator set-up of DEBS 2016 Fig. 4. Move it to widen or narrow the bands."/>
                             <TextBlock Style="{StaticResource SectionLabel}" Text="Legend"/>

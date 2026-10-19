@@ -70,10 +70,11 @@ internal sealed class MovingObjectManager
             StartTraffic();
     }
 
-    public void SubscribeIntersectToNewPolygon(string name, SqlGeography polygon)
+    /// <summary>Subscribes every vehicle to an area newly drawn on the Inside area tab, restricted or confinement.</summary>
+    public void SubscribeIntersectToNewPolygon(DemoPolygon area)
     {
         foreach (MovingObject vehicle in vehicles.Values)
-            vehicle.SubscribeIntersect(name, polygon);
+            vehicle.SubscribeIntersect(area);
     }
 
     public void SubscribeDistanceToNewPolygon(string name, SqlGeography polygon)
@@ -273,7 +274,7 @@ internal sealed class MovingObjectManager
         foreach (DemoPolygon polygon in polygons.Polygons)
         {
             if (DemoParameters.ActiveScenario == Scenario.Intersect)
-                vehicle.SubscribeIntersect(polygon.Name, polygon.Geography);
+                vehicle.SubscribeIntersect(polygon);
             else if (DemoParameters.ActiveScenario == Scenario.Distance)
                 vehicle.SubscribeDistance(polygon.Name, polygon.Geography);
         }

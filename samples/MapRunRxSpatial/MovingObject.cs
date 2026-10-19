@@ -13,6 +13,8 @@ internal sealed class MovingObject
     private readonly Dictionary<string, IDisposable> subscriptions = [];
     private readonly VehicleMarker marker;
     private readonly MarkerMovementObserver movementObserver;
+    private readonly HashSet<string> confinementKeys = [];
+    private bool insideConfinementThisPush;
 
     public MovingObject(int id, MapLibreMap map, ConnectionLines lines)
     {
@@ -25,13 +27,47 @@ internal sealed class MovingObject
     /// <summary>The moving object other vehicles subscribe against.</summary>
     public RxGeography Geography { get; }
 
-    public void PushLocation(SqlGeography location) => Geography.OnNext(location);
-
-    public void SubscribeIntersect(string name, SqlGeography polygon)
+    /// <summary>
+    /// Pushes a location and, once every observer has seen it, raises a confinement breach if
+    /// the vehicle has confinement areas and is inside none of them.
+    /// </summary>
+    /// <remarks>
+    /// The breach cannot be an inverted intersect observer ("not intersecting, so red"): tree
+    /// and grid backends only notify an observer whose zone bounds intersect the pushed
+    /// location, so a vehicle far outside a confinement area never hears from that area's
+    /// observer at all. Instead each push is bracketed: the flag is cleared, the
+    /// <see cref="ConfinementObserver"/>s set it if any area contains the vehicle, and the
+    /// decision is taken after <see cref="RxGeography.OnNext"/> returns. That relies on the
+    /// demo's visualised mode (forced in <see cref="App"/>), which notifies location and zone
+    /// observers synchronously inside OnNext, so the marker's reset to Blue has happened by then.
+    /// </remarks>
+    public void PushLocation(SqlGeography location)
     {
-        string key = AreaKey(name);
-        if (!subscriptions.ContainsKey(key))
-            subscriptions.Add(key, Geography.RxIntersect(polygon, new IntersectObserver(marker)));
+        insideConfinementThisPush = false;
+        Geography.OnNext(location);
+        if (confinementKeys.Count > 0 && !insideConfinementThisPush)
+            marker.ApplyColor(VehicleColor.Red);
+    }
+
+    /// <summary>
+    /// Watches an area with the observer its kind calls for: a restricted area alerts while
+    /// the vehicle is inside it, a confinement area contributes to the end-of-push breach check.
+    /// </summary>
+    public void SubscribeIntersect(DemoPolygon area)
+    {
+        string key = AreaKey(area.Name);
+        if (subscriptions.ContainsKey(key))
+            return;
+
+        if (area.Kind == AreaKind.Confinement)
+        {
+            subscriptions.Add(key, Geography.RxIntersect(area.Geography, new ConfinementObserver(marker, ReportInsideConfinement)));
+            confinementKeys.Add(key);
+        }
+        else
+        {
+            subscriptions.Add(key, Geography.RxIntersect(area.Geography, new IntersectObserver(marker)));
+        }
     }
 
     public void SubscribeDistance(string name, SqlGeography polygon)
@@ -63,6 +99,7 @@ internal sealed class MovingObject
             subscription.Dispose();
 
         subscriptions.Clear();
+        confinementKeys.Clear();
     }
 
     public void Remove()
@@ -70,6 +107,8 @@ internal sealed class MovingObject
         UnsubscribeAll();
         movementObserver.OnCompleted();
     }
+
+    private void ReportInsideConfinement() => insideConfinementThisPush = true;
 
     private static string AreaKey(string name) => "area:" + name;
 }

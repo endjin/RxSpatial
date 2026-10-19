@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private readonly RxGeographyDataStruct configuredBackend = RxSpatialOptions.Default.PreferredDataStruct;
 
     private bool isDrawingArea;
+    private AreaKind drawingKind;
     private GeoPoint? corner1;
     private GeoPoint? corner2;
     private bool isPaused;
@@ -79,11 +80,18 @@ public partial class MainWindow : Window
 
     private void OnStartClick(object sender, RoutedEventArgs e) => fleet.StartTraffic();
 
-    private void OnAddAreaClick(object sender, RoutedEventArgs e)
+    /// <summary>Add area (Near area) and Add: Restricted area (Inside area).</summary>
+    private void OnAddAreaClick(object sender, RoutedEventArgs e) => BeginAreaDrawing(AreaKind.Restricted);
+
+    /// <summary>Add: Confinement area (Inside area only).</summary>
+    private void OnAddConfinementAreaClick(object sender, RoutedEventArgs e) => BeginAreaDrawing(AreaKind.Confinement);
+
+    private void BeginAreaDrawing(AreaKind kind)
     {
         // Re-arming mid-draw must not leave the previous preview rectangle behind.
         map.RemoveShape(PreviewAreaShapeId);
         isDrawingArea = true;
+        drawingKind = kind;
         corner1 = null;
         corner2 = null;
     }
@@ -130,7 +138,7 @@ public partial class MainWindow : Window
         {
             corner2 = corner;
             map.RemoveShape(PreviewAreaShapeId);
-            AddArea(corner1.Value, corner2.Value);
+            AddArea(corner1.Value, corner2.Value, drawingKind);
             isDrawingArea = false;
             corner1 = null;
             corner2 = null;
@@ -153,16 +161,16 @@ public partial class MainWindow : Window
                 new GeoPoint(corner2.Latitude, corner1.Longitude),
                 new GeoPoint(corner1.Latitude, corner1.Longitude),
             ],
-            "orange", 2, false, 0.7);
+            PolygonManager.StrokeColor(drawingKind), 2, drawingKind == AreaKind.Confinement, 0.7);
 
-    private void AddArea(GeoPoint corner1, GeoPoint corner2)
+    private void AddArea(GeoPoint corner1, GeoPoint corner2, AreaKind kind)
     {
-        DemoPolygon? polygon = polygons.AddPolygon(corner1, corner2);
+        DemoPolygon? polygon = polygons.AddPolygon(corner1, corner2, kind);
         if (polygon is null)
             return;
 
         if (DemoParameters.ActiveScenario == Scenario.Intersect)
-            fleet.SubscribeIntersectToNewPolygon(polygon.Name, polygon.Geography);
+            fleet.SubscribeIntersectToNewPolygon(polygon);
         else if (DemoParameters.ActiveScenario == Scenario.Distance)
             fleet.SubscribeDistanceToNewPolygon(polygon.Name, polygon.Geography);
     }

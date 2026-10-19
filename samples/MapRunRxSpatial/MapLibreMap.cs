@@ -51,8 +51,8 @@ internal sealed class MapLibreMap(WebView2 webView)
 
     public void SetPolygon(
         string id, IEnumerable<GeoPoint> ring, string stroke, double strokeWidth, double strokeOpacity,
-        string fill, double fillOpacity)
-        => Send(new { cmd = "setPolygon", id, ring = ToCoordinates(ring), stroke, strokeWidth, strokeOpacity, fill, fillOpacity });
+        string fill, double fillOpacity, bool dashed)
+        => Send(new { cmd = "setPolygon", id, ring = ToCoordinates(ring), stroke, strokeWidth, strokeOpacity, fill, fillOpacity, dashed });
 
     public void RemoveShape(string id)
         => Send(new { cmd = "removeShape", id });

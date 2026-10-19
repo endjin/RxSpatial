@@ -126,6 +126,11 @@ cost traded for scheduling that depends on pool state.
 - WPF demo pairs: an RxRx observer fires only when its *own* vehicle moves, so both
   directions of a pair are subscribed; the connection line is keyed by `VehiclePair` and
   upserted by `ConnectionLines` (one MapLibre line per pair, not per observer).
+- WPF demo confinement zones (Inside area): the breach ("outside every confinement area") is
+  decided at the end of `MovingObject.PushLocation`, not by an inverted intersect observer —
+  tree/grid backends prune notifications to observers whose zone bounds meet the pushed
+  location, so a far-outside vehicle never hears from the zone. `ConfinementObserver`s set a
+  per-push flag; this relies on visualised mode notifying synchronously inside `OnNext`.
 - The WPF demo requires `IsVisualized=true` (WebView2 must be driven from the UI thread and
   buffered mode notifies from the pool); `App.OnStartup` forces it over appsettings.json.
 - Residual uncovered `RStarCore` lines are defensive-by-invariant (single-chain condense,

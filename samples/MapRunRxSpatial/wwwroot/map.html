@@ -128,6 +128,7 @@
           id: 'l-' + m.id, type: 'line', source: 's-' + m.id,
           paint: { 'line-color': m.stroke, 'line-width': m.strokeWidth, 'line-opacity': m.strokeOpacity }
         });
+        if (m.dashed) map.setPaintProperty('l-' + m.id, 'line-dasharray', [2, 2]);
       }
     }
 
