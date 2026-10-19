@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="RxSpatial.Tests" />
+    <!-- The benchmarks time internal steps (convexity validation) on their own. -->
+    <InternalsVisibleTo Include="RxSpatial.Benchmarks" />
   </ItemGroup>
 
 </Project>

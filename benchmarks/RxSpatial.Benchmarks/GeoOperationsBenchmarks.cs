@@ -37,6 +37,12 @@ public class GeoOperationsBenchmarks
     public GeoBounds BoundsOfCircle() => GeoOperations.Bounds(fence);
 
     [Benchmark]
+    public GeoBounds BoundsOfPolygon() => GeoOperations.Bounds(zone);
+
+    [Benchmark]
+    public GeoBounds BoundsOfPoint() => GeoOperations.Bounds(route);
+
+    [Benchmark]
     public bool IntersectsPointInCircle_Guarded() => GeoOperations.Intersects(fence, inside);
 
     [Benchmark]
