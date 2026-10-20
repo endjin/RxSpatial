@@ -171,6 +171,15 @@ project; Linux/macOS build the cross-platform projects by path and run RxSpatial
     KB/tick, UI 5.5 → 2.6 ms/tick); MapLibre data-driven repaints capped at 60/s (renderer
     104 → 42%, GPU 131 → 37% on Overlap at the same rate); replay on its own clock (25/50
     updates/s achieved instead of 21/32). 5-minute tab-switch soak: no managed or DOM growth.
+15. WPF demo memory pass (Oct 2026; acf3944..54ce6cf). Breakdown (VMMap per category, eeheap,
+    gcdump, GPU Process Memory counters, CDP): managed heap ~7 MB live (trajectories 0.6 MB),
+    CLR total 28-47 MB; the rest was native. Kept: WPF software rendering (app private
+    171-180 → 85 MB on Overlap, 135 → 79 idle, threads 47 → 25, app GPU memory 66-94 → 0);
+    V8 `--max-semi-space-size=2` (renderer ~200 → ~105 MB on Overlap/Convoy, same CPU);
+    `TieredPGO=false` (−4 MB code/loader heap); hide map + `MemoryUsageTargetLevel.Low` while
+    minimised (WebView2 WS 613 → 101 MB, renderer CPU 42 → 7%); Geo Intersection scratch
+    rings (Overlap allocation 7.7 → 5.6 MB/s, bit-identical). Rejected with numbers: see
+    Gotchas (WPF demo memory).
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
@@ -325,6 +334,25 @@ cost traded for scheduling that depends on pool state.
   `TotalProcessorTime`: Windows charges thread time per 15.6 ms clock tick, and a ~1.5 ms burst
   right after each timer interrupt is almost never charged. The UI-automation perf harness
   (scenarios, CDP page metrics, soak) lives outside the repo in `%TEMP%\rxspatial-wpf-perf`.
+- WPF demo memory (history item 15): the app renders in software
+  (`RenderOptions.ProcessRenderMode` in `App.OnStartup`) because WPF only draws the panel and
+  a D3D9 swap chain for a 4K work-area window cost ~70 MB private + 65-90 MB GPU memory; never
+  switch it back without measuring. The page's V8 young generation is capped by
+  `MapLibreMap.BrowserArguments`; WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS is *merged* with it
+  (both on the renderer command line), so the harness's debug port does not drop the cap.
+  Minimising hides the WebView2 (`SetMinimized`): a minimised window alone does not, and the
+  page kept rendering at full rate. Measured and rejected: `gcConcurrent=0` and
+  `GCConserveMemory` (no change); `GCgen0size=4MB` (−7 MB but 3.3× gen0 GCs, and only the
+  env var works: `System.GC.Gen0Size` in runtimeconfig is ignored); `TieredCompilation=false`
+  (−3 MB more than PGO-off but un-tiered R2R code, send +3-6%); `--in-process-gpu` (frame
+  rate fell to 67-105/s, browser process 90% CPU); semi-space 1 MB (renderer CPU +25%);
+  tracking prevention off (−3 MB, a privacy feature); `maxTileCacheSize: 40` (within the
+  ±15 MB run-to-run noise of the GPU process); compact trajectory structs (0.4 MB saved for
+  +40 B per push). Memory rules for measuring: never take a full `dotnet-dump` before a
+  measurement in the same process (reading memory faults it into the target's working set:
+  app WS jumped 200 → 600 MB); VMMap (`vmmap -accepteula -p <pid> out.csv`) is the native
+  breakdown (`dotnet-dump maddress` is unsupported on Windows dumps); MapLibre's worker heap
+  is not in the page's CDP metrics (worker targets did not answer `Runtime.getHeapUsage`).
 - The WPF demo requires `IsVisualized=true` (WebView2 must be driven from the UI thread and
   buffered mode notifies from the pool); `App.OnStartup` forces it over appsettings.json.
 - Residual uncovered `RStarCore` lines are defensive-by-invariant (single-chain condense,
