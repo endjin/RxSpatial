@@ -428,7 +428,7 @@ RxSpatialOptions.Default =
 
 ## Modernisation notes (2026)
 
-The profiling-driven performance and memory improvements (spatial index, `RxSpatial.Geo`, and the WPF demo's CPU and memory passes) are recorded with their before/after measurements in [docs/performance.md](docs/performance.md).
+A summary of every change since the 2016 code is in [CHANGELOG.md](CHANGELOG.md). The profiling-driven performance and memory improvements (spatial index, `RxSpatial.Geo`, and the WPF demo's CPU and memory passes) are recorded with their before/after measurements in [docs/performance.md](docs/performance.md).
 
 The codebase was originally built in 2014-2016 against .NET Framework 4.0/4.5 and no longer compiled from a fresh clone (machine-specific assembly hint paths, missing binaries, TFS bindings). It has been modernised in two passes — first a faithful migration, then a restructure to current standards:
 
