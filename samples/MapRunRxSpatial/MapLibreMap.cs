@@ -24,6 +24,20 @@ namespace MapRunRxSpatial;
 /// </remarks>
 internal sealed class MapLibreMap
 {
+    /// <summary>
+    /// Caps V8's young generation (each semi-space) at 2 MB, in the page and in MapLibre's
+    /// worker. The page builds fresh GeoJSON for every overlay source on every frame, and V8
+    /// sized the young generation for that short-lived garbage (page heap ~63 MB for ~22 MB
+    /// live): the renderer process sat at ~200 MB on the Overlap and Convoy link tabs, ~100 MB
+    /// with the cap, for the same renderer CPU (scavenges stay cheap; little survives them).
+    /// 1 MB saved no more and cost renderer CPU.
+    /// </summary>
+    /// <remarks>
+    /// WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS (the perf harness sets a remote-debugging port) is
+    /// merged with these arguments, not replaced by them: both reach the browser process.
+    /// </remarks>
+    private const string BrowserArguments = "--js-flags=--max-semi-space-size=2";
+
     private readonly WebView2 webView;
 
     // The batch in send order. An upsert of something already in the batch replaces its entry
@@ -63,7 +77,11 @@ internal sealed class MapLibreMap
 
     public async Task InitializeAsync()
     {
-        await webView.EnsureCoreWebView2Async();
+        CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(
+            browserExecutableFolder: null,
+            userDataFolder: null,
+            new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = BrowserArguments });
+        await webView.EnsureCoreWebView2Async(environment);
         webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
             "maprun.local",
             Path.Combine(AppContext.BaseDirectory, "wwwroot"),
