@@ -162,6 +162,15 @@ project; Linux/macOS build the cross-platform projects by path and run RxSpatial
     circle–polygon Intersects decided in that plane (1,036 → 173 ns); point-in-polygon guarded
     by `Wgs84.FastOffset` with a 2×-measured bound (54 → 28 ns); `ToVertices(shape, Span)`
     overloads (0 B). Vincenty itself and backend push rows unchanged.
+14. WPF demo performance pass (Oct 2026; e1895a4..b055ed9). Profiled with a UI-automation
+    harness (dotnet-counters on a new `MapRunRxSpatial` meter, dotnet-trace, dotnet-gcdump,
+    DevTools metrics/profiles over CDP, cycle-counted CPU). The queries were never the cost
+    (UI thread ≤15%); the WebView2 renderer and GPU processes were, at >1 core each on
+    Overlap/Convoy link. One web message per tick with merged, changed-only commands written
+    by Utf8JsonWriter (Overlap: 72 msgs / 87 KB → 1 / 35 KB per tick, allocation 490 → 160
+    KB/tick, UI 5.5 → 2.6 ms/tick); MapLibre data-driven repaints capped at 60/s (renderer
+    104 → 42%, GPU 131 → 37% on Overlap at the same rate); replay on its own clock (25/50
+    updates/s achieved instead of 21/32). 5-minute tab-switch soak: no managed or DOM growth.
 
 ## Performance: before / after (N=1000, Release, BenchmarkDotNet + 90s soak)
 
@@ -268,7 +277,7 @@ cost traded for scheduling that depends on pool state.
   `new GeoCircle(position, Reach)` instead of the `GeoPointShape`, and the marker goes to the
   `VehicleFix` kept alongside the push (`MarkerMovementObserver` ignores the pushed value). The
   fix carries that same `GeoCircle`; `MapLibreMap.SetMarker` sends its outline
-  (`GeoOperations.ToVertices`, 64 segments to keep 25 Hz × 20 markers' messages small) and
+  (`OutlineWriter`, `ToVertices` span overload, 64 segments to keep 50 Hz × 20 markers' messages small) and
   map.html draws it — map.html no longer computes circles. `VehiclePairConnectionObserver`
   draws only when `other.Location is GeoPointShape`, true because Convoy link pushes points.
   Lenses (`RxRxIntersection`) and zone overlaps (`RxIntersection`) are upserted per
@@ -287,6 +296,35 @@ cost traded for scheduling that depends on pool state.
   doubles (see `MovingObjectManager.LoadTrajectories`). Drawn areas are
   `GeoPolygon.Rectangle`; `PolygonManager.CreatePolygon` returns null (area ignored) for a
   degenerate drag or one wider than 500 km.
+- WPF demo map traffic is one web message per dispatcher operation: `MapLibreMap` queues
+  `MapCommand`s and posts the batch (a JSON array) from a `DispatcherPriority.Normal` callback
+  after the tick or click handler returns. Never post per command again (a tick used to send
+  25–70 messages). Upserts with the same (kind, id) replace one another in place; a removal
+  nulls the pending upsert and is appended, so per-id order holds. `MarkerCommand` is one
+  object per marker and writes only what changed (label once, style when it differs from the
+  last one sent, position/reach on a move) — map.html's `setMarker` treats every field as
+  optional, and there is no `setMarkerColor` command any more. Outlines (reach, lens, zone
+  overlap) travel as integer micro-degree deltas (`OutlineWriter.WriteRing` ↔ `decodeRing`),
+  bit-identical to the old `Math.Round(x, 6)` decimals (10M-value check: 0 mismatches).
+- WPF demo map.html caps *data-driven* repaints at 60/s by wrapping `map.triggerRepaint`
+  (full rate while `map.isMoving()`). MapLibre repaints every frame while a GeoJSON source
+  reloads, and this laptop's display runs at 240 Hz, so Overlap/Convoy redrew ~220×/s and the
+  renderer and GPU processes each burned >1 core. Render-bound costs therefore scale with the
+  display refresh rate (Windows dynamic refresh changes it between sessions: the same baseline
+  measured 41% then 120% renderer CPU) — always run baseline and candidate back-to-back and
+  record the rAF rate alongside.
+- WPF demo replay timer keeps its own `Stopwatch` schedule (`MovingObjectManager.OnTimer`):
+  DispatcherTimer fires on the 15.6 ms system tick, so a fixed 40/20 ms interval gave 21/32
+  updates/s for a requested 25/50. A late firing runs the due tick(s) (max 3) and shortens
+  the next interval.
+- WPF demo metrics: the `MapRunRxSpatial` meter (`DemoMetrics`: tick and send duration
+  histograms and busy ms, ticks, pushes, web messages and chars). `dotnet-counters collect -n
+  MapRunRxSpatial --counters System.Runtime,MapRunRxSpatial --format csv`. Tick time excludes
+  the batch send since batching (`maprun.web.send.*`); compare tick+send, or UI-thread CPU.
+  Measure UI-thread CPU with cycle counters (`QueryThreadCycleTime`), not
+  `TotalProcessorTime`: Windows charges thread time per 15.6 ms clock tick, and a ~1.5 ms burst
+  right after each timer interrupt is almost never charged. The UI-automation perf harness
+  (scenarios, CDP page metrics, soak) lives outside the repo in `%TEMP%\rxspatial-wpf-perf`.
 - The WPF demo requires `IsVisualized=true` (WebView2 must be driven from the UI thread and
   buffered mode notifies from the pool); `App.OnStartup` forces it over appsettings.json.
 - Residual uncovered `RStarCore` lines are defensive-by-invariant (single-chain condense,
