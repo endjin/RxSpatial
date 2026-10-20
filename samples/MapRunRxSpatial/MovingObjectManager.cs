@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Windows.Threading;
@@ -22,6 +23,9 @@ internal sealed class MovingObjectManager
 {
     private const int TrajectoryCount = 20;
 
+    /// <summary>Catch-up limit: a firing runs at most this many due ticks (see <see cref="OnTimer"/>).</summary>
+    private const int MaxTicksPerFiring = 3;
+
     private readonly Dictionary<int, MovingObject> vehicles = [];
     private readonly TrajectoryCursor[] trajectories = new TrajectoryCursor[TrajectoryCount];
     private readonly MapLibreMap map;
@@ -29,8 +33,11 @@ internal sealed class MovingObjectManager
     private readonly ConnectionLines lines;
     private readonly OverlapShapes overlaps;
     private readonly List<VehiclePair> pendingPairs = [];
+    private readonly Stopwatch clock = new();
     private PairQuery pendingPairsQuery;
     private DispatcherTimer? timer;
+    private TimeSpan tickPeriod;
+    private TimeSpan nextTickDue;
     private int previousVehicleCount = -1;
 
     public MovingObjectManager(MapLibreMap map, PolygonManager polygons, ConnectionLines lines, OverlapShapes overlaps)
@@ -61,11 +68,11 @@ internal sealed class MovingObjectManager
         // Stop any running timer first: repeated Start clicks must not stack timers
         // (each stacked timer would multiply the traffic speed).
         StopTraffic();
-        timer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(DemoParameters.MovementIntervalMilliseconds),
-        };
-        timer.Tick += OnTick;
+        tickPeriod = TimeSpan.FromMilliseconds(DemoParameters.MovementIntervalMilliseconds);
+        nextTickDue = tickPeriod;
+        clock.Restart();
+        timer = new DispatcherTimer { Interval = tickPeriod };
+        timer.Tick += OnTimer;
         timer.Start();
         TrafficStarted = true;
     }
@@ -253,7 +260,33 @@ internal sealed class MovingObjectManager
         _ => TrajectoryOperation.None,
     };
 
-    private void OnTick(object? sender, EventArgs e)
+    /// <summary>
+    /// Runs the replay ticks that are due, then waits for the next one. A DispatcherTimer fires
+    /// only on the system timer's 15.6 ms grid, so a fixed 40 ms interval really ran every
+    /// 46.9 ms (21 updates/s when 25 were asked for) and 20 ms every 31.2 ms (32 for 50). The
+    /// replay keeps its own schedule instead: a late firing runs the tick it was late for, the
+    /// next interval is shortened to make up for it, and the requested rate holds on average.
+    /// </summary>
+    private void OnTimer(object? sender, EventArgs e)
+    {
+        for (int ran = 0; clock.Elapsed >= nextTickDue; ran++)
+        {
+            if (ran == MaxTicksPerFiring)
+            {
+                // Far behind (the UI thread was blocked): carry on from now rather than race.
+                nextTickDue = clock.Elapsed + tickPeriod;
+                break;
+            }
+
+            Tick();
+            nextTickDue += tickPeriod;
+        }
+
+        TimeSpan untilNext = nextTickDue - clock.Elapsed;
+        ((DispatcherTimer)sender!).Interval = untilNext > TimeSpan.Zero ? untilNext : TimeSpan.Zero;
+    }
+
+    private void Tick()
     {
         long start = DemoMetrics.BeginTick();
         if (previousVehicleCount == -1)
