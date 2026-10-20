@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
 using Microsoft.Extensions.Configuration;
 using RxSpatial;
 
@@ -32,6 +34,15 @@ public partial class App : Application
         // WebView2 map facade must be driven from the UI thread, and buffered mode notifies
         // zone observers from the thread pool.
         RxSpatialOptions.Default.IsVisualized = true;
+
+        // WPF draws only the control panel: the map is a WebView2 child window, rendered by its
+        // own GPU process. Hardware rendering gave WPF a Direct3D 9 device and swap chain for a
+        // window sized to the work area: ~70 MB of private memory (driver heaps and mapped GPU
+        // buffers), 65-90 MB of shared GPU memory and two dozen driver threads, for a panel
+        // that redraws a few small rectangles a second. Software rendering draws the same panel
+        // (only glyph and corner anti-aliasing differs, by at most a few levels) at no measurable
+        // CPU cost. Set before the first window exists, so no device is created.
+        RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
         // Before the main window (StartupUri) is created, so it never draws the failing colours.
         AccessibleTheme.Apply(this);
