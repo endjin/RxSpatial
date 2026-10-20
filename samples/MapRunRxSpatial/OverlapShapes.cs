@@ -22,14 +22,14 @@ internal enum OverlayKind
 /// </summary>
 internal sealed class OverlapShapes(MapLibreMap map)
 {
-    private readonly HashSet<VehiclePair> lenses = [];
+    // Each drawn lens's shape id, kept rather than formatted again on every update.
+    private readonly Dictionary<VehiclePair, string> lenses = [];
     private readonly HashSet<string> zoneOverlaps = [];
 
     /// <summary>Draws (or, when the reaches no longer overlap, removes) the pair's lens.</summary>
     public void UpdateLens(VehiclePair pair, GeoShape lens)
     {
-        List<double[][][]> polygons = PolygonsOf(lens);
-        if (polygons.Count == 0)
+        if (!HasArea(lens))
         {
             RemoveLens(pair);
             return;
@@ -40,28 +40,32 @@ internal sealed class OverlapShapes(MapLibreMap map)
         double squareKilometres = GeoOperations.Area(lens) / 1e6;
         string label = squareKilometres.ToString("N2", CultureInfo.CurrentCulture) + " km²";
 
-        lenses.Add(pair);
-        map.SetOverlay(OverlayKind.Lens, pair.ShapeId, polygons, label);
+        if (!lenses.TryGetValue(pair, out string? shapeId))
+        {
+            shapeId = pair.ShapeId;
+            lenses.Add(pair, shapeId);
+        }
+
+        map.SetOverlay(OverlayKind.Lens, shapeId, lens, label);
     }
 
     public void RemoveLens(VehiclePair pair)
     {
-        if (lenses.Remove(pair))
-            map.RemoveOverlay(OverlayKind.Lens, pair.ShapeId);
+        if (lenses.Remove(pair, out string? shapeId))
+            map.RemoveOverlay(OverlayKind.Lens, shapeId);
     }
 
     /// <summary>Shades (or, when it is empty, removes) the part of a vehicle's reach inside a zone.</summary>
     public void UpdateZoneOverlap(string id, GeoShape overlap)
     {
-        List<double[][][]> polygons = PolygonsOf(overlap);
-        if (polygons.Count == 0)
+        if (!HasArea(overlap))
         {
             RemoveZoneOverlap(id);
             return;
         }
 
         zoneOverlaps.Add(id);
-        map.SetOverlay(OverlayKind.ZoneOverlap, id, polygons, label: null);
+        map.SetOverlay(OverlayKind.ZoneOverlap, id, overlap, label: null);
     }
 
     public void RemoveZoneOverlap(string id)
@@ -72,8 +76,8 @@ internal sealed class OverlapShapes(MapLibreMap map)
 
     public void ClearLenses()
     {
-        foreach (VehiclePair pair in lenses)
-            map.RemoveOverlay(OverlayKind.Lens, pair.ShapeId);
+        foreach (string shapeId in lenses.Values)
+            map.RemoveOverlay(OverlayKind.Lens, shapeId);
 
         lenses.Clear();
     }
@@ -93,14 +97,11 @@ internal sealed class OverlapShapes(MapLibreMap map)
     }
 
     /// <summary>
-    /// An intersection result as GeoJSON MultiPolygon coordinates: one polygon with a single
-    /// ring. <see cref="GeoOperations.Intersection"/> of two convex regions is one convex
-    /// region — a polygon (a lens's arcs come as vertices at most 2π/128 apart), or the whole
-    /// of a contained disc or rectangle — so there are never holes or several parts. An empty
-    /// result has no polygons; nor has a touching-only result, a point that covers no area.
+    /// Whether an intersection result covers an area, so the map draws it as one ring.
+    /// <see cref="GeoOperations.Intersection"/> of two convex regions is one convex region — a
+    /// polygon (a lens's arcs come as vertices at most 2π/128 apart), or the whole of a
+    /// contained disc or rectangle — so there are never holes or several parts. An empty
+    /// result covers none; nor does a touching-only result, a point.
     /// </summary>
-    private static List<double[][][]> PolygonsOf(GeoShape region)
-        => region is GeoPolygon or GeoCircle
-            ? [[MapLibreMap.Ring(GeoOperations.ToVertices(region))]]
-            : [];
+    private static bool HasArea(GeoShape region) => region is GeoPolygon or GeoCircle;
 }

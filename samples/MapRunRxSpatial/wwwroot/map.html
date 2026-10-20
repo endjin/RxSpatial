@@ -298,11 +298,26 @@
       return { lngLat: tip, anchor };
     }
 
+    // An outline from C# (OutlineWriter.WriteRing): integer micro-degrees, the first vertex
+    // absolute and each later one as the step from the one before, [lon0, lat0, dLon1, dLat1, ...].
+    // Returns the closed GeoJSON ring of [longitude, latitude] pairs.
+    function decodeRing(steps) {
+      const ring = [];
+      let lon = 0, lat = 0;
+      for (let i = 0; i < steps.length; i += 2) {
+        lon += steps[i]; lat += steps[i + 1];
+        ring.push([lon / 1e6, lat / 1e6]);
+      }
+      ring.push(ring[0]);
+      return ring;
+    }
+
+    // A region is one convex ring (OverlapShapes in C#), drawn as a MultiPolygon of one polygon.
     function setOverlay(m) {
-      const geometry = m.polygons.length ? { type: 'MultiPolygon', coordinates: m.polygons } : null;
-      setOverlayFeature(m.kind, m.id, geometry);
-      if (!geometry || !m.label) { removeOverlayLabel(m.id); return; }
-      const placement = lensLabelPlacement(m.polygons);
+      const polygons = [[decodeRing(m.ring)]];
+      setOverlayFeature(m.kind, m.id, { type: 'MultiPolygon', coordinates: polygons });
+      if (!m.label) { removeOverlayLabel(m.id); return; }
+      const placement = lensLabelPlacement(polygons);
       let label = overlayLabels.get(m.id);
       if (!label || label.getElement().dataset.anchor !== placement.anchor) {
         removeOverlayLabel(m.id);
@@ -315,7 +330,9 @@
       } else {
         label.setLngLat(placement.lngLat);
       }
-      label.getElement().textContent = m.label;
+      // Rewriting unchanged text would still restyle the pill.
+      const el = label.getElement();
+      if (el.textContent !== m.label) el.textContent = m.label;
     }
 
     function labelOffset(anchor) {
@@ -436,9 +453,13 @@
       map.fitBounds([[m.west, m.south], [m.east, m.north]], { padding: 48, bearing: 0, duration: viewDuration() });
     }
 
+    // A marker update carries only what changed (MarkerCommand in C#): the label once, when
+    // the marker is created; lat/lon and reach when it moves; the style fields when the state
+    // changes. Every DOM write restyles the marker, so nothing unchanged is rewritten.
     function setMarker(m) {
       let marker = markers.get(m.id);
       if (!marker) {
+        if (m.lat === undefined) return;
         const el = document.createElement('div');
         el.className = 'vehicle-marker';
         const label = document.createElement('span');
@@ -446,18 +467,15 @@
         marker = new maplibregl.Marker({ element: el, anchor: 'center' });
         marker.setLngLat([m.lon, m.lat]).addTo(map);
         markers.set(m.id, marker);
-      } else {
+      } else if (m.lat !== undefined) {
         marker.setLngLat([m.lon, m.lat]);
       }
-      marker.getElement().querySelector('span').textContent = m.label;
-      applyMarkerStyle(marker, m);
-      // The reach ring comes from C# (GeoOperations.ToVertices of the pushed GeoCircle).
-      setOverlayFeature('reach', m.id, m.reach ? { type: 'Polygon', coordinates: [m.reach] } : null);
-    }
-
-    function setMarkerColor(m) {
-      const marker = markers.get(m.id);
-      if (marker) applyMarkerStyle(marker, m);
+      if (m.label !== undefined) marker.getElement().querySelector('span').textContent = m.label;
+      if (m.fill !== undefined) applyMarkerStyle(marker, m);
+      // The reach ring comes from C# (GeoOperations.ToVertices of the pushed GeoCircle); null removes it.
+      if (m.reach !== undefined) {
+        setOverlayFeature('reach', m.id, m.reach ? { type: 'Polygon', coordinates: [decodeRing(m.reach)] } : null);
+      }
     }
 
     // Fill, border and label colours travel together (a light fill needs a dark label), and
@@ -546,11 +564,15 @@
       if (label) { label.remove(); areaLabels.delete(m.id); }
     }
 
+    // C# posts one message per dispatcher operation (a traffic tick, a click): an array of
+    // commands, applied in order (MapLibreMap batches them).
     window.chrome.webview.addEventListener('message', (ev) => {
-      const m = ev.data;
+      for (const m of ev.data) handleCommand(m);
+    });
+
+    function handleCommand(m) {
       switch (m.cmd) {
         case 'setMarker': setMarker(m); break;
-        case 'setMarkerColor': setMarkerColor(m); break;
         case 'removeMarker': removeMarker(m); break;
         case 'setLine': setLine(m); break;
         case 'setArea': drawArea(m.id, m.kind, m, false); break;
@@ -562,7 +584,7 @@
         case 'fitBounds': fitView(m); break;
         case 'resetView': map.easeTo({ ...DEFAULT_VIEW, bearing: 0, pitch: 0, duration: viewDuration() }); break;
       }
-    });
+    }
   </script>
 </body>
 </html>

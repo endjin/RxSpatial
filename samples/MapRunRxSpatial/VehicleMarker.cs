@@ -11,6 +11,7 @@ namespace MapRunRxSpatial;
 internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lines, OverlapShapes overlaps)
 {
     private readonly string markerId = $"obj-{id}";
+    private readonly string label = id.ToString(CultureInfo.InvariantCulture);
     private readonly HashSet<VehiclePair> pairs = [];
     private readonly HashSet<VehiclePair> lensPairs = [];
     private readonly HashSet<string> zoneOverlapIds = [];
@@ -64,7 +65,7 @@ internal sealed class VehicleMarker(int id, MapLibreMap map, ConnectionLines lin
         position = fix.Centre;
         color = VehicleColor.Blue;
         visible = true;
-        map.SetMarker(markerId, id.ToString(CultureInfo.InvariantCulture), position, color.Style, fix.Reach);
+        map.SetMarker(markerId, label, position, color.Style, fix.Reach);
     }
 
     public void Remove()

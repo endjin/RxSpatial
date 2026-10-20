@@ -32,6 +32,12 @@ internal static class DemoMetrics
     private static readonly Counter<long> WebMessageChars = Meter.CreateCounter<long>(
         "maprun.web.chars", "{char}", "Characters of JSON posted to the map (bytes, for the ASCII the demo sends).");
 
+    private static readonly Histogram<double> SendDuration = Meter.CreateHistogram<double>(
+        "maprun.web.send.duration", "ms", "Time the UI thread spends writing and posting one batch of map commands.");
+
+    private static readonly Counter<double> SendBusy = Meter.CreateCounter<double>(
+        "maprun.web.send.busy", "ms", "UI-thread time spent writing and posting map commands after the ticks.");
+
     /// <summary>A timestamp to pass to <see cref="EndTick"/>; 0 (and no clock read) while nobody listens.</summary>
     public static long BeginTick() => TickDuration.Enabled ? Stopwatch.GetTimestamp() : 0;
 
@@ -48,9 +54,19 @@ internal static class DemoMetrics
 
     public static void Push() => Pushes.Add(1);
 
-    public static void WebMessage(string json)
+    /// <summary>A timestamp to pass to <see cref="EndSend"/>; 0 (and no clock read) while nobody listens.</summary>
+    public static long BeginSend() => SendDuration.Enabled ? Stopwatch.GetTimestamp() : 0;
+
+    /// <summary>Counts a posted batch; <paramref name="start"/> is from <see cref="BeginSend"/>.</summary>
+    public static void EndSend(long start, string json)
     {
         WebMessages.Add(1);
         WebMessageChars.Add(json.Length);
+        if (start != 0)
+        {
+            double milliseconds = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+            SendDuration.Record(milliseconds);
+            SendBusy.Add(milliseconds);
+        }
     }
 }

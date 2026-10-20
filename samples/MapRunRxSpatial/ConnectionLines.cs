@@ -21,25 +21,31 @@ internal readonly record struct ConnectionLineStyle(string Color, double Width, 
 /// </summary>
 internal sealed class ConnectionLines(MapLibreMap map)
 {
-    private readonly HashSet<VehiclePair> drawn = [];
+    // Each drawn pair's shape id, kept rather than formatted again on every update.
+    private readonly Dictionary<VehiclePair, string> drawn = [];
 
     public void Update(VehiclePair pair, GeoPoint a, GeoPoint b, DistanceBand band)
     {
         ConnectionLineStyle style = ConnectionLineStyle.For(band);
-        drawn.Add(pair);
-        map.SetLine(pair.ShapeId, [a, b], style.Color, style.Width, style.Dotted, style.Opacity);
+        if (!drawn.TryGetValue(pair, out string? shapeId))
+        {
+            shapeId = pair.ShapeId;
+            drawn.Add(pair, shapeId);
+        }
+
+        map.SetLine(shapeId, a, b, style.Color, style.Width, style.Dotted, style.Opacity);
     }
 
     public void Remove(VehiclePair pair)
     {
-        if (drawn.Remove(pair))
-            map.RemoveShape(pair.ShapeId);
+        if (drawn.Remove(pair, out string? shapeId))
+            map.RemoveShape(shapeId);
     }
 
     public void Clear()
     {
-        foreach (VehiclePair pair in drawn)
-            map.RemoveShape(pair.ShapeId);
+        foreach (string shapeId in drawn.Values)
+            map.RemoveShape(shapeId);
 
         drawn.Clear();
     }

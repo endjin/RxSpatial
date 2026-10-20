@@ -1,5 +1,8 @@
+using System.Buffers;
 using System.IO;
+using System.Text;
 using System.Text.Json;
+using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using RxSpatial.Geo;
@@ -8,21 +11,38 @@ namespace MapRunRxSpatial;
 
 /// <summary>
 /// A thin C# facade over MapLibre GL JS running in a WebView2 (see wwwroot/map.html).
-/// Commands are posted as JSON web messages; map events (ready, areaDrawn, drawCancelled)
-/// come back the same way. Commands sent before the map finishes loading are queued.
+/// Commands are batched: everything sent during one dispatcher operation (a traffic tick, a
+/// click) is posted as a single JSON web message, an array of commands, once that operation
+/// has finished. Within a batch, updates to the same marker, line or overlay are merged, so
+/// the map sees only their final state. Map events (ready, areaDrawn, drawCancelled) come back
+/// as web messages. Commands sent before the map finishes loading wait in the batch.
 /// All members must be used from the UI thread (a WebView2 requirement).
 /// </summary>
-internal sealed class MapLibreMap(WebView2 webView)
+/// <remarks>
+/// One message per tick rather than one per command: each web message costs an IPC hop, a
+/// message event and a JSON parse in the page, and a tick used to send 25-70 of them.
+/// </remarks>
+internal sealed class MapLibreMap
 {
-    /// <summary>
-    /// Vertices of a drawn reach circle: as many as map.html drew itself before, which keeps
-    /// the twenty markers' messages small at 25 updates a second. The chord sag at the 3 km
-    /// maximum reach is under 4 m, finer than a pixel at the Overlap tab's zoom.
-    /// </summary>
-    private const int ReachSegments = 64;
+    private readonly WebView2 webView;
 
-    private readonly List<string> pending = [];
+    // The batch in send order. An upsert of something already in the batch replaces its entry
+    // in place; a removal clears the entry (null) and is appended, so the commands for any one
+    // id keep their order.
+    private readonly List<MapCommand?> batch = [];
+    private readonly Dictionary<CommandKey, int> batchIndex = [];
+    private readonly Dictionary<string, MarkerCommand> markers = [];
+    private readonly OutlineWriter outlines = new();
+    private readonly ArrayBufferWriter<byte> json = new(16 * 1024);
+    private readonly Action flush;
+    private bool flushScheduled;
     private bool ready;
+
+    public MapLibreMap(WebView2 webView)
+    {
+        this.webView = webView;
+        flush = Flush;
+    }
 
     /// <summary>
     /// Raised with the kind and two opposite corners (south-west, north-east) when the user
@@ -32,6 +52,14 @@ internal sealed class MapLibreMap(WebView2 webView)
 
     /// <summary>Raised when the user cancels drawing mode in the map (Esc or a right-click).</summary>
     public event Action? DrawCancelled;
+
+    private enum CommandKind
+    {
+        Marker,
+        Shape,
+        Lens,
+        ZoneOverlap,
+    }
 
     public async Task InitializeAsync()
     {
@@ -47,24 +75,38 @@ internal sealed class MapLibreMap(WebView2 webView)
     /// <summary>
     /// Places (or moves) a vehicle marker. A non-null <paramref name="reach"/> also draws the
     /// vehicle's reach circle (the Overlap tab); null removes it. The circle's outline comes
-    /// from <see cref="GeoOperations.ToVertices(GeoShape, int)"/>, so it is exactly the disc the queries use.
+    /// from <see cref="GeoOperations.ToVertices(GeoShape, Span{GeoPoint}, int)"/>, so it is exactly the disc the queries use.
     /// </summary>
     public void SetMarker(string id, string label, GeoPoint position, MarkerStyle style, GeoCircle? reach)
-        => Send(new
+    {
+        if (!markers.TryGetValue(id, out MarkerCommand? marker))
         {
-            cmd = "setMarker", id, label, lat = position.Latitude, lon = position.Longitude,
-            fill = style.Fill, border = style.Border, text = style.Text, shape = style.Shape,
-            reach = reach is null ? null : Ring(GeoOperations.ToVertices(reach, ReachSegments)),
-        });
+            marker = new MarkerCommand(id, label);
+            markers.Add(id, marker);
+        }
+
+        marker.Move(position, style, reach);
+        Upsert(new CommandKey(CommandKind.Marker, id), marker);
+    }
 
     public void SetMarkerColor(string id, MarkerStyle style)
-        => Send(new { cmd = "setMarkerColor", id, fill = style.Fill, border = style.Border, text = style.Text, shape = style.Shape });
+    {
+        // A marker not on the map has no colour to change (map.html ignored it too).
+        if (!markers.TryGetValue(id, out MarkerCommand? marker))
+            return;
+
+        marker.Style = style;
+        Upsert(new CommandKey(CommandKind.Marker, id), marker);
+    }
 
     public void RemoveMarker(string id)
-        => Send(new { cmd = "removeMarker", id });
+    {
+        markers.Remove(id);
+        Remove(new CommandKey(CommandKind.Marker, id), new { cmd = "removeMarker", id });
+    }
 
-    public void SetLine(string id, IEnumerable<GeoPoint> points, string color, double width, bool dashed, double opacity)
-        => Send(new { cmd = "setLine", id, points = ToCoordinates(points), color, width, dashed, opacity });
+    public void SetLine(string id, GeoPoint from, GeoPoint to, string color, double width, bool dashed, double opacity)
+        => Upsert(new CommandKey(CommandKind.Shape, id), new LineCommand(id, from, to, color, width, dashed, opacity));
 
     /// <summary>
     /// Draws a finished area between two opposite corners, styled by its kind (the styles live
@@ -82,7 +124,7 @@ internal sealed class MapLibreMap(WebView2 webView)
 
     /// <summary>Removes a line or an area (and the area's label).</summary>
     public void RemoveShape(string id)
-        => Send(new { cmd = "removeShape", id });
+        => Remove(new CommandKey(CommandKind.Shape, id), new { cmd = "removeShape", id });
 
     /// <summary>
     /// Enters drawing mode: a left drag draws a rectangle of the given kind instead of panning.
@@ -111,15 +153,16 @@ internal sealed class MapLibreMap(WebView2 webView)
         => Send(new { cmd = "resetView" });
 
     /// <summary>
-    /// Draws (or redraws) a query-result region styled by its kind (OVERLAY_STYLES in map.html):
-    /// <paramref name="polygons"/> are GeoJSON MultiPolygon coordinates. A non-null
-    /// <paramref name="label"/> is shown in a pill beside the region, clear of the markers.
+    /// Draws (or redraws) a query-result region styled by its kind (OVERLAY_STYLES in map.html)
+    /// from the outline of <paramref name="region"/>, a <see cref="GeoPolygon"/> or
+    /// <see cref="GeoCircle"/> (one convex ring). A non-null <paramref name="label"/> is shown
+    /// in a pill beside the region, clear of the markers.
     /// </summary>
-    public void SetOverlay(OverlayKind kind, string id, List<double[][][]> polygons, string? label)
-        => Send(new { cmd = "setOverlay", kind = OverlayName(kind), id, polygons, label });
+    public void SetOverlay(OverlayKind kind, string id, GeoShape region, string? label)
+        => Upsert(new CommandKey(OverlayCommandKind(kind), id), new OverlayCommand(OverlayName(kind), id, region, label));
 
     public void RemoveOverlay(OverlayKind kind, string id)
-        => Send(new { cmd = "removeOverlay", kind = OverlayName(kind), id });
+        => Remove(new CommandKey(OverlayCommandKind(kind), id), new { cmd = "removeOverlay", kind = OverlayName(kind), id });
 
     private static string KindName(AreaKind kind) => kind switch
     {
@@ -144,52 +187,70 @@ internal sealed class MapLibreMap(WebView2 webView)
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown overlay kind."),
     };
 
-    private static List<double[]> ToCoordinates(IEnumerable<GeoPoint> points)
+    private static CommandKind OverlayCommandKind(OverlayKind kind)
+        => kind == OverlayKind.Lens ? CommandKind.Lens : CommandKind.ZoneOverlap;
+
+    private void Send(object command) => Append(new SerializedCommand(command));
+
+    /// <summary>Adds or replaces the batch's command for <paramref name="key"/>.</summary>
+    private void Upsert(CommandKey key, MapCommand command)
     {
-        // GeoJSON uses [longitude, latitude] ordering.
-        List<double[]> coordinates = [];
-        foreach (GeoPoint point in points)
-            coordinates.Add([point.Longitude, point.Latitude]);
-
-        return coordinates;
-    }
-
-    /// <summary>
-    /// A closed GeoJSON linear ring ([longitude, latitude], first point repeated last) through
-    /// <paramref name="vertices"/>, rounded to about 0.1 m to keep the web messages small.
-    /// </summary>
-    public static double[][] Ring(IReadOnlyList<GeoPoint> vertices)
-    {
-        double[][] ring = new double[vertices.Count + 1][];
-        for (int i = 0; i < vertices.Count; i++)
-            ring[i] = [Math.Round(vertices[i].Longitude, 6), Math.Round(vertices[i].Latitude, 6)];
-
-        ring[^1] = ring[0];
-        return ring;
-    }
-
-    private void Send(object command)
-    {
-        string json = JsonSerializer.Serialize(command);
-        if (!ready)
+        if (batchIndex.TryGetValue(key, out int index))
         {
-            // If the map never becomes ready (no network for the MapLibre CDN or the
-            // tile server), the queue must not grow without bound under the once-a-second
-            // vehicle updates; later messages are mostly upserts, so drop the oldest.
-            if (pending.Count >= 4096)
-                pending.RemoveAt(0);
-
-            pending.Add(json);
+            batch[index] = command;
             return;
         }
 
-        Post(json);
+        batchIndex.Add(key, batch.Count);
+        Append(command);
     }
 
-    private void Post(string json)
+    /// <summary>Drops the batch's pending upsert for <paramref name="key"/>, if any, and appends the removal.</summary>
+    private void Remove(CommandKey key, object command)
     {
-        DemoMetrics.WebMessage(json);
-        webView.CoreWebView2.PostWebMessageAsJson(json);
+        if (batchIndex.Remove(key, out int index))
+            batch[index] = null;
+
+        Send(command);
+    }
+
+    private void Append(MapCommand command)
+    {
+        batch.Add(command);
+
+        // Flushed once the current dispatcher operation (the tick or the click handler) has
+        // returned; Normal runs before the next tick, which the timer raises at Background.
+        // Before the map is ready the batch just grows; upserts are merged, so it is bounded
+        // by the number of vehicles, pairs and zones plus the user's own actions.
+        if (!flushScheduled && ready)
+        {
+            flushScheduled = true;
+            webView.Dispatcher.BeginInvoke(DispatcherPriority.Normal, flush);
+        }
+    }
+
+    private void Flush()
+    {
+        flushScheduled = false;
+        if (batch.Count == 0)
+            return;
+
+        long start = DemoMetrics.BeginSend();
+        json.ResetWrittenCount();
+        using (Utf8JsonWriter writer = new(json))
+        {
+            writer.WriteStartArray();
+            foreach (MapCommand? command in batch)
+                command?.Write(writer, outlines);
+
+            writer.WriteEndArray();
+        }
+
+        batch.Clear();
+        batchIndex.Clear();
+        string message = Encoding.UTF8.GetString(json.WrittenSpan);
+        webView.CoreWebView2.PostWebMessageAsJson(message);
+        DemoMetrics.EndSend(start, message);
     }
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -219,10 +280,7 @@ internal sealed class MapLibreMap(WebView2 webView)
         {
             case "ready":
                 ready = true;
-                foreach (string json in pending)
-                    Post(json);
-
-                pending.Clear();
+                Flush();
                 break;
 
             case "areaDrawn":
@@ -242,4 +300,7 @@ internal sealed class MapLibreMap(WebView2 webView)
                 break;
         }
     }
+
+    /// <summary>What a batch entry is about: commands with the same key replace one another.</summary>
+    private readonly record struct CommandKey(CommandKind Kind, string Id);
 }
