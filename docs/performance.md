@@ -26,6 +26,13 @@ Measured at N = 1000 with BenchmarkDotNet, plus a 90 s soak:
 
 The checksum per operation in the soak was identical to six digits, confirming the search semantics did not change.
 
+Notes:
+- **The vendored update baseline was a Guttman R-tree.** Its ChooseSubtree is cheaper, but its trees are worse for queries. The rewrite pays for the R\* overlap criterion and gets better trees.
+- **Query cost was never the bottleneck.** An intersection query took about 64 ns vendored and about 70 ns / 46 B after the rewrite; the buffered overload allocates 0 B.
+- **Local move vs teleport.** The ratio was measured in a single run (946 vs 2,256 ns), because absolute numbers are not comparable across runs on this machine.
+- **Test line coverage** went from 60.9 % to 82.9 % for the core and stayed at 96 % for the index (coverage cycle `c7f1a31`).
+- **Headline:** the optimisations reversed the first finding. Memo-based lazy deletion (RUM) now beats direct R\* remove and insert (0.60×), which supports the paper's thesis. The R\*-tree with the in-place fast path wins tracking workloads outright.
+
 ## 2. Buffered push path (`871ca57`)
 
 The drainer for buffered location pushes is now dispatched to the thread pool instead of `new Thread(...)` per burst. A push-wait-push cycle went from 438/442/411 µs to 182/165/247 µs (three runs each), about 2× faster.
