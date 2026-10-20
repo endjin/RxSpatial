@@ -80,7 +80,7 @@ project; Linux/macOS build the cross-platform projects by path and run RxSpatial
   areas 0.15 %; intersects agree > 0.5 m from a boundary); `GoldenValueGuardTests` (Windows)
   checks live SQL Server still matches the JSON. GeographicLib.NET is a test-only oracle.
 
-## Modernisation history (July–October 2026, per-phase commits on master)
+## Modernisation history (July–October 2026, per-phase commits on main)
 
 1. .NET 10 + System.Reactive 7 + Microsoft.SqlServer.Types 170.x migration; load/memory test
    apps replaced with BenchmarkDotNet suite.
@@ -213,7 +213,7 @@ cost traded for scheduling that depends on pool state.
 
 ## Gotchas and conventions
 
-- **Never push** without being asked; commit per logical phase on master.
+- **Never push** without being asked; commit per logical phase on main.
 - `RxSpatialOptions.Default` is process-global → tests run sequentially by design.
 - Tree/grid backends: `RxGeography.Location` is null until the first `OnNext` push, so
   RxRx subscriptions before a first push fail (preserved original behaviour). Tests that
