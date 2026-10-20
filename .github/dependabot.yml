@@ -1,0 +1,20 @@
+version: 2
+updates:
+# NuGet: Directory.Packages.props (central package management) and the MSTest.Sdk entry in
+# global.json's "msbuild-sdks", which versions the whole MSTest / Microsoft.Testing.Platform stack.
+- package-ecosystem: nuget
+  directory: /
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
+  groups:
+    # Released together; one PR instead of four. Grouped PRs are not auto-merged (pr-autoflow
+    # parses only single-package "Bump X from A to B" titles), so this group is always reviewed.
+    microsoft-extensions:
+      patterns:
+      - Microsoft.Extensions.*
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
