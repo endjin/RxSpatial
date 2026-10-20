@@ -98,6 +98,9 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>The replay keeps running while minimised; only the map stops drawing (see <see cref="MapLibreMap.SetMinimized"/>).</summary>
+    private void OnStateChanged(object? sender, EventArgs e) => map.SetMinimized(WindowState == WindowState.Minimized);
+
     private void OnStartClick(object sender, RoutedEventArgs e) => fleet.StartTraffic();
 
     /// <summary>

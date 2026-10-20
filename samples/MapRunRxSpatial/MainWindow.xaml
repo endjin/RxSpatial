@@ -5,7 +5,7 @@
         xmlns:rx="clr-namespace:RxSpatial;assembly=RxSpatial"
         Title="MapRun RxSpatial" Height="880" Width="1300" MinHeight="600" MinWidth="900"
         FontFamily="Segoe UI Variable Text, Segoe UI"
-        WindowStartupLocation="CenterScreen" Loaded="OnLoaded" KeyDown="OnWindowKeyDown">
+        WindowStartupLocation="CenterScreen" Loaded="OnLoaded" KeyDown="OnWindowKeyDown" StateChanged="OnStateChanged">
     <!-- The Fluent theme (App.xaml ThemeMode) supplies the control styles and the theme brushes
          used below, which are DynamicResource so they follow the theme dictionary. Shared
          styles come first: a missing StaticResource key fails when the window is created, not

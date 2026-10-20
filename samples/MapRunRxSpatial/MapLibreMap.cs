@@ -2,6 +2,7 @@ using System.Buffers;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
@@ -88,6 +89,25 @@ internal sealed class MapLibreMap
             CoreWebView2HostResourceAccessKind.Deny);
         webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
         webView.CoreWebView2.Navigate("https://maprun.local/map.html");
+    }
+
+    /// <summary>
+    /// Hides the map while the window is minimised, and asks WebView2 to keep its memory low.
+    /// A minimised window does not hide a WebView2, so the page went on drawing the map at the
+    /// display rate (renderer ~45%, GPU process ~35% of a core on the Overlap tab) with its
+    /// memory resident. Hidden, the page stops drawing and Chromium releases its frame
+    /// resources; the low memory target trims the processes' working sets (~535 to ~105 MB on
+    /// the Overlap tab). Commands keep flowing, so the map is current when it is shown again.
+    /// </summary>
+    public void SetMinimized(bool minimized)
+    {
+        webView.Visibility = minimized ? Visibility.Hidden : Visibility.Visible;
+        if (webView.CoreWebView2 is { } core)
+        {
+            core.MemoryUsageTargetLevel = minimized
+                ? CoreWebView2MemoryUsageTargetLevel.Low
+                : CoreWebView2MemoryUsageTargetLevel.Normal;
+        }
     }
 
     /// <summary>
