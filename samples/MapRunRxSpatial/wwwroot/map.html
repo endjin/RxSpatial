@@ -142,6 +142,25 @@
     });
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 
+    // MapLibre redraws on every animation frame while a GeoJSON source is reloading, and the
+    // sources here (reach circles, lenses, zone overlaps, convoy lines) change on every replay
+    // tick. On a high-refresh display (240 Hz on the development laptop) the whole map was
+    // redrawn ~220 times a second for data that changes at most 50 times a second, and the
+    // renderer and GPU processes each used more than a core. Repaints are therefore capped at
+    // 60 a second, except while the map moves (pan, zoom, fitBounds), which keeps full rate.
+    const MIN_REPAINT_MS = 1000 / 60;
+    {
+      const repaint = map.triggerRepaint.bind(map);
+      let lastRepaint = 0, deferred = 0;
+      map.triggerRepaint = () => {
+        if (map.isMoving()) { lastRepaint = performance.now(); repaint(); return; }
+        if (deferred) return;
+        const wait = lastRepaint + MIN_REPAINT_MS - performance.now();
+        if (wait <= 0) { lastRepaint = performance.now(); repaint(); return; }
+        deferred = setTimeout(() => { deferred = 0; lastRepaint = performance.now(); repaint(); }, wait);
+      };
+    }
+
     const post = (m) => window.chrome.webview.postMessage(m);
     const markers = new Map();    // id -> maplibregl.Marker
     const areaLabels = new Map(); // area id -> maplibregl.Marker (its corner label)
