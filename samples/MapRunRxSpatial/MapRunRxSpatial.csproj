@@ -6,6 +6,10 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>MapRunRxSpatial</RootNamespace>
     <AssemblyName>MapRunRxSpatial</AssemblyName>
+    <!-- Dynamic PGO instruments hot methods and keeps their profiles and an extra tier of
+         code: ~4 MB of code and loader heap (CLR total 39.7 -> 35.6 MB on the Overlap tab)
+         with no measurable effect on tick, send or UI-thread time in this demo. -->
+    <TieredPGO>false</TieredPGO>
   </PropertyGroup>
 
   <ItemGroup>
