@@ -20,6 +20,24 @@ internal static class ConvexMath
     /// <summary>The smallest turn, in radians, that a user-supplied ring may make the wrong way.</summary>
     private const double ConcavityTolerance = 1e-9;
 
+    // Per-thread working rings for the ring builders (Clip, LensRing, CircleRingBoundary). Every
+    // caller copies the result into the shape it returns, so the lists are reused instead of
+    // allocating two to four KB per Intersection; they only ever grow to the largest ring built.
+    [ThreadStatic]
+    private static List<PlanarPoint>? scratch;
+
+    [ThreadStatic]
+    private static List<PlanarPoint>? scratchSwap;
+
+    /// <summary>This thread's <paramref name="list"/>, emptied, with room for <paramref name="capacity"/> vertices.</summary>
+    private static List<PlanarPoint> Scratch(ref List<PlanarPoint>? list, int capacity)
+    {
+        list ??= new(capacity);
+        list.Clear();
+        list.EnsureCapacity(capacity);
+        return list;
+    }
+
     /// <summary>Twice the signed area of the triangle (a, b, p): positive when p is left of a→b.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double Cross(PlanarPoint a, PlanarPoint b, PlanarPoint p)
@@ -165,13 +183,14 @@ internal static class ConvexMath
     /// <summary>
     /// Sutherland–Hodgman: the part of the convex ring <paramref name="subject"/> inside the
     /// convex counter-clockwise ring <paramref name="clip"/>. The result runs counter-clockwise
-    /// and may have fewer than three vertices when the rings only touch or are disjoint.
+    /// and may have fewer than three vertices when the rings only touch or are disjoint. The
+    /// list is this thread's scratch ring: valid until the next ring builder runs, so copy it.
     /// </summary>
     public static List<PlanarPoint> Clip(ReadOnlySpan<PlanarPoint> subject, ReadOnlySpan<PlanarPoint> clip)
     {
-        List<PlanarPoint> output = new(subject.Length + clip.Length);
+        List<PlanarPoint> output = Scratch(ref scratch, subject.Length + clip.Length);
         output.AddRange(subject);
-        List<PlanarPoint> input = new(output.Count);
+        List<PlanarPoint> input = Scratch(ref scratchSwap, output.Count);
         for (int i = 0, j = clip.Length - 1; i < clip.Length && output.Count > 0; j = i++)
         {
             PlanarPoint a = clip[j];
@@ -218,6 +237,7 @@ internal static class ConvexMath
     /// The vertices of the lens where two overlapping discs intersect (neither containing the
     /// other), counter-clockwise: the arc of disc 1 inside disc 2, then the arc of disc 2
     /// inside disc 1. Arc vertices lie on the circles, no more than 2π/<paramref name="segments"/> apart.
+    /// The list is this thread's scratch ring (see <see cref="Clip"/>).
     /// </summary>
     public static List<PlanarPoint> LensRing(PlanarPoint c1, double r1, PlanarPoint c2, double r2, int segments)
     {
@@ -229,7 +249,7 @@ internal static class ConvexMath
         double alpha1 = Math.Acos(Math.Clamp(along / r1, -1, 1));
         double alpha2 = Math.Acos(Math.Clamp((d - along) / r2, -1, 1));
 
-        List<PlanarPoint> ring = new(segments + 2);
+        List<PlanarPoint> ring = Scratch(ref scratch, segments + 2);
         AddArc(ring, c1, r1, axis - alpha1, 2 * alpha1, segments, includeEnds: true);
         AddArc(ring, c2, r2, axis + Math.PI - alpha2, 2 * alpha2, segments, includeEnds: false);
         return ring;
@@ -258,12 +278,13 @@ internal static class ConvexMath
     /// crosses: the ring's vertices inside the disc, the crossing points, and arc vertices no
     /// more than 2π/<paramref name="segments"/> apart between each exit and the next entry.
     /// Returns null when the ring's boundary never crosses the circle; then the ring lies
-    /// inside the disc, the disc inside the ring, or they are disjoint or only touch.
+    /// inside the disc, the disc inside the ring, or they are disjoint or only touch. The list
+    /// is this thread's scratch ring (see <see cref="Clip"/>).
     /// </summary>
     public static List<PlanarPoint>? CircleRingBoundary(PlanarPoint center, double radius, ReadOnlySpan<PlanarPoint> ring, int segments)
     {
         double radiusSquared = radius * radius;
-        List<PlanarPoint> output = new(ring.Length + segments + 2);
+        List<PlanarPoint> output = Scratch(ref scratch, ring.Length + segments + 2);
         double pendingExit = double.NaN;
         int firstEntryIndex = -1;
         bool crossed = false;

@@ -95,6 +95,52 @@ public class AllocationTests
         allocated.ShouldBe(0, $"sink {sink}");
     }
 
+    /// <summary>
+    /// Intersection allocates its result (the polygon and its vertex and edge arrays) and nothing
+    /// else: the working rings are per-thread scratch lists and projections are stack buffers.
+    /// </summary>
+    [TestMethod]
+    public void Intersection_AllocatesOnlyItsResult()
+    {
+        GeoCircle reach = new(new(47.6100, -122.3500), 1_500);
+        GeoCircle other = new(new(47.6150, -122.3400), 1_500);
+        GeoPolygon zone = GeoPolygon.Rectangle(47.600, -122.370, 47.618, -122.330);
+        GeoPolygon overlapping = GeoPolygon.Rectangle(47.610, -122.350, 47.630, -122.320);
+        (GeoShape A, GeoShape B)[] pairs = [(reach, other), (reach, zone), (zone, overlapping)];
+        foreach ((GeoShape a, GeoShape b) in pairs)
+        {
+            GeoOperations.Intersection(a, b);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            GeoPolygon result = GeoOperations.Intersection(a, b).ShouldBeOfType<GeoPolygon>();
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            // The result: two 16-byte vertex arrays and an 8-byte edge-length array, plus the polygon
+            // object, its array headers and its plane (a working ring alone would be 2 KB more).
+            long resultBytes = (result.VertexSpan.Length * 40L) + 512;
+            allocated.ShouldBeLessThanOrEqualTo(resultBytes, $"{a} / {b}");
+        }
+    }
+
+    /// <summary>The scratch rings never leak into a result: earlier results and other threads' results stay intact.</summary>
+    [TestMethod]
+    public void Intersection_ResultsAreIndependentOfLaterCallsAndThreads()
+    {
+        GeoCircle reach = new(new(47.6100, -122.3500), 1_500);
+        GeoPolygon zone = GeoPolygon.Rectangle(47.600, -122.370, 47.618, -122.330);
+        GeoPolygon lens = (GeoPolygon)GeoOperations.Intersection(reach, new GeoCircle(new(47.6150, -122.3400), 1_500));
+        GeoPoint[] lensVertices = lens.VertexSpan.ToArray();
+        GeoOperations.Intersection(reach, zone);
+        GeoOperations.Intersection(zone, GeoPolygon.Rectangle(47.610, -122.350, 47.630, -122.320));
+        lens.VertexSpan.ToArray().ShouldBe(lensVertices);
+
+        GeoCircle[] discs = [.. Enumerable.Range(0, 64).Select(i => new GeoCircle(new(47.600 + (i * 0.0005), -122.36 + (i * 0.0004)), 800 + (i * 10)))];
+        GeoPoint[][] sequential = [.. discs.Select(d => GeoOperations.ToVertices(GeoOperations.Intersection(d, zone)))];
+        GeoPoint[][] parallel = new GeoPoint[discs.Length][];
+        Parallel.For(0, discs.Length, i => parallel[i] = GeoOperations.ToVertices(GeoOperations.Intersection(discs[i], zone)));
+        for (int i = 0; i < discs.Length; i++)
+            parallel[i].ShouldBe(sequential[i]);
+    }
+
     [TestMethod]
     [DynamicData(nameof(PlanarPairs))]
     public void PlanarHotPaths_AllocateNothing(PlanarShape a, PlanarShape b)

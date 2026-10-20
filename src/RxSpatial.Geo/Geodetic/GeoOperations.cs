@@ -574,33 +574,56 @@ public static class GeoOperations
     private static GeoShape CirclePolygon(GeoCircle c, GeoPolygon polygon)
     {
         LocalPlane plane = new(c.Center);
-        PlanarPoint[] ring = new PlanarPoint[polygon.VertexSpan.Length];
-        Project(plane, polygon.VertexSpan, ring);
-        List<PlanarPoint>? boundary = ConvexMath.CircleRingBoundary(default, c.RadiusMetres, ring, DefaultSegments);
-        ConvexMath.DistanceTo(ring, default, out PlanarPoint nearest, BoundaryTolerance);
-        if (boundary is null)
+        ReadOnlySpan<GeoPoint> vertices = polygon.VertexSpan;
+        PlanarPoint[]? rented = null;
+        Span<PlanarPoint> buffer = vertices.Length <= StackVertices
+            ? stackalloc PlanarPoint[StackVertices]
+            : (rented = ArrayPool<PlanarPoint>.Shared.Rent(vertices.Length));
+        try
         {
-            double radiusSquared = c.RadiusMetres * c.RadiusMetres;
-            bool polygonInside = true;
-            foreach (PlanarPoint vertex in ring)
-                polygonInside &= ConvexMath.DistanceSquared(vertex, default) <= radiusSquared;
+            ReadOnlySpan<PlanarPoint> ring = Project(plane, vertices, buffer);
+            List<PlanarPoint>? boundary = ConvexMath.CircleRingBoundary(default, c.RadiusMetres, ring, DefaultSegments);
+            ConvexMath.DistanceTo(ring, default, out PlanarPoint nearest, BoundaryTolerance);
+            if (boundary is null)
+            {
+                double radiusSquared = c.RadiusMetres * c.RadiusMetres;
+                bool polygonInside = true;
+                foreach (PlanarPoint vertex in ring)
+                    polygonInside &= ConvexMath.DistanceSquared(vertex, default) <= radiusSquared;
 
-            if (polygonInside)
-                return polygon;
+                if (polygonInside)
+                    return polygon;
 
-            return ConvexMath.Contains(ring, default, BoundaryTolerance) ? c : new GeoPointShape(plane.Unproject(nearest));
+                return ConvexMath.Contains(ring, default, BoundaryTolerance) ? c : new GeoPointShape(plane.Unproject(nearest));
+            }
+
+            return Finish(plane, boundary, ConvexMath.CircleRingArea(default, c.RadiusMetres, ring), nearest);
         }
-
-        return Finish(plane, boundary, ConvexMath.CircleRingArea(default, c.RadiusMetres, ring), nearest);
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<PlanarPoint>.Shared.Return(rented);
+        }
     }
 
     private static GeoShape PolygonPolygon(GeoPolygon p1, GeoPolygon p2)
     {
-        PlanarPoint[] projected = new PlanarPoint[p2.VertexSpan.Length];
-        Project(p1.Plane, p2.VertexSpan, projected);
-        List<PlanarPoint> ring = ConvexMath.Clip(projected, p1.Ring);
-        PlanarPoint fallback = ring.Count > 0 ? ring[0] : p1.Ring[0];
-        return Finish(p1.Plane, ring, double.NaN, fallback);
+        ReadOnlySpan<GeoPoint> vertices = p2.VertexSpan;
+        PlanarPoint[]? rented = null;
+        Span<PlanarPoint> buffer = vertices.Length <= StackVertices
+            ? stackalloc PlanarPoint[StackVertices]
+            : (rented = ArrayPool<PlanarPoint>.Shared.Rent(vertices.Length));
+        try
+        {
+            List<PlanarPoint> ring = ConvexMath.Clip(Project(p1.Plane, vertices, buffer), p1.Ring);
+            PlanarPoint fallback = ring.Count > 0 ? ring[0] : p1.Ring[0];
+            return Finish(p1.Plane, ring, double.NaN, fallback);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<PlanarPoint>.Shared.Return(rented);
+        }
     }
 
     /// <summary>A polygon from a ring computed in <paramref name="plane"/>, or the touching point when the ring has collapsed.</summary>
