@@ -20,6 +20,11 @@ dotnet run --project benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*Ge
 dotnet run --project benchmarks/RxSpatial.SqlServer.Benchmarks -c Release -- --filter "*SqlVsGeo*" --job short   # SQL baseline vs Geo, per operation
 dotnet run --project benchmarks/RxSpatial.Experiments -c Release -- all   # ICDE 2017 Figs 6–12, ~45 min wall-clock
 
+# The CI build (ZeroFailed, pwsh 7): version, build, test under dotnet-coverage + examples smoke, Covenant SBOM, pack (no-op)
+./build.ps1                                   # ~1 min warm; first run installs modules, .zf/extensions and global tools
+./build.ps1 -Tasks Build,Test                 # compile + test only
+$env:ZF_BUILD_DOTNET_SOLUTION_TO_BUILD = 'RxSpatial.CrossPlatform.slnf'; ./build.ps1 -Tasks Build,Test   # the Linux/macOS CI leg
+
 # Linux (the committed HEAD; the slnx does not build there): Docker Desktop, Linux engine, from bash
 git archive HEAD | docker run --rm -i mcr.microsoft.com/dotnet/sdk:10.0 bash -c \
   'mkdir /w && tar -xf - -C /w && cd /w && dotnet test --project tests/RxSpatial.Tests/RxSpatial.Tests.csproj -c Release && dotnet run --project samples/RxSpatial.Examples -c Release'
@@ -34,8 +39,11 @@ RxSpatial.SqlServer.Tests — Windows; `tests/golden/*.json` recorded SQL Server
 `docs/prototypes` (never-compiled 2016 archives — do not modernise), `docs/performance.md`
 (record of every perf/memory pass with before/after tables — add new passes there). Central package
 management, artifacts output layout, global.json pins SDK + MSTest.Sdk. CI
-(`.github/workflows/build.yml`) is a matrix: Windows builds the slnx and runs every test
-project; Linux/macOS build the cross-platform projects by path and run RxSpatial.Tests.
+(`.github/workflows/build.yml`) runs the endjin ZeroFailed build (`build.ps1` + `.zf/config.ps1`,
+endjin `run-build-process` action): Windows runs the full build over the slnx; an ubuntu/macOS
+matrix runs `Build,Test` over `RxSpatial.CrossPlatform.slnf` (the slnx minus the Windows-only
+projects). `dependabot_approve_and_label.yml` + `auto_release.yml` + `.github/config/pr-autoflow.json`
+are the standard endjin Dependabot/release automation; `GitVersion.yml` versions it.
 
 ## Architecture essentials
 
@@ -419,9 +427,28 @@ cost traded for scheduling that depends on pool state.
   `SpatialBackends_RejectEmptyLocations_WhichHaveNoBounds`); `POINT EMPTY` on the RxSql*
   facades throws too (the point fast path reads a Null coordinate). Only the List backend accepts them.
 - Cross-platform builds: never build the slnx, `*.SqlServer*` or the WPF project on
-  Linux/macOS — build by path (see CI). On Linux `dotnet test` needs
-  `--project <csproj>` (MTP mode from global.json). MTP reports the net10.0-windows test DLL
-  as `(net10.0|x64)`; that is normal.
+  Linux/macOS — build `RxSpatial.CrossPlatform.slnf` (or by path). In MTP mode (global.json)
+  `dotnet test` needs `--solution <slnx|slnf>` or `--project <csproj>`, not a positional path.
+  MTP reports the net10.0-windows test DLL as `(net10.0|x64)`; that is normal. A new
+  cross-platform project must be added to the .slnf as well as the slnx.
+- ZeroFailed (`./build.ps1`): ZeroFailed.Build.DotNet tracks `main` (GitRef in `.zf/config.ps1`)
+  and auto-detects MTP (`dotnet test --help`), passing `--solution`, `--report-trx`, `--diagnostic*`
+  — never add VSTest-style `--logger`/`--collect` via `$AdditionalTestArgs`. Coverage comes from
+  wrapping `dotnet test` in `dotnet-coverage collect` (→ `coverage.cobertura.xml`), not from MTP's
+  `--coverage`. `RxSpatial.sbom.*`, `*.diag`, `dotnet-*.log`, `TestResults/`, `_codeCoverage/`,
+  `_packages/` and `.zf/extensions/` are build output (gitignored).
+- Covenant (the ZeroFailed SBOM step) looks for `project.assets.json` in `<project>/obj`, which
+  `UseArtifactsOutput` moves to `artifacts/obj`; `.zf/config.ps1` hooks
+  `AddCovenantDesignTimeBuildFlag` after `PrepareCovenantMetadata` to pass `--design-time-build`.
+- Packaging is off by design: `Directory.Build.props` sets `IsPackable=false` (the ZeroFailed
+  Package stage packs nothing) and `.zf/config.ps1` sets `$SkipPublish = $true`. Shipping a
+  library = `IsPackable=true` in its csproj, then remove `$SkipPublish` and wire a feed +
+  `NUGET_API_KEY` through `prepare-env-vars-and-secrets` in build.yml.
+- GitVersion 5.8 (ZeroFailed's pinned tool) has no `main` key: GitVersion.yml configures the
+  default branch under `master:` with `regex: ^main`. No tags yet → `0.1.0-preview.<commits>`.
+- auto_release.yml tags `main` after any merged human PR (labelled `pending_release` by the
+  Dependabot workflow) unless the PR has `no_release`; the tag build runs FullBuildAndPublish,
+  which is harmless while Publish is skipped.
 - `GeoPolygon`/`PlanarPolygon` reject concave or self-intersecting rings (`ArgumentException`)
   and any shape over 500 km; concave fences need `RxSqlGeography`. Polygon–polygon overlap and
   clipping are local-plane approximations (documented); point/distance-to-polygon are exact.

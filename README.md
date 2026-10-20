@@ -46,12 +46,15 @@ dotnet test
 dotnet run --project samples/RxSpatial.Examples
 ```
 
-On Linux or macOS, build the cross-platform projects by path (the solution also holds the Windows-only projects):
+On Linux or macOS, build the cross-platform solution filter `RxSpatial.CrossPlatform.slnf` (the solution also holds the Windows-only projects):
 
 ```shell
-dotnet test --project tests/RxSpatial.Tests/RxSpatial.Tests.csproj
+dotnet build RxSpatial.CrossPlatform.slnf
+dotnet test --solution RxSpatial.CrossPlatform.slnf
 dotnet run --project samples/RxSpatial.Examples
 ```
+
+To run the same build as CI, see [Build and CI](#build-and-ci).
 
 The examples program drives a vehicle towards a geofence around the Seattle Space Needle, and a planar `RxGeometry` forklift towards a loading bay, and asserts the behaviour of every spatial index backend; it doubles as an end-to-end smoke test. The same scenarios are covered as unit tests in `tests/RxSpatial.Tests`.
 
@@ -225,6 +228,46 @@ On *Overlap*, a watched vehicle is gray (dashed ring) while its reach overlaps n
 | Brown back-diagonal hatching | The part of a vehicle's reach inside a zone (`RxIntersection`) |
 
 Accessibility: the panel meets WCAG 2.2 AA contrast (4.5:1 text, 3:1 control states) in the Fluent light theme, whatever the Windows accent colour (a light accent is replaced with a dark blue). Marker state does not rely on colour alone: each state has its own marker shape (blue circle, gray dashed ring, green rounded square, yellow triangle, red diamond), every area and overlay has its own pattern or outline, and the legends draw and name the same shapes. Drawing an area needs a mouse drag; every other control works from the keyboard and has an accessible name.
+
+## Build and CI
+
+The CI build is the standard endjin [ZeroFailed](https://github.com/zerofailed/ZeroFailed) build for .NET: `build.ps1` runs the process configured in `.zf/config.ps1`, which uses the [ZeroFailed.Build.DotNet](https://github.com/zerofailed/ZeroFailed.Build.DotNet) extension. Run it locally with PowerShell 7:
+
+```powershell
+./build.ps1                                                   # full build: compile, test, analysis, package
+./build.ps1 -Tasks Build,Test                                 # compile and test only
+$env:ZF_BUILD_DOTNET_SOLUTION_TO_BUILD = 'RxSpatial.CrossPlatform.slnf'
+./build.ps1 -Tasks Build,Test                                 # what the Linux and macOS CI jobs run
+```
+
+The first run installs the `InvokeBuild` and `ZeroFailed` PowerShell modules from the PowerShell Gallery, downloads the ZeroFailed extensions into `.zf/extensions`, and installs the .NET global tools that the build needs (GitVersion, dotnet-coverage, ReportGenerator, Covenant). The build:
+
+1. **Version:** computes the version with GitVersion (`GitVersion.yml`). Until the first release tag, `main` builds `0.1.0-preview.<n>`.
+2. **Build:** restores and builds the solution in Release. Warnings are errors.
+3. **Test:** runs `dotnet test` (Microsoft.Testing.Platform) under `dotnet-coverage`, writes TRX files to `TestResults/`, then runs the examples smoke test. After the build, a Cobertura report and a Markdown summary for the four libraries go to `_codeCoverage/`.
+4. **Analysis:** writes a [Covenant](https://github.com/patriksvensson/covenant) SBOM (`RxSpatial.sbom.json` and `.html`).
+5. **Package:** runs `dotnet pack`, which produces nothing: `Directory.Build.props` sets `IsPackable` to `false`, because RxSpatial is not released as a package. To ship a library, set `IsPackable` to `true` in its project file.
+6. **Publish:** turned off (`$SkipPublish` in `.zf/config.ps1`). The build never pushes to a NuGet feed.
+
+GitHub Actions workflows (`.github/workflows`):
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `build.yml` | Push to `main`, tags, pull requests to `main`, manual | **Windows:** the full ZeroFailed build over `RxSpatial.slnx`, with test results and a coverage comment on pull requests. **Ubuntu and macOS:** `Build,Test` over `RxSpatial.CrossPlatform.slnf`. All jobs use the endjin `run-build-process` action. |
+| `dependabot_approve_and_label.yml` | Pull request opened or reopened | Approves Dependabot PRs for the packages listed in `.github/config/pr-autoflow.json` (patch and minor updates only), turns on auto-merge for them, and labels every PR that is not from Dependabot `pending_release`. |
+| `auto_release.yml` | Pull request closed | When no `pending_release` PR is blocked by an open auto-mergeable Dependabot PR, tags the `main` head with the GitVersion version. A PR labelled `no_release` does not cause a release. |
+
+Dependabot (`.github/dependabot.yml`) checks NuGet packages (`Directory.Packages.props`, and `MSTest.Sdk` in `global.json`) and GitHub Actions weekly. The `Microsoft.Extensions.*` packages come in one grouped PR, which is always reviewed by a person.
+
+The workflows need these settings in the GitHub repository or organisation:
+
+| Setting | Kind | Used by |
+|---|---|---|
+| `SHARED_WORKFLOW_KEY` | Actions secret | `build.yml`: encrypts secrets passed to the build. The build has no secrets yet, so without it the build only logs a warning. |
+| `ENDJIN_BOT_APP_ID`, `ENDJIN_BOT_PRIVATE_KEY` | Actions secrets | `auto_release.yml`: a GitHub App token that creates release tags, so that the tag push starts `build.yml`. |
+| `DEPENDJINBOT_APP_ID`, `DEPENDJINBOT_PRIVATE_KEY` | Dependabot secrets | `dependabot_approve_and_label.yml`: a GitHub App token that turns on auto-merge, so that the merge starts `auto_release.yml`. |
+| `pending_release`, `no_release` | Issue labels | Release automation. |
+| Allow auto-merge, and branch protection on `main` that requires the `build.yml` checks | Repository settings | Auto-merge waits for the required checks. Without required checks, an approved Dependabot PR merges at once. |
 
 ## Using RxSpatial with System.Reactive v7
 
@@ -432,7 +475,7 @@ A summary of every change since the 2016 code is in [CHANGELOG.md](CHANGELOG.md)
 
 The codebase was originally built in 2014-2016 against .NET Framework 4.0/4.5 and no longer compiled from a fresh clone (machine-specific assembly hint paths, missing binaries, TFS bindings). It has been modernised in two passes — first a faithful migration, then a restructure to current standards:
 
-- **.NET 10, C# 14 and SDK-style projects** throughout, arranged in the standard `src` / `samples` / `benchmarks` / `tests` / `docs` layout with a single `RxSpatial.slnx`, shared `Directory.Build.props` (nullable, implicit usings, artifacts output, warnings-as-errors in Release), central package management via `Directory.Packages.props`, `.editorconfig`, pinned `global.json` and a GitHub Actions workflow.
+- **.NET 10, C# 14 and SDK-style projects** throughout, arranged in the standard `src` / `samples` / `benchmarks` / `tests` / `docs` layout with a single `RxSpatial.slnx`, shared `Directory.Build.props` (nullable, implicit usings, artifacts output, warnings-as-errors in Release), central package management via `Directory.Packages.props`, `.editorconfig`, pinned `global.json`, and the standard endjin ZeroFailed build (`build.ps1`) with Dependabot automation on GitHub Actions (see [Build and CI](#build-and-ci)).
 - **System.Reactive 7.0.0.** Rx upgraded from the 2.2.5 `Rx-*` package family; the `RxGeographyObservable` C# 14 extension members make the library's streams first-class Rx sequences (see above).
 - **Microsoft.SqlServer.Types 170.1000.7.** The SQL Server 2025 generation of the official package supports modern .NET (netstandard2.0 + native win-x64/x86/arm64 runtimes), so the `SqlGeography` public API of the library was preserved at first (distance results aside — see below). It is now confined to the Windows-only `RxSpatial.SqlServer` package (see the cross-platform note below).
 - **Tests and benchmarks.** The original `LoadTestApplication` and `memoryTestApplication` consoles (and the 2016 experiment outputs they had written into their source folders) were replaced by the `RxSpatial.Benchmarks` BenchmarkDotNet suite; behavioural coverage lives in `tests/RxSpatial.Tests` (MSTest.Sdk). The originals remain in the git history.

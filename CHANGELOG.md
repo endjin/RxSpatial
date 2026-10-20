@@ -57,6 +57,8 @@ RxSpatial has not been released as a package. The baseline for the changes below
   - `CLAUDE.md`, the project memory for AI-assisted development.
 - **Build and CI:**
   - A CI matrix on Ubuntu, Windows and macOS. Linux and macOS build and test the cross-platform projects.
+  - The standard endjin ZeroFailed build (`build.ps1`, `.zf/config.ps1`, `GitVersion.yml`): versioning, build, tests with code coverage, the examples smoke test, a Covenant SBOM and packaging. CI runs it on Windows over `RxSpatial.slnx`, and on Ubuntu and macOS over the new `RxSpatial.CrossPlatform.slnf`.
+  - Dependabot for NuGet and GitHub Actions, with the endjin approve-and-label and auto-release workflows.
   - Central package management, a shared `Directory.Build.props`, a pinned `global.json` and an `.editorconfig`.
   - Analyzers at `AnalysisMode=Recommended`, plus CA1305, CA2000, CA5392 and CA1852.
 
