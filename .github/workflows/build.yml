@@ -1,55 +1,97 @@
 name: build
-
 on:
   push:
-    branches: [main]
+    branches:
+    - main
+    tags:
+    - '*'
   pull_request:
+    branches:
+    - main
   workflow_dispatch:
+    inputs:
+      forcePublish:
+        description: When true the Publish stage will always be run, otherwise it only runs for tagged versions. (Publishing is currently disabled in .zf/config.ps1.)
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: write  # enable cache clean-up
+  checks: write  # enable test result annotations
+  contents: write  # enable creating releases
+  issues: read
+  packages: write  # enable publishing packages
+  pull-requests: write  # enable test result annotations
 
 jobs:
+  # The standard ZeroFailed build (./build.ps1) over the whole solution: compile, test with coverage,
+  # Covenant SBOM, package. Windows is the only OS that builds every project: RxSpatial.SqlServer and
+  # its tests and benchmarks need the native SqlServerSpatial170.dll, and the WPF demo targets
+  # net10.0-windows.
   build:
+    name: Build (Windows, full solution)
+    runs-on: windows-latest
+    outputs:
+      semver: ${{ steps.run_build.outputs.semver }}
+      major: ${{ steps.run_build.outputs.major }}
+      majorMinor: ${{ steps.run_build.outputs.majorMinor }}
+      preReleaseTag: ${{ steps.run_build.outputs.preReleaseTag }}
+    steps:
+    - uses: endjin/Endjin.RecommendedPractices.GitHubActions/actions/prepare-env-vars-and-secrets@main
+      id: prepareEnvVarsAndSecrets
+      with:
+        environmentVariablesYaml: |
+          {}
+        secretsYaml: |
+          {}
+        secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
+
+    - uses: endjin/Endjin.RecommendedPractices.GitHubActions/actions/run-build-process@main
+      id: run_build
+      with:
+        netSdkVersion: '10.0.x'
+        forcePublish: ${{ github.event.inputs.forcePublish == 'true' }}
+        runsOn: windows-latest  # only labels the code coverage PR comment
+        buildEnv: ${{ steps.prepareEnvVarsAndSecrets.outputs.environmentVariablesYamlBase64 }}
+        buildSecrets: ${{ steps.prepareEnvVarsAndSecrets.outputs.secretsYamlBase64 }}
+        secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  # The same ZeroFailed build on Linux and macOS, pointed at RxSpatial.CrossPlatform.slnf (every project
+  # except the Windows-only ones) and limited to Build,Test: the SBOM and packaging come from the Windows
+  # job. Test includes the examples smoke test (.zf/config.ps1, PostTest).
+  cross-platform:
+    name: Build (${{ matrix.os }}, cross-platform projects)
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+    - uses: endjin/Endjin.RecommendedPractices.GitHubActions/actions/prepare-env-vars-and-secrets@main
+      id: prepareEnvVarsAndSecrets
+      with:
+        # ZF_BUILD_DOTNET_SOLUTION_TO_BUILD is read by .zf/config.ps1. The Markdown coverage summary is
+        # turned off so that only the Windows job posts the coverage PR comment.
+        environmentVariablesYaml: |
+          ZF_BUILD_DOTNET_SOLUTION_TO_BUILD: RxSpatial.CrossPlatform.slnf
+          ZF_BUILD_DOTNET_GENERATE_MARKDOWN_COVERAGE_REPORT: 'false'
+        secretsYaml: |
+          {}
+        secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      # Windows builds everything, including the Windows-only RxSpatial.SqlServer package,
-      # its tests and benchmarks (native SqlServerSpatial170.dll) and the WPF demo.
-      - name: Build (Windows, whole solution)
-        if: runner.os == 'Windows'
-        run: dotnet build RxSpatial.slnx --configuration Release
-
-      - name: Test (Windows, all test projects)
-        if: runner.os == 'Windows'
-        run: dotnet test --configuration Release --no-build
-
-      # Linux and macOS build the cross-platform projects by path: the solution also holds
-      # the Windows-only projects, which do not build there.
-      - name: Build (Linux/macOS, cross-platform projects)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          for project in \
-            src/RxSpatial.Index \
-            src/RxSpatial.Geo \
-            src/RxSpatial \
-            benchmarks/RxSpatial.Benchmarks \
-            benchmarks/RxSpatial.Experiments \
-            samples/RxSpatial.Examples
-          do
-            dotnet build "$project" --configuration Release
-          done
-
-      - name: Test (Linux/macOS, cross-platform tests)
-        if: runner.os != 'Windows'
-        run: dotnet test --project tests/RxSpatial.Tests/RxSpatial.Tests.csproj --configuration Release
-
-      - name: Run examples smoke test
-        run: dotnet run --project samples/RxSpatial.Examples --configuration Release --no-build
+    - uses: endjin/Endjin.RecommendedPractices.GitHubActions/actions/run-build-process@main
+      id: run_build
+      with:
+        netSdkVersion: '10.0.x'
+        buildTasks: 'Build,Test'
+        runsOn: ${{ matrix.os }}  # only labels the code coverage PR comment
+        buildEnv: ${{ steps.prepareEnvVarsAndSecrets.outputs.environmentVariablesYamlBase64 }}
+        buildSecrets: ${{ steps.prepareEnvVarsAndSecrets.outputs.secretsYamlBase64 }}
+        secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
+        token: ${{ secrets.GITHUB_TOKEN }}

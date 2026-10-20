@@ -7,6 +7,10 @@
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
     <AnalysisMode>Recommended</AnalysisMode>
+    <!-- RxSpatial is not released as a package yet, so nothing packs by default and the ZeroFailed
+         Package stage ('dotnet pack' over the solution) produces no output. To ship a library, set
+         IsPackable to true in its project file. -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
 </Project>

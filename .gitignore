@@ -34,3 +34,13 @@ coverage*.xml
 Thumbs.db
 .DS_Store
 .endjin/
+# ZeroFailed build (./build.ps1): extension cache, outputs and logs
+.zf/.cache/
+.zf/extensions/
+_codeCoverage/
+_packages/
+_local-nuget-feed/
+.nuget-packages/
+dotnet-*.log
+*.diag
+*.sbom.*
