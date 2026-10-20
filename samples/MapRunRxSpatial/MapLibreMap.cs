@@ -183,6 +183,12 @@ internal sealed class MapLibreMap(WebView2 webView)
             return;
         }
 
+        Post(json);
+    }
+
+    private void Post(string json)
+    {
+        DemoMetrics.WebMessage(json);
         webView.CoreWebView2.PostWebMessageAsJson(json);
     }
 
@@ -214,7 +220,7 @@ internal sealed class MapLibreMap(WebView2 webView)
             case "ready":
                 ready = true;
                 foreach (string json in pending)
-                    webView.CoreWebView2.PostWebMessageAsJson(json);
+                    Post(json);
 
                 pending.Clear();
                 break;

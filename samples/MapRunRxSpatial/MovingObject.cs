@@ -57,6 +57,7 @@ internal sealed class MovingObject
             ? new GeoCircle(position.Position, DemoParameters.Reach)
             : null;
         fix = new VehicleFix(position.Position, reach);
+        DemoMetrics.Push();
         insideConfinementThisPush = false;
         Geography.OnNext(reach ?? (GeoShape)position);
         if (confinementKeys.Count > 0 && !insideConfinementThisPush)

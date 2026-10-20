@@ -255,6 +255,7 @@ internal sealed class MovingObjectManager
 
     private void OnTick(object? sender, EventArgs e)
     {
+        long start = DemoMetrics.BeginTick();
         if (previousVehicleCount == -1)
             previousVehicleCount = DemoParameters.VehicleCount;
 
@@ -273,6 +274,7 @@ internal sealed class MovingObjectManager
 
         previousVehicleCount = DemoParameters.VehicleCount;
         WatchPendingPairs();
+        DemoMetrics.EndTick(start);
     }
 
     private void WatchPendingPairs()
