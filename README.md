@@ -428,6 +428,8 @@ RxSpatialOptions.Default =
 
 ## Modernisation notes (2026)
 
+The profiling-driven performance and memory improvements (spatial index, `RxSpatial.Geo`, and the WPF demo's CPU and memory passes) are recorded with their before/after measurements in [docs/performance.md](docs/performance.md).
+
 The codebase was originally built in 2014-2016 against .NET Framework 4.0/4.5 and no longer compiled from a fresh clone (machine-specific assembly hint paths, missing binaries, TFS bindings). It has been modernised in two passes — first a faithful migration, then a restructure to current standards:
 
 - **.NET 10, C# 14 and SDK-style projects** throughout, arranged in the standard `src` / `samples` / `benchmarks` / `tests` / `docs` layout with a single `RxSpatial.slnx`, shared `Directory.Build.props` (nullable, implicit usings, artifacts output, warnings-as-errors in Release), central package management via `Directory.Packages.props`, `.editorconfig`, pinned `global.json` and a GitHub Actions workflow.

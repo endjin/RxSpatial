@@ -31,7 +31,8 @@ deps), `src/RxSpatial.Index` (R*-tree + RUM-tree, zero deps), `src/RxSpatial.Sql
 MapRunRxSpatial WPF demo), `benchmarks/` (RxSpatial.Benchmarks and Experiments — any OS;
 RxSpatial.SqlServer.Benchmarks — Windows), `tests/` (RxSpatial.Tests — any OS;
 RxSpatial.SqlServer.Tests — Windows; `tests/golden/*.json` recorded SQL Server values),
-`docs/prototypes` (never-compiled 2016 archives — do not modernise). Central package
+`docs/prototypes` (never-compiled 2016 archives — do not modernise), `docs/performance.md`
+(record of every perf/memory pass with before/after tables — add new passes there). Central package
 management, artifacts output layout, global.json pins SDK + MSTest.Sdk. CI
 (`.github/workflows/build.yml`) is a matrix: Windows builds the slnx and runs every test
 project; Linux/macOS build the cross-platform projects by path and run RxSpatial.Tests.
