@@ -34,6 +34,8 @@ coverage*.xml
 Thumbs.db
 .DS_Store
 .endjin/
+# Demo-video production scripts and notes (local only; see .video/README.md)
+.video/
 # ZeroFailed build (./build.ps1): extension cache, outputs and logs
 .zf/.cache/
 .zf/extensions/
