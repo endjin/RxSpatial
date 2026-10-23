@@ -34,8 +34,9 @@ dotnet run --project benchmarks/RxSpatial.Experiments -c Release -- all     # IC
 
 ## Workflow rules
 
-- IMPORTANT: never push without being asked. `origin` is `endjin/RxSpatial`; publishing is blocked
-  on an unresolved licence question for the 2016 upstream code (see the backlog).
+- IMPORTANT: never push without being asked. `origin` is `endjin/RxSpatial`. The code is MIT
+  (`LICENSE`, matching upstream `williamshyy/RxSpatial` since Oct 2026); upstream's `RTree/` and
+  `RUMTree/` are LGPL 2.1 — never re-vendor them (`RxSpatial.Index` is their clean-room replacement).
 - Default branch is `main`. Commit each logical step separately; stage only the files you
   changed (the user often has unrelated uncommitted edits, e.g. IDE table reformatting).
 - Definition of done for code changes: warning-free `--no-incremental` Release build, all tests

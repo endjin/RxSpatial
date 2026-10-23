@@ -11,6 +11,8 @@
          Package stage ('dotnet pack' over the solution) produces no output. To ship a library, set
          IsPackable to true in its project file. -->
     <IsPackable>false</IsPackable>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>The RxSpatial Authors and Contributors</Authors>
   </PropertyGroup>
 
 </Project>

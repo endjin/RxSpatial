@@ -61,6 +61,7 @@ RxSpatial has not been released as a package. The baseline for the changes below
   - Dependabot for NuGet and GitHub Actions, with the endjin approve-and-label and auto-release workflows.
   - Central package management, a shared `Directory.Build.props`, a pinned `global.json` and an `.editorconfig`.
   - Analyzers at `AnalysisMode=Recommended`, plus CA1305, CA2000, CA5392 and CA1852.
+- **Licence:** the MIT License (`LICENSE`) and a contributor list (`AUTHORS.txt`), matching the licence that the original authors added upstream (`williamshyy/RxSpatial` commit `b1caf5b`, 23 October 2026).
 
 ### Changed
 

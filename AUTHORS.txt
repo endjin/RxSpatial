@@ -1,0 +1,11 @@
+List of contributors to the RxSpatial library
+
+Abdeltawab M. Hendawi
+Youying Shi
+Hossam Fattah
+Jumana Karwa
+Mohamed H. Ali
+
+2026 modernisation (.NET 10, cross-platform core)
+
+endjin
