@@ -1,3 +1,7 @@
+// Copyright (c) Endjin Limited. All rights reserved.
+// Licensed under the MIT License.
+// See the LICENSE file in the project root for more information.
+
 namespace MapRunRxSpatial;
 
 /// <summary>What watching a vehicle pair subscribes, and what the map shows for it.</summary>

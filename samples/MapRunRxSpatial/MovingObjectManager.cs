@@ -1,3 +1,8 @@
+// Copyright (c) The RxSpatial Authors and Contributors. All rights reserved.
+// Licensed under the MIT License.
+// See the LICENSE file in the project root for more information.
+// Modified by Endjin Limited.
+
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;

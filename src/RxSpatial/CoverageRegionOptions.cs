@@ -1,3 +1,7 @@
+// Copyright (c) Endjin Limited. All rights reserved.
+// Licensed under the MIT License.
+// See the LICENSE file in the project root for more information.
+
 namespace RxSpatial;
 
 /// <summary>A geographic rectangle, expressed by its lower-left and upper-right corners.</summary>

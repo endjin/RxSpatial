@@ -1,3 +1,7 @@
+// Copyright (c) Endjin Limited. All rights reserved.
+// Licensed under the MIT License.
+// See the LICENSE file in the project root for more information.
+
 namespace RxSpatial.Index;
 
 /// <summary>Structure parameters for the R*-tree (Beckmann et al., 1990).</summary>

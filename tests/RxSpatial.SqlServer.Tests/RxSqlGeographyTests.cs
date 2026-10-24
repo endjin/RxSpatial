@@ -1,3 +1,7 @@
+// Copyright (c) Endjin Limited. All rights reserved.
+// Licensed under the MIT License.
+// See the LICENSE file in the project root for more information.
+
 using System.Reactive.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SqlServer.Types;

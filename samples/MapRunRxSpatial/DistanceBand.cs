@@ -1,3 +1,7 @@
+// Copyright (c) Endjin Limited. All rights reserved.
+// Licensed under the MIT License.
+// See the LICENSE file in the project root for more information.
+
 namespace MapRunRxSpatial;
 
 /// <summary>How close a vehicle is to an area or to another vehicle, relative to the observe distance.</summary>
