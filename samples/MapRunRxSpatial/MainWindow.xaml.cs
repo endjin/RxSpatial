@@ -315,7 +315,7 @@ public partial class MainWindow : Window
     {
         PairSubscriptionResult.Added => $"Watching vehicles {id1} and {id2}.",
         PairSubscriptionResult.SameVehicle => "Choose two different vehicles.",
-        PairSubscriptionResult.NotOnMap => $"Press Start first - vehicles {id1} and {id2} are not on the map yet.",
+        PairSubscriptionResult.NotOnMap => $"Vehicles {id1} and {id2} are not on the map yet. Press Start first.",
         PairSubscriptionResult.AlreadyWatched => $"Vehicles {id1} and {id2} are already being watched.",
         _ => throw new ArgumentOutOfRangeException(nameof(result), result, "Unknown pair subscription result."),
     };

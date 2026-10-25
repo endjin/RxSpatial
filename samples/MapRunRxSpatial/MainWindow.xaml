@@ -251,10 +251,7 @@
         <Style x:Key="GuidanceNote" TargetType="TextBlock" BasedOn="{StaticResource GuidanceParagraph}">
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
         </Style>
-        <!-- Paper citations and the colour names that key a legend row. -->
-        <Style x:Key="Citation" TargetType="Run">
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
-        </Style>
+        <!-- The colour names that key a legend row, and query names in running text. -->
         <Style x:Key="Term" TargetType="Run">
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
@@ -880,90 +877,95 @@
                               AutomationProperties.Name="Guidance">
                     <StackPanel Margin="16,8,14,4">
                         <StackPanel x:Name="GuidanceGeofence">
-                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Geofence – restricted and confinement zones"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Geofence: restricted and confinement zones"/>
                             <StackPanel Style="{StaticResource QueryTagRow}">
                                 <Border Style="{StaticResource QueryTag}"><TextBlock Style="{StaticResource QueryTagText}" Text="RxIntersect"/></Border>
                             </StackPanel>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}">Each vehicle sends its position as it moves. RxIntersect is a continuous query. Each time a vehicle sends a new position, the query checks whether the vehicle is inside an area and tells the app at once. The app never has to ask again.</TextBlock>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}">In this example, each vehicle is a person with an electronic tag, such as an offender on probation. They must stay out of every restricted area, and stay inside at least one confinement area, such as their city or county. The same check can tell a parent when a child leaves a safe area.</TextBlock>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Press Start. All 20 vehicles (numbered 0-19) replay recorded Seattle GPS trajectories at 25 updates/s, as in the <Run Style="{StaticResource Citation}">DEBS 2016 Fig. 5</Run> set-up; nothing moves until you press Start.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start. All 20 vehicles (numbered 0-19) replay recorded GPS tracks from Seattle at 25 updates/s. Nothing moves until you press Start.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Press Restricted area or Confinement area, then drag a rectangle on the map; Esc or a right-click cancels. The button stays pressed while you draw, and the map pans as usual at other times. Every vehicle gets a continuous RxIntersect query against each area.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Restricted area or Confinement area, then drag a rectangle on the map. To cancel, press Esc or right-click. The button stays pressed while you draw. At other times, dragging pans the map. The app then runs one query for each vehicle and each area.</TextBlock>
                             </DockPanel>
-                            <TextBlock Style="{StaticResource GuidanceParagraph}">An offender must stay out of every restricted zone and inside a confinement zone, such as a city or county <Run Style="{StaticResource Citation}">(ICDE 2017 Fig. 4a)</Run>; a child must not leave a designated region <Run Style="{StaticResource Citation}">(DEBS 2016 section 3.4)</Run>. Being inside any one confinement area is enough.</TextBlock>
                             <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource RestrictedSwatch}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Slate hatched area</Run> – restricted: a vehicle inside it turns red.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Slate hatched area</Run>: a restricted area. A vehicle inside it turns red.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource ConfinementSwatch}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Purple dashed outline</Run> – confinement: a vehicle outside every confinement area turns red.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Purple dashed outline</Run>: a confinement area. A vehicle outside every confinement area turns red.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – no alert.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run>: no alert.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendDiamond}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red diamond</Run> – inside a restricted area or outside every confinement area (alert).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red diamond</Run>: inside a restricted area or outside every confinement area (alert).</TextBlock>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceNote}" Margin="0,6,0,10" Text="Clear areas removes every area and its queries."/>
-                            <TextBlock Style="{StaticResource GuidanceNote}">You can switch the spatial index while the demo runs: the alerts are the same on every index, because the queries are exact and the index only prunes which observers are evaluated. The papers compare the indexes on throughput and latency at scale <Run Style="{StaticResource Citation}">(ICDE 2017 Figs. 6, 7 and 12)</Run>, which 20 vehicles cannot show.</TextBlock>
+                            <TextBlock Style="{StaticResource GuidanceSection}" Text="Spatial index"/>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}">When a vehicle moves, the spatial index finds the areas near its new position, so the app checks only those areas, not all of them. List has no index and checks every area. Grid divides the map into cells. R*-tree and RUM-tree group nearby areas into nested boxes. The RUM-tree is designed for objects that move often.</TextBlock>
+                            <TextBlock Style="{StaticResource GuidanceNote}">You can switch the index while the demo runs. The alerts stay the same, because the index only skips areas that a vehicle cannot be in. The index changes only the speed, and you would see the difference with many thousands of moving objects, not with 20.</TextBlock>
                         </StackPanel>
 
                         <StackPanel x:Name="GuidanceNearArea" Visibility="Collapsed">
-                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Near area – an offender approaches a restricted zone"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Near area: an offender approaches a restricted zone"/>
                             <StackPanel Style="{StaticResource QueryTagRow}">
                                 <Border Style="{StaticResource QueryTag}"><TextBlock Style="{StaticResource QueryTagText}" Text="RxDistance"/></Border>
                             </StackPanel>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}">RxDistance is a continuous query that measures the distance from a vehicle to an area each time the vehicle moves. The app colours each vehicle by how close it is. You can see an offender approach a restricted area before they enter it, or a parent can see a child move toward a place they must not go.</TextBlock>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Press Start, then press Add area and drag a rectangle on the map; Esc or a right-click cancels.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start. Then press Add area and drag a rectangle on the map. To cancel, press Esc or right-click.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Observe distance is pre-set to 4,600 m, the family-locator set-up of <Run Style="{StaticResource Citation}">DEBS 2016 Fig. 4</Run>. Move it to widen or narrow the bands.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Observe distance sets how close counts as near. It starts at 4,600 m. Move the slider to widen or narrow the colour bands in the legend.</TextBlock>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource RestrictedSwatch}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Slate hatched area</Run> – the restricted area each vehicle's distance is measured to.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Slate hatched area</Run>: the restricted area each vehicle's distance is measured to.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – farther than the observe distance.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run>: farther than the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendSquare}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run> – within the observe distance (watching).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run>: within the observe distance (watching).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Path Style="{StaticResource LegendTriangle}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle</Run> – closer than 4/7 of it (warning).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle</Run>: closer than 4/7 of it (warning).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendDiamond}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red diamond</Run> – inside the area (alert).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red diamond</Run>: inside the area (alert).</TextBlock>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceNote}" Margin="0,6,0,10"
-                                       Text="This tab uses the List index: it needs every vehicle's distance on every update, which a spatial index would prune away."/>
+                                       Text="This tab always uses the List index (no spatial index). It needs the distance of every vehicle on every update, and a spatial index would skip the vehicles that are far from the area."/>
                         </StackPanel>
 
                         <StackPanel x:Name="GuidanceNearVehicle" Visibility="Collapsed">
-                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Near vehicle – two offenders who must not meet"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Near vehicle: two offenders who must not meet"/>
                             <StackPanel Style="{StaticResource QueryTagRow}">
                                 <Border Style="{StaticResource QueryTag}"><TextBlock Style="{StaticResource QueryTagText}" Text="RxRxDistance"/></Border>
                             </StackPanel>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}">RxRxDistance is a continuous query between two moving vehicles. Each time either vehicle moves, the query measures the distance between them. Here, each pair of vehicles is two offenders who must not meet.</TextBlock>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Press Start. This tab always replays all 20 vehicles, with Observe distance pre-set to 5,000 m <Run Style="{StaticResource Citation}">(SIGMOD 2016)</Run>.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start. This tab always replays all 20 vehicles. Observe distance sets how close counts as near. It starts at 5,000 m.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Pairs 10-12 and 15-16 are watched from Start: the offenders close enough to meet in the <Run Style="{StaticResource Citation}">ICDE paper's Fig. 4c</Run>, mostly yellow.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Pairs 10-12 and 15-16 are watched from Start. These vehicles come close to each other during the replay, so they are mostly yellow.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="3"/>
@@ -971,46 +973,47 @@
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="4"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Watch all pairs watches all 190 pairs of vehicles: the self join of <Run Style="{StaticResource Citation}">ICDE 2017 section V.B</Run>, which continuously evaluates the distance between every pair of cars. Each vehicle then shows the most urgent colour of its 19 pairs, which is the colour for its nearest other vehicle. Gray means that no other vehicle is within the observe distance.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Watch all pairs watches all 190 pairs of vehicles, that is, every vehicle against every other vehicle. Each vehicle then shows the colour for its nearest other vehicle. A gray ring means that no other vehicle is within the observe distance.</TextBlock>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – not watched.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run>: not watched.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDashedDot}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring</Run> – watched, farther apart than the observe distance.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring</Run>: watched, farther apart than the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendSquare}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run> – within the observe distance.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run>: within the observe distance.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Path Style="{StaticResource LegendTriangle}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle</Run> – closer than 4/7 of it (meet-up warning).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle</Run>: closer than 4/7 of it (meet-up warning).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendDiamond}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red diamond</Run> – closer than 1/7 of it: minimum safe distance (alert).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red diamond</Run>: closer than 1/7 of it, the minimum safe distance (alert).</TextBlock>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceNote}" Margin="0,6,0,10"
-                                       Text="A vehicle in several pairs shows its most urgent colour. Clear pairs stops all watching, pre-set pairs included. List index, as on Near area."/>
+                                       Text="A vehicle in several pairs shows its most urgent colour. Clear pairs stops all watching, including the pre-set pairs. This tab always uses the List index (no spatial index), because it needs the distance of every watched pair on every update."/>
                         </StackPanel>
 
                         <StackPanel x:Name="GuidanceConvoyLink" Visibility="Collapsed">
-                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Convoy link – vehicles sharing data while they stay in range"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Convoy link: vehicles sharing data while they stay in range"/>
                             <StackPanel Style="{StaticResource QueryTagRow}">
                                 <Border Style="{StaticResource QueryTag}"><TextBlock Style="{StaticResource QueryTagText}" Text="RxRxDistance"/></Border>
                                 <TextBlock Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="6,0,0,0" Text="with a connection line"/>
                             </StackPanel>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}">This tab uses the same distance query as Near vehicle, but here the vehicles want to stay close. Think of a convoy whose vehicles share data over a radio link with a limited range. The line between two vehicles shows the state of their link.</TextBlock>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Press Start (all 20 vehicles). Pairs 4-18, 10-12 and 7-9 are watched from Start at an Observe distance of 8,000 m, as in the <Run Style="{StaticResource Citation}">ICDE paper's Fig. 5 (DEBS 2016 Fig. 3)</Run>: 4-18 mostly gray, 10-12 mostly yellow, 7-9 mostly green.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start (all 20 vehicles). Pairs 4-18, 10-12 and 7-9 are watched from Start. Observe distance is the radio range. It starts at 8,000 m. Expect 4-18 to be mostly gray, 10-12 mostly yellow and 7-9 mostly green.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">To link more pairs, pick two vehicles and press Watch pair; both ends of a pair move its line.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">To link more pairs, pick two vehicles and press Watch pair. The line follows both vehicles as they move.</TextBlock>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend (marker and line)"/>
                             <DockPanel Style="{StaticResource LegendRow}">
@@ -1018,89 +1021,91 @@
                                     <Ellipse Style="{StaticResource LegendDashedDot}"/>
                                     <Line Style="{StaticResource LegendLine}" Stroke="#424242" StrokeThickness="2" StrokeDashArray="1.5 2" StrokeDashCap="Round"/>
                                 </StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring, dark dotted line</Run> – watching each other, but too far apart to connect (beyond the observe distance).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring, dark dotted line</Run>: watching each other, but too far apart to connect (beyond the observe distance).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatchWide}">
                                     <Rectangle Style="{StaticResource LegendSquare}"/>
                                     <Line Style="{StaticResource LegendLine}" Stroke="#2E7D32" StrokeThickness="2" Opacity="0.8"/>
                                 </StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square, thin solid line</Run> – connected near the limit; likely to drop if they drift apart.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square, thin solid line</Run>: connected, but near the limit. The link is likely to drop if they drift apart.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatchWide}">
                                     <Path Style="{StaticResource LegendTriangle}"/>
                                     <Line Style="{StaticResource LegendLine}" Stroke="#F9A825" StrokeThickness="4" Opacity="0.9"/>
                                 </StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle, thick solid line</Run> – stable working distance (closer than 4/7 of the observe distance).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Yellow triangle, thick solid line</Run>: stable working distance (closer than 4/7 of the observe distance).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatchWide}">
                                     <Rectangle Style="{StaticResource LegendDiamond}"/>
                                     <Line Style="{StaticResource LegendLine}" Stroke="#D32F2F" StrokeThickness="5"/>
                                 </StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red diamond, thickest line</Run> – closer than 1/7 of the observe distance: the minimum safe distance is compromised.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Red diamond, thickest line</Run>: closer than 1/7 of the observe distance, so they are too close for safety.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatchWide}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – not watched.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run>: not watched.</TextBlock>
                             </DockPanel>
                         </StackPanel>
 
                         <StackPanel x:Name="GuidanceOverlap" Visibility="Collapsed">
-                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Overlap – car pooling and friends in a region"/>
+                            <TextBlock Style="{StaticResource GuidanceTitle}" Text="Overlap: car pooling and friends in a region"/>
                             <WrapPanel Margin="0,6,0,14">
                                 <Border Style="{StaticResource QueryTag}" Margin="0,0,6,4"><TextBlock Style="{StaticResource QueryTagText}" Text="RxRxIntersect"/></Border>
                                 <Border Style="{StaticResource QueryTag}" Margin="0,0,6,4"><TextBlock Style="{StaticResource QueryTagText}" Text="RxRxIntersection"/></Border>
                                 <Border Style="{StaticResource QueryTag}" Margin="0,0,6,4"><TextBlock Style="{StaticResource QueryTagText}" Text="RxIntersection"/></Border>
                             </WrapPanel>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}">On this tab each vehicle reports an area instead of a point. This area is its reach, a circle around the vehicle. The Reach slider sets the radius, which starts at 2,000 m. Each time a vehicle moves, three queries compare these areas.</TextBlock>
+                            <TextBlock Style="{StaticResource GuidanceParagraph}"><Run Style="{StaticResource Term}">RxRxIntersect</Run> tells you whether the reaches of two vehicles overlap. <Run Style="{StaticResource Term}">RxRxIntersection</Run> gives the overlap itself, which is shaped like a lens. <Run Style="{StaticResource Term}">RxIntersection</Run> gives the part of a vehicle's reach that is inside a zone you draw.</TextBlock>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="1"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Press Start (all 20 vehicles). On this tab each vehicle reports its reach – the circle of the Reach radius around it, pre-set to 2,000 m – instead of a point, so the queries compare regions.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Start (all 20 vehicles).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="2"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Pairs 15-16, 10-12, 7-9 and 1-17 from the car pooling scenario <Run Style="{StaticResource Citation}">(DEBS 2016 section 3.3, Fig. 3)</Run> are watched from Start. RxRxIntersect turns a pair green while their reaches overlap. RxRxIntersection draws the overlap itself, the lens, with its area. Cars whose reaches overlap until they reach their destination, like 15 and 16, could car pool.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Pairs 15-16, 10-12, 7-9 and 1-17 are watched from Start. A pair turns green while their reaches overlap, and the map draws the lens with its area. Two cars whose reaches overlap all the way to their destinations, like 15 and 16, could share a ride (car pool).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="3"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">To watch another pair, pick two vehicles and press Watch pair. Watch all pairs watches all 190 pairs with RxRxIntersect only: every vehicle whose reach overlaps another turns green. Lenses are drawn only for the pairs you watch one at a time. Intersecting 380 pairs of regions on every update is costly, so the replay slows down.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">To watch another pair, pick two vehicles and press Watch pair. Watch all pairs watches all 190 pairs, but only checks whether their reaches overlap. Every vehicle whose reach overlaps another turns green. The map draws lenses only for the pairs that you watch one at a time. Comparing every pair on every update takes time, so the replay slows down.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource Step}">
                                 <ContentControl Style="{StaticResource StepNumber}" Content="4"/>
-                                <TextBlock Style="{StaticResource GuidanceText}">Press Add zone and drag a rectangle on the map, like "find all my friends in Seattle downtown" <Run Style="{StaticResource Citation}">(DEBS 2016 section 3.1)</Run>. RxIntersection gives each vehicle the part of its reach inside the zone, which is shaded.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}">Press Add zone and drag a rectangle on the map, for example around downtown Seattle to find which friends are there. The part of each vehicle's reach inside the zone is shaded.</TextBlock>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceSection}" Text="Legend"/>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDot}" Fill="#1565C0"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run> – not watched.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Blue circle</Run>: not watched.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource LegendDashedDot}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring</Run> – watched; the reaches do not overlap.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Gray dashed ring</Run>: watched, and the reaches do not overlap.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource LegendSquare}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run> – watched; the reaches overlap (could car pool).</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Green rounded square</Run>: watched, and the reaches overlap (could car pool).</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Ellipse Style="{StaticResource ReachSwatch}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Thin slate circle</Run> – a vehicle's reach.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Thin slate circle</Run>: a vehicle's reach.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Path Style="{StaticResource LensSwatch}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Teal dotted lens</Run> – where a watched pair's reaches overlap, labelled with its area.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Teal dotted lens</Run>: where a watched pair's reaches overlap, labelled with its area.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource ZoneSwatch}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Brown outline</Run> – a zone you drew.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Brown outline</Run>: a zone you drew.</TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource LegendRow}">
                                 <StackPanel Style="{StaticResource LegendSwatch}"><Rectangle Style="{StaticResource ZoneOverlapSwatch}"/></StackPanel>
-                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Brown hatching</Run> – the part of a vehicle's reach inside a zone.</TextBlock>
+                                <TextBlock Style="{StaticResource GuidanceText}"><Run Style="{StaticResource Term}">Brown hatching</Run>: the part of a vehicle's reach inside a zone.</TextBlock>
                             </DockPanel>
                             <TextBlock Style="{StaticResource GuidanceNote}" Margin="0,6,0,10"
-                                       Text="Clear pairs and Clear zones each remove only their own kind. List index: the queries must report when two reaches stop overlapping or a reach leaves a zone, which a spatial index would prune away."/>
+                                       Text="Clear pairs removes only pairs, and Clear zones removes only zones. This tab always uses the List index (no spatial index). The queries must also report when two reaches stop overlapping or a reach leaves a zone, and a spatial index would skip those vehicles."/>
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
