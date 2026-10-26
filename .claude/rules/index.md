@@ -1,10 +1,10 @@
 ---
 paths:
-  - "src/RxSpatial.Index/**"
-  - "src/RxSpatial/Backends/**"
-  - "tests/RxSpatial.Tests/*Index*"
-  - "tests/RxSpatial.Tests/*Churn*"
-  - "tests/RxSpatial.Tests/*RumTree*"
+  - "solutions/src/RxSpatial.Index/**"
+  - "solutions/src/RxSpatial/Backends/**"
+  - "solutions/tests/RxSpatial.Tests/*Index*"
+  - "solutions/tests/RxSpatial.Tests/*Churn*"
+  - "solutions/tests/RxSpatial.Tests/*RumTree*"
 ---
 
 # Spatial index (`RxSpatial.Index`) and backends

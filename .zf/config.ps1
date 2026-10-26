@@ -36,9 +36,9 @@ $SkipPublish = $true
 #
 
 # The full solution holds Windows-only projects (RxSpatial.SqlServer, its tests and benchmarks, and the
-# WPF demo). Linux and macOS CI legs point this at 'RxSpatial.CrossPlatform.slnf' instead. This
+# WPF demo). Linux and macOS CI legs point this at 'solutions/RxSpatial.CrossPlatform.slnf' instead. This
 # environment variable is defined by this file, not by ZeroFailed.
-$SolutionToBuild = (Resolve-Path (Join-Path $here (property ZF_BUILD_DOTNET_SOLUTION_TO_BUILD "RxSpatial.slnx"))).Path
+$SolutionToBuild = (Resolve-Path (Join-Path $here (property ZF_BUILD_DOTNET_SOLUTION_TO_BUILD "solutions/RxSpatial.slnx"))).Path
 $ProjectsToPublish = @()
 $NuSpecFilesToPackage = @()
 $NugetPublishSource = property ZF_NUGET_PUBLISH_SOURCE "$here/_local-nuget-feed"
@@ -78,7 +78,7 @@ task PostTest RunExamplesSmokeTest
 # task RunLast {}
 
 # Synopsis: Makes Covenant run a design-time build to find each project's restore output.
-# Directory.Build.props sets UseArtifactsOutput, so project.assets.json lives under artifacts/obj, not
+# Directory.Build.props sets UseArtifactsOutput, so project.assets.json lives under solutions/artifacts/obj, not
 # <project>/obj where Covenant looks by default. ZeroFailed.Build.DotNet has no property for extra
 # Covenant arguments, so this appends the flag to the argument list its PrepareCovenantMetadata task builds.
 task AddCovenantDesignTimeBuildFlag -After PrepareCovenantMetadata {
@@ -88,7 +88,7 @@ task AddCovenantDesignTimeBuildFlag -After PrepareCovenantMetadata {
 # Synopsis: Runs the end-to-end examples console app, which exits non-zero unless every scenario passes.
 task RunExamplesSmokeTest -If { !$SkipTest } {
     exec {
-        dotnet run --project (Join-Path $here "samples/RxSpatial.Examples") `
+        dotnet run --project (Join-Path $here "solutions/samples/RxSpatial.Examples") `
                    --configuration $Configuration `
                    --no-build
     }

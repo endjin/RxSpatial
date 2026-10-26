@@ -9,7 +9,7 @@ namespace RxSpatial.Tests.Golden;
 
 /// <summary>
 /// A file of golden values: spatial results that SQL Server (Microsoft.SqlServer.Types)
-/// computed for a fixed set of inputs. The files live in <c>tests/golden</c>. They let the
+/// computed for a fixed set of inputs. The files live in <c>solutions/tests/golden</c>. They let the
 /// cross-platform shape maths be checked against SQL Server on any operating system, because
 /// the checks read JSON rather than call SQL Server.
 /// </summary>

@@ -10,7 +10,7 @@ namespace RxSpatial.SqlServer.Tests.Golden;
 
 /// <summary>
 /// Guards the committed golden files against the SQL Server they claim to record: every case
-/// in <c>tests/golden/*.json</c> is evaluated again with Microsoft.SqlServer.Types and must
+/// in <c>solutions/tests/golden/*.json</c> is evaluated again with Microsoft.SqlServer.Types and must
 /// match. The cross-platform fidelity tests trust these files on every operating system, so a
 /// stale or hand-edited value would silently move the budget they check against.
 /// </summary>

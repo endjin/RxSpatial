@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- SQL Server golden values (tests/golden), read by the fidelity tests on any OS. -->
+    <!-- SQL Server golden values (solutions/tests/golden), read by the fidelity tests on any OS. -->
     <None Include="..\golden\*.json" Link="golden\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

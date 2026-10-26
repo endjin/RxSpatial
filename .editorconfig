@@ -56,6 +56,6 @@ dotnet_diagnostic.CA1716.severity = none
 
 # Test and benchmark projects are not libraries: their identifiers follow xUnit-style
 # Method_Scenario naming, and BenchmarkDotNet requires [Params] to be public fields.
-[{tests,benchmarks}/**/*.cs]
+[solutions/{tests,benchmarks}/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1051.severity = none

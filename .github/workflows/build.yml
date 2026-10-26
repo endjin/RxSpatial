@@ -62,7 +62,7 @@ jobs:
         secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
-  # The same ZeroFailed build on Linux and macOS, pointed at RxSpatial.CrossPlatform.slnf (every project
+  # The same ZeroFailed build on Linux and macOS, pointed at solutions/RxSpatial.CrossPlatform.slnf (every project
   # except the Windows-only ones) and limited to Build,Test: the SBOM and packaging come from the Windows
   # job. Test includes the examples smoke test (.zf/config.ps1, PostTest).
   cross-platform:
@@ -79,7 +79,7 @@ jobs:
         # ZF_BUILD_DOTNET_SOLUTION_TO_BUILD is read by .zf/config.ps1. The Markdown coverage summary is
         # turned off so that only the Windows job posts the coverage PR comment.
         environmentVariablesYaml: |
-          ZF_BUILD_DOTNET_SOLUTION_TO_BUILD: RxSpatial.CrossPlatform.slnf
+          ZF_BUILD_DOTNET_SOLUTION_TO_BUILD: solutions/RxSpatial.CrossPlatform.slnf
           ZF_BUILD_DOTNET_GENERATE_MARKDOWN_COVERAGE_REPORT: 'false'
         secretsYaml: |
           {}

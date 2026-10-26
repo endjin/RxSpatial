@@ -1,9 +1,9 @@
 version: 2
 updates:
-# NuGet: Directory.Packages.props (central package management) and the MSTest.Sdk entry in
+# NuGet: solutions/Directory.Packages.props (central package management) and the MSTest.Sdk entry in
 # global.json's "msbuild-sdks", which versions the whole MSTest / Microsoft.Testing.Platform stack.
 - package-ecosystem: nuget
-  directory: /
+  directory: /solutions
   schedule:
     interval: weekly
   open-pull-requests-limit: 10

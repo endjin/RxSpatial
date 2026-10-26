@@ -97,7 +97,7 @@ internal static class Program
             - "SqlSpatial" = the List backend (the paper's own "List based (SQLSpatial)"); latency = `RxGeography.AverageLatency`, input buffer → results propagated
             """);
 
-    // artifacts/experiments/<timestamp> under the repository root, or %TEMP% outside the repository.
+    // artifacts/experiments/<timestamp> next to RxSpatial.slnx (solutions/), or %TEMP% outside the repository.
     private static string DefaultOutput()
     {
         string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);

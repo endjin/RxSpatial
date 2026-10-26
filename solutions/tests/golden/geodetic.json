@@ -2,7 +2,7 @@
   "schema": "rxspatial-golden/1",
   "space": "geodetic",
   "source": "Microsoft.SqlServer.Types 17.0.1000.7 SqlGeography, SRID 4326; metres and square metres",
-  "notes": "Golden values recorded from SQL Server by tests/RxSpatial.SqlServer.Tests/Golden/GoldenValueRecorder.cs (set RXSPATIAL_RECORD_GOLDEN=1 and run the tests to re-record). Schema: see GoldenFile.cs. Circles are Point.STBuffer(radius): SQL Server approximates them with a 128-vertex polygon.",
+  "notes": "Golden values recorded from SQL Server by solutions/tests/RxSpatial.SqlServer.Tests/Golden/GoldenValueRecorder.cs (set RXSPATIAL_RECORD_GOLDEN=1 and run the tests to re-record). Schema: see GoldenFile.cs. Circles are Point.STBuffer(radius): SQL Server approximates them with a 128-vertex polygon.",
   "cases": [
     {
       "id": "point-point/10m/az0",
