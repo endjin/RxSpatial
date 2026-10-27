@@ -13,21 +13,21 @@ A copy of the SIGMOD demo paper is included as [docs/RxSpatialDemo.pdf](docs/RxS
 
 ## Repository layout
 
-The repository root holds the build and CI files and the documentation; everything .NET (the solution, the shared `Directory.Build.props` and `Directory.Packages.props`, and the projects below) lives under `solutions/`. Open [`solutions/RxSpatial.slnx`](solutions/RxSpatial.slnx).
+The repository root holds the build and CI files and the documentation; everything .NET (the solution, the shared `Directory.Build.props` and `Directory.Packages.props`, and the projects below) lives under `solutions/`. Open [`solutions/RxSpatial.slnx`](solutions/RxSpatial.slnx). The SQL Server projects are archived in `solutions/archive/`, outside `RxSpatial.slnx`, so neither a solution build nor CI touches them; open or build them with [`solutions/archive/RxSpatial.Archive.slnx`](solutions/archive/RxSpatial.Archive.slnx).
 
 | Path | Platforms | Description |
 | --- | --- | --- |
 | `solutions/RxSpatial` | Windows, Linux, macOS | The core library: `RxGeography` (geodetic) and `RxGeometry` (planar) moving objects, continuous distance / intersection / intersect queries, and pluggable spatial index backends (list, grid, R*-tree, RUM-tree). |
 | `solutions/RxSpatial.Geo` | Windows, Linux, macOS | The shapes and shape maths the core uses: WGS84 points, exact circles and convex polygons (`GeoShape`), their planar twins (`PlanarShape`), and `GeoOperations` / `PlanarOperations` (intersects, intersection, distance, area, bounds). Clean-room, zero dependencies. |
 | `solutions/RxSpatial.Index` | Windows, Linux, macOS | R*-tree (Beckmann et al., 1990) and RUM-tree (R-tree with Update Memo, Xiong &amp; Aref) spatial indexes sharing one engine; a clean-room .NET 10 replacement for the formerly vendored LGPL Java ports. Zero dependencies. |
-| `solutions/RxSpatial.SqlServer` | Windows only | `RxSqlGeography` and `RxSqlGeometry`: the same moving objects over Microsoft.SqlServer.Types' `SqlGeography` / `SqlGeometry`, for code that must keep SQL Server's types or results (see [SQL Server types](#sql-server-types-rxspatialsqlserver)). |
+| `solutions/archive/RxSpatial.SqlServer` | Windows only (archived) | `RxSqlGeography` and `RxSqlGeometry`: the same moving objects over Microsoft.SqlServer.Types' `SqlGeography` / `SqlGeometry`, for code that must keep SQL Server's types or results (see [SQL Server types](#sql-server-types-rxspatialsqlserver)). |
 | `solutions/RxSpatial.Examples` | Windows, Linux, macOS | Runnable example / smoke test: Rx.NET v7 sequences feeding and consuming RxSpatial streams on every backend. |
 | `solutions/MapRunRxSpatial` | Windows only (WPF) | WPF demo that visualises moving objects and continuous queries on a MapLibre GL JS map hosted in WebView2 (OpenStreetMap tiles, no API key). |
 | `solutions/RxSpatial.Benchmarks` | Windows, Linux, macOS | BenchmarkDotNet suite: per-backend location-update cost, the RxSpatial.Geo operations, geodesic primitives, polygon construction, outlines and multi-core scaling, plus R*-tree vs RUM-tree bulk-insert / update / query comparisons with allocation statistics. |
-| `solutions/RxSpatial.SqlServer.Benchmarks` | Windows only | The SQL Server baselines: the per-backend workloads through `RxSqlGeography` / `RxSqlGeometry`, and each shape operation on SQL Server against RxSpatial.Geo. |
+| `solutions/archive/RxSpatial.SqlServer.Benchmarks` | Windows only (archived) | The SQL Server baselines: the per-backend workloads through `RxSqlGeography` / `RxSqlGeometry`, and each shape operation on SQL Server against RxSpatial.Geo. |
 | `solutions/RxSpatial.Experiments` | Windows, Linux, macOS | Wall-clock harness that reproduces the ICDE 2017 paper's experiments (Figs. 6–12): latency, maximum load and dropped updates under paced location-update streams. |
 | `solutions/RxSpatial.Tests` | Windows, Linux, macOS | MSTest (MSTest.Sdk + Shouldly) tests for the core, the indexes and RxSpatial.Geo, including GeographicLib oracle tests and the fidelity tests against the recorded SQL Server values in `solutions/RxSpatial.Tests/Golden`. |
-| `solutions/RxSpatial.SqlServer.Tests` | Windows only | Tests for `RxSqlGeography` / `RxSqlGeometry`, the recorder of `solutions/RxSpatial.Tests/Golden/*.json`, and a guard that live SQL Server still matches it. |
+| `solutions/archive/RxSpatial.SqlServer.Tests` | Windows only (archived) | Tests for `RxSqlGeography` / `RxSqlGeometry`, the recorder of `solutions/RxSpatial.Tests/Golden/*.json`, and a guard that live SQL Server still matches it. |
 | `docs/prototypes` | — | Never-compiled 2016 prototype sources, archived with provenance notes. |
 
 ## Getting started
@@ -38,7 +38,7 @@ Requirements:
 - **The core is cross-platform.** `RxSpatial`, `RxSpatial.Geo` and `RxSpatial.Index` run on Windows, Linux and macOS, and have no native or SQL Server dependency. CI builds and tests them on all three.
 - **`RxSpatial.SqlServer` and the WPF demo need Windows.** SQL Server's spatial operations run in the native `SqlServerSpatial170.dll`, which the `Microsoft.SqlServer.Types` NuGet package ships for win-x64, win-x86 and win-arm64 only. The WPF map demo also needs the [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11) and internet access for the MapLibre GL JS CDN and OpenStreetMap tiles.
 
-On Windows, build and test everything:
+On Windows, build and test the solution (everything except the archived SQL Server projects):
 
 ```shell
 dotnet build solutions/RxSpatial.slnx
@@ -62,10 +62,10 @@ To run the benchmarks (BenchmarkDotNet requires a Release build):
 
 ```shell
 dotnet run --project solutions/RxSpatial.Benchmarks -c Release -- --filter "*"
-dotnet run --project solutions/RxSpatial.SqlServer.Benchmarks -c Release -- --filter "*"   # Windows only: the SQL Server baselines
+dotnet run --project solutions/archive/RxSpatial.SqlServer.Benchmarks -c Release -- --filter "*"   # Windows only, archived: the SQL Server baselines
 ```
 
-`SpatialBackendBenchmarks` measures the cost of pushing one location update through `RxGeography` per index backend — the list backend scales linearly with the observer count while the grid and tree backends prune by zone. `PlanarBackendBenchmarks` runs the same workload through `RxGeometry` on a 1,000 × 1,000 floor. `solutions/RxSpatial.SqlServer.Benchmarks` (Windows) runs both workloads through `RxSqlGeography` / `RxSqlGeometry` as the SQL Server baseline. In one short run at 1,000 observers (2 km zone discs, 50 m push discs), a push cost:
+`SpatialBackendBenchmarks` measures the cost of pushing one location update through `RxGeography` per index backend — the list backend scales linearly with the observer count while the grid and tree backends prune by zone. `PlanarBackendBenchmarks` runs the same workload through `RxGeometry` on a 1,000 × 1,000 floor. `solutions/archive/RxSpatial.SqlServer.Benchmarks` (Windows) runs both workloads through `RxSqlGeography` / `RxSqlGeometry` as the SQL Server baseline. In one short run at 1,000 observers (2 km zone discs, 50 m push discs), a push cost:
 
 | Backend | `RxGeography` (Geo) | `RxSqlGeography` (SQL Server) | Planar: `RxGeometry` / `RxSqlGeometry` |
 | --- | --- | --- | --- |
@@ -381,7 +381,7 @@ Translating shapes: `SqlGeography.Point(lat, lon, 4326)` becomes `new GeoPointSh
 
 ## SQL Server types: `RxSpatial.SqlServer`
 
-To keep `SqlGeography` and `SqlGeometry` — concave or multi-part fences, SRIDs, or results that must match SQL Server exactly — reference `solutions/RxSpatial.SqlServer` and rename the classes. `RxSqlGeography` and `RxSqlGeometry` are the previous `RxGeography` and `RxGeometry`, with the same members, the same behaviour (including the Null-to-NaN distance rule) and the same `RxSqlGeographyObservable` / `RxSqlGeometryObservable` extensions. They run on the same engine and index backends as the core.
+To keep `SqlGeography` and `SqlGeometry` — concave or multi-part fences, SRIDs, or results that must match SQL Server exactly — reference `solutions/archive/RxSpatial.SqlServer` and rename the classes. `RxSqlGeography` and `RxSqlGeometry` are the previous `RxGeography` and `RxGeometry`, with the same members, the same behaviour (including the Null-to-NaN distance rule) and the same `RxSqlGeographyObservable` / `RxSqlGeometryObservable` extensions. They run on the same engine and index backends as the core.
 
 ```csharp
 using Microsoft.SqlServer.Types;
@@ -399,7 +399,7 @@ The package is Windows-only (`[SupportedOSPlatform("windows")]`), because Micros
 
 ## Fidelity against SQL Server
 
-`solutions/RxSpatial.Tests/Golden/geodetic.json` (170 cases) and `planar.json` (31 cases) hold SQL Server's own results for Seattle-scale inputs: the Space Needle route against a 500 m fence, point pairs from 10 m to 50 km, 2 km lenses at 0.5–3.9 km separation, circles against rectangles, rectangles against rectangles, intersects at the radius ±δ in eight directions, and disc–disc and disc–rectangle distances. `GoldenFidelityTests` checks RxSpatial.Geo against them on every platform; on Windows, `GoldenValueGuardTests` checks that live SQL Server still gives the recorded values. The budget, and the worst difference measured (geodetic):
+`solutions/RxSpatial.Tests/Golden/geodetic.json` (170 cases) and `planar.json` (31 cases) hold SQL Server's own results for Seattle-scale inputs: the Space Needle route against a 500 m fence, point pairs from 10 m to 50 km, 2 km lenses at 0.5–3.9 km separation, circles against rectangles, rectangles against rectangles, intersects at the radius ±δ in eight directions, and disc–disc and disc–rectangle distances. `GoldenFidelityTests` checks RxSpatial.Geo against them on every platform; on Windows, the archived `GoldenValueGuardTests` checks, when run by hand, that live SQL Server still gives the recorded values. The budget, and the worst difference measured (geodetic):
 
 | Quantity | Budget | Worst measured |
 | --- | --- | --- |

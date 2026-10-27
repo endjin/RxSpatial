@@ -2,10 +2,10 @@
 paths:
   - "solutions/RxSpatial.Geo/**"
   - "solutions/RxSpatial/*Operations.cs"
-  - "solutions/RxSpatial.SqlServer/**"
+  - "solutions/archive/RxSpatial.SqlServer/**"
   - "solutions/RxSpatial.Tests/Geo/**"
   - "solutions/RxSpatial.Tests/Golden/**"
-  - "solutions/RxSpatial.SqlServer.Tests/Golden/**"
+  - "solutions/archive/RxSpatial.SqlServer.Tests/Golden/**"
 ---
 
 # Shape maths (`RxSpatial.Geo`) and SQL Server fidelity

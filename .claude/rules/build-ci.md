@@ -15,7 +15,7 @@ paths:
 # Build, CI and packaging
 
 - CI (`.github/workflows/build.yml`) runs the endjin ZeroFailed build via the
-  `run-build-process` action: Windows builds the full slnx; an ubuntu/macOS matrix runs
+  `run-build-process` action: Windows builds the slnx (the archived SQL Server projects in `solutions/archive` are not in it); an ubuntu/macOS matrix runs
   `Build,Test` over `solutions/RxSpatial.CrossPlatform.slnf` (selected by `ZF_BUILD_DOTNET_SOLUTION_TO_BUILD`,
   a repo-specific variable read by `.zf/config.ps1`). The Examples smoke test is a `PostTest` task.
 - ZeroFailed.Build.DotNet tracks `main` and auto-detects MTP, passing `--solution`,

@@ -22,7 +22,7 @@ namespace RxSpatial.SqlServer.Tests.Golden;
 public class GoldenValueRecorder
 {
     private const string Notes =
-        "Golden values recorded from SQL Server by solutions/RxSpatial.SqlServer.Tests/Golden/GoldenValueRecorder.cs " +
+        "Golden values recorded from SQL Server by solutions/archive/RxSpatial.SqlServer.Tests/Golden/GoldenValueRecorder.cs " +
         "(set RXSPATIAL_RECORD_GOLDEN=1 and run the tests to re-record). Schema: see GoldenFile.cs. " +
         "Circles are Point.STBuffer(radius): SQL Server approximates them with a 128-vertex polygon.";
 

@@ -30,9 +30,8 @@ permissions:
 
 jobs:
   # The standard ZeroFailed build (./build.ps1) over the whole solution: compile, test with coverage,
-  # Covenant SBOM, package. Windows is the only OS that builds every project: RxSpatial.SqlServer and
-  # its tests and benchmarks need the native SqlServerSpatial170.dll, and the WPF demo targets
-  # net10.0-windows.
+  # Covenant SBOM, package. Windows is the only OS that builds every project: the WPF demo targets
+  # net10.0-windows. The archived SQL Server projects (solutions/archive) are not in the solution.
   build:
     name: Build (Windows, full solution)
     runs-on: windows-latest

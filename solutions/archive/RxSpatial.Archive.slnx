@@ -1,0 +1,14 @@
+<Solution>
+  <!-- The archived, Windows-only SQL Server projects, with the core projects they build on. They are
+       not in RxSpatial.slnx, so neither solution builds nor CI (build, test, SBOM, pack) touch them. -->
+  <Folder Name="/archive/">
+    <Project Path="RxSpatial.SqlServer.Benchmarks/RxSpatial.SqlServer.Benchmarks.csproj" />
+    <Project Path="RxSpatial.SqlServer.Tests/RxSpatial.SqlServer.Tests.csproj" />
+    <Project Path="RxSpatial.SqlServer/RxSpatial.SqlServer.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="../RxSpatial.Geo/RxSpatial.Geo.csproj" />
+    <Project Path="../RxSpatial.Index/RxSpatial.Index.csproj" />
+    <Project Path="../RxSpatial/RxSpatial.csproj" />
+  </Folder>
+</Solution>

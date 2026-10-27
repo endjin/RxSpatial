@@ -35,8 +35,8 @@ $SkipPublish = $true
 # Build process configuration
 #
 
-# The full solution holds Windows-only projects (RxSpatial.SqlServer, its tests and benchmarks, and the
-# WPF demo). Linux and macOS CI legs point this at 'solutions/RxSpatial.CrossPlatform.slnf' instead. This
+# The solution holds one Windows-only project, the WPF demo (the archived SQL Server projects are not in it).
+# Linux and macOS CI legs point this at 'solutions/RxSpatial.CrossPlatform.slnf' instead. This
 # environment variable is defined by this file, not by ZeroFailed.
 $SolutionToBuild = (Resolve-Path (Join-Path $here (property ZF_BUILD_DOTNET_SOLUTION_TO_BUILD "solutions/RxSpatial.slnx"))).Path
 $ProjectsToPublish = @()
@@ -48,7 +48,6 @@ $IncludeAssembliesInCodeCoverage = @(
     "RxSpatial"
     "RxSpatial.Geo"
     "RxSpatial.Index"
-    "RxSpatial.SqlServer"
 )
 
 # Synopsis: Build, Test, Analyse and Package

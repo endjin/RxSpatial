@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj" />
+    <ProjectReference Include="..\..\RxSpatial\RxSpatial.csproj" />
     <ProjectReference Include="..\RxSpatial.SqlServer\RxSpatial.SqlServer.csproj" />
   </ItemGroup>
 

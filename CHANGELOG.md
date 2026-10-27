@@ -109,7 +109,7 @@ RxSpatial has not been released as a package. The baseline for the changes below
 
 ### Deprecated
 
-- **`RxSpatial.SqlServer` (`RxSqlGeography`, `RxSqlGeometry`)** is kept as the Windows-only fidelity reference and migration path. New code should use the cross-platform `RxGeography`/`RxGeometry` with `RxSpatial.Geo` shapes. Microsoft.SqlServer.Types 170.x ships under pre-release (CTP) licence terms.
+- **`RxSpatial.SqlServer` (`RxSqlGeography`, `RxSqlGeometry`)** is kept as the Windows-only fidelity reference and migration path. New code should use the cross-platform `RxGeography`/`RxGeometry` with `RxSpatial.Geo` shapes. Microsoft.SqlServer.Types 170.x ships under pre-release (CTP) licence terms. The package, its tests and its benchmarks are archived in `solutions/archive/`, with their own `RxSpatial.Archive.slnx`. They are no longer in the main solution, so CI no longer builds, tests or inventories them.
 
 ### Removed
 

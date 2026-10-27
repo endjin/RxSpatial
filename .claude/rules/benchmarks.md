@@ -1,7 +1,7 @@
 ---
 paths:
   - "solutions/RxSpatial.Benchmarks/**"
-  - "solutions/RxSpatial.SqlServer.Benchmarks/**"
+  - "solutions/archive/RxSpatial.SqlServer.Benchmarks/**"
   - "solutions/RxSpatial.Experiments/**"
   - "docs/performance.md"
 ---

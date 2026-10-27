@@ -7,14 +7,14 @@
 RxSpatial: the SIGMOD/DEBS 2016 / ICDE 2017 research library for reactive spatio-temporal
 queries. `RxGeography` (geodetic) and `RxGeometry` (planar) moving objects push locations;
 continuous distance/intersect/intersection queries notify observers. .NET 10 / C# 14 /
-System.Reactive 7. The core is cross-platform; only `RxSpatial.SqlServer` and the WPF demo are
+System.Reactive 7. The core is cross-platform; only the WPF demo and the archived `RxSpatial.SqlServer` projects are
 Windows-only. House .NET standards: `.endjin/llm-kb/dotnet` (gitignored) — consult before .NET work.
 
 ## Commands
 
 ```shell
 dotnet build solutions/RxSpatial.slnx -c Release --no-incremental   # Windows only (slnx has Windows-only projects); must be 0 warnings
-dotnet test --solution solutions/RxSpatial.slnx -c Release   # all tests (~379: RxSpatial.Tests + RxSpatial.SqlServer.Tests); 1 golden recorder skipped by design
+dotnet test --solution solutions/RxSpatial.slnx -c Release   # all tests (~287, RxSpatial.Tests; the archived SQL Server projects are not built)
 dotnet run --project solutions/RxSpatial.Examples -c Release   # end-to-end smoke test: must print "All scenarios passed."
 ./build.ps1                                               # the CI build (ZeroFailed, pwsh 7): build, test + coverage, smoke, SBOM
 ./build.ps1 -Tasks Build,Test                             # quicker local CI check
@@ -55,11 +55,16 @@ dotnet run --project solutions/RxSpatial.Experiments -c Release -- all     # ICD
 - `solutions/RxSpatial` — core: facades, engine, backends, options, Rx extensions.
 - `solutions/RxSpatial.Geo` — zero-dep clean-room shapes and maths (geodetic + planar).
 - `solutions/RxSpatial.Index` — zero-dep R*-tree + RUM-tree.
-- `solutions/RxSpatial.SqlServer` — Windows-only `RxSqlGeography`/`RxSqlGeometry` over Microsoft.SqlServer.Types.
+- `solutions/archive/RxSpatial.SqlServer` — Windows-only `RxSqlGeography`/`RxSqlGeometry` over Microsoft.SqlServer.Types.
 - `solutions/RxSpatial.Examples` (any OS), `solutions/MapRunRxSpatial` (WPF + WebView2 demo).
-- `solutions/RxSpatial.Tests` (any OS), `solutions/RxSpatial.SqlServer.Tests` (Windows), `solutions/RxSpatial.Tests/Golden/*.json`.
-- `solutions/RxSpatial.Benchmarks`, `solutions/RxSpatial.SqlServer.Benchmarks` (Windows) — BenchmarkDotNet suites;
+- `solutions/RxSpatial.Tests` (any OS), `solutions/archive/RxSpatial.SqlServer.Tests` (Windows), `solutions/RxSpatial.Tests/Golden/*.json`.
+- `solutions/RxSpatial.Benchmarks`, `solutions/archive/RxSpatial.SqlServer.Benchmarks` (Windows) — BenchmarkDotNet suites;
   `solutions/RxSpatial.Experiments` — the ICDE experiments harness.
+- `solutions/archive/` — the Windows-only SQL Server projects (`RxSpatial.SqlServer`, `.Tests`, `.Benchmarks`).
+  They are not in `RxSpatial.slnx` (so not in CI, the SBOM or the test count); `archive/RxSpatial.Archive.slnx`
+  holds them. They use engine internals (`InternalsVisibleTo`): after changing the engine or backends, run:
+  `dotnet test --project solutions/archive/RxSpatial.SqlServer.Tests/RxSpatial.SqlServer.Tests.csproj -c Release`
+  (~92 tests; 1 golden recorder skipped by design).
 - `docs/prototypes` — never-compiled 2016 archives: do not modernise.
 - `solutions/RxSpatial.CrossPlatform.slnf` lists every cross-platform project: add new ones to it AND the slnx.
 
