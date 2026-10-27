@@ -1,12 +1,11 @@
 ---
 paths:
-  - "solutions/src/RxSpatial.Geo/**"
-  - "solutions/src/RxSpatial/*Operations.cs"
-  - "solutions/src/RxSpatial.SqlServer/**"
-  - "solutions/tests/RxSpatial.Tests/Geo/**"
-  - "solutions/tests/RxSpatial.Tests/Golden/**"
-  - "solutions/tests/RxSpatial.SqlServer.Tests/Golden/**"
-  - "solutions/tests/golden/**"
+  - "solutions/RxSpatial.Geo/**"
+  - "solutions/RxSpatial/*Operations.cs"
+  - "solutions/RxSpatial.SqlServer/**"
+  - "solutions/RxSpatial.Tests/Geo/**"
+  - "solutions/RxSpatial.Tests/Golden/**"
+  - "solutions/RxSpatial.SqlServer.Tests/Golden/**"
 ---
 
 # Shape maths (`RxSpatial.Geo`) and SQL Server fidelity
@@ -28,7 +27,7 @@ paths:
   a differential run: print every public operation's raw result bits over seeded random pairs,
   build against a `git worktree` of the old commit and against HEAD, then `cmp`.
 - `InternalsVisibleTo` names the `RxSpatial.Tests` assembly — keep that assembly name.
-- Golden values: `solutions/tests/golden/{geodetic,planar}.json` were recorded from SQL Server by
+- Golden values: `solutions/RxSpatial.Tests/Golden/{geodetic,planar}.json` were recorded from SQL Server by
   `GoldenValueRecorder` (RxSpatial.SqlServer.Tests, only with `RXSPATIAL_RECORD_GOLDEN=1`).
   `GoldenFidelityTests` (any OS) check Geo within budget: point–point max(0.01 %, 1 cm);
   point–circle/polygon 0.5 m (+ SQL's 128-gon chord sag for circles); areas 0.15 %; intersects

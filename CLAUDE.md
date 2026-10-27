@@ -15,21 +15,21 @@ Windows-only. House .NET standards: `.endjin/llm-kb/dotnet` (gitignored) — con
 ```shell
 dotnet build solutions/RxSpatial.slnx -c Release --no-incremental   # Windows only (slnx has Windows-only projects); must be 0 warnings
 dotnet test --solution solutions/RxSpatial.slnx -c Release   # all tests (~379: RxSpatial.Tests + RxSpatial.SqlServer.Tests); 1 golden recorder skipped by design
-dotnet run --project solutions/samples/RxSpatial.Examples -c Release   # end-to-end smoke test: must print "All scenarios passed."
+dotnet run --project solutions/RxSpatial.Examples -c Release   # end-to-end smoke test: must print "All scenarios passed."
 ./build.ps1                                               # the CI build (ZeroFailed, pwsh 7): build, test + coverage, smoke, SBOM
 ./build.ps1 -Tasks Build,Test                             # quicker local CI check
 
 # Cross-platform projects only (what Linux/macOS CI builds)
 dotnet build solutions/RxSpatial.CrossPlatform.slnf -c Release
-dotnet test --project solutions/tests/RxSpatial.Tests/RxSpatial.Tests.csproj -c Release
+dotnet test --project solutions/RxSpatial.Tests/RxSpatial.Tests.csproj -c Release
 
 # Linux check of the committed HEAD (Docker Desktop, Linux engine, from bash)
 git archive HEAD | docker run --rm -i mcr.microsoft.com/dotnet/sdk:10.0 bash -c \
-  'mkdir /w && tar -xf - -C /w && cd /w && dotnet test --project solutions/tests/RxSpatial.Tests/RxSpatial.Tests.csproj -c Release && dotnet run --project solutions/samples/RxSpatial.Examples -c Release'
+  'mkdir /w && tar -xf - -C /w && cd /w && dotnet test --project solutions/RxSpatial.Tests/RxSpatial.Tests.csproj -c Release && dotnet run --project solutions/RxSpatial.Examples -c Release'
 
 # Benchmarks / experiments (long-running; see .claude/rules/benchmarks.md)
-dotnet run --project solutions/benchmarks/RxSpatial.Benchmarks -c Release -- --filter "*Geo*"
-dotnet run --project solutions/benchmarks/RxSpatial.Experiments -c Release -- all     # ICDE 2017 Figs 6–12, ~45 min
+dotnet run --project solutions/RxSpatial.Benchmarks -c Release -- --filter "*Geo*"
+dotnet run --project solutions/RxSpatial.Experiments -c Release -- all     # ICDE 2017 Figs 6–12, ~45 min
 ```
 
 ## Workflow rules
@@ -50,14 +50,16 @@ dotnet run --project solutions/benchmarks/RxSpatial.Experiments -c Release -- al
 
 - Root: build/CI (`build.ps1`, `.zf/`, `.github/`, `global.json`, `GitVersion.yml`), `.editorconfig`, docs.
   `solutions/`: the slnx/slnf, `Directory.Build.props`, `Directory.Packages.props`, `nuget.config`,
-  and the `src`/`samples`/`tests`/`benchmarks` projects. Build output goes to `solutions/artifacts/`.
-- `solutions/src/RxSpatial` — core: facades, engine, backends, options, Rx extensions.
-- `solutions/src/RxSpatial.Geo` — zero-dep clean-room shapes and maths (geodetic + planar).
-- `solutions/src/RxSpatial.Index` — zero-dep R*-tree + RUM-tree.
-- `solutions/src/RxSpatial.SqlServer` — Windows-only `RxSqlGeography`/`RxSqlGeometry` over Microsoft.SqlServer.Types.
-- `solutions/samples/RxSpatial.Examples` (any OS), `solutions/samples/MapRunRxSpatial` (WPF + WebView2 demo).
-- `solutions/tests/RxSpatial.Tests` (any OS), `solutions/tests/RxSpatial.SqlServer.Tests` (Windows), `solutions/tests/golden/*.json`.
-- `solutions/benchmarks/` — BenchmarkDotNet suites + the ICDE experiments harness.
+  and one folder per project (flat; the slnx groups them into `src`/`samples`/`tests`/`benchmarks`
+  solution folders). Build output goes to `solutions/artifacts/`.
+- `solutions/RxSpatial` — core: facades, engine, backends, options, Rx extensions.
+- `solutions/RxSpatial.Geo` — zero-dep clean-room shapes and maths (geodetic + planar).
+- `solutions/RxSpatial.Index` — zero-dep R*-tree + RUM-tree.
+- `solutions/RxSpatial.SqlServer` — Windows-only `RxSqlGeography`/`RxSqlGeometry` over Microsoft.SqlServer.Types.
+- `solutions/RxSpatial.Examples` (any OS), `solutions/MapRunRxSpatial` (WPF + WebView2 demo).
+- `solutions/RxSpatial.Tests` (any OS), `solutions/RxSpatial.SqlServer.Tests` (Windows), `solutions/RxSpatial.Tests/Golden/*.json`.
+- `solutions/RxSpatial.Benchmarks`, `solutions/RxSpatial.SqlServer.Benchmarks` (Windows) — BenchmarkDotNet suites;
+  `solutions/RxSpatial.Experiments` — the ICDE experiments harness.
 - `docs/prototypes` — never-compiled 2016 archives: do not modernise.
 - `solutions/RxSpatial.CrossPlatform.slnf` lists every cross-platform project: add new ones to it AND the slnx.
 
@@ -74,7 +76,7 @@ dotnet run --project solutions/benchmarks/RxSpatial.Experiments -c Release -- al
 - Mixing `RxGeography` and `RxGeometry` is a compile error by design (no shared base type).
 - Distances are `double`; NaN when no distance exists (empty shape, non-converging geodesic,
   SQL Null). NaN fails every comparison, so classifiers must test for it first.
-- Fidelity against SQL Server is pinned by `solutions/tests/golden/*.json` (see `.claude/rules/geo.md`).
+- Fidelity against SQL Server is pinned by `solutions/RxSpatial.Tests/Golden/*.json` (see `.claude/rules/geo.md`).
 
 ## Gotchas
 

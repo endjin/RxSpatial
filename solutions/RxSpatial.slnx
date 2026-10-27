@@ -1,21 +1,21 @@
 <Solution>
   <Folder Name="/benchmarks/">
-    <Project Path="benchmarks/RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj" />
-    <Project Path="benchmarks/RxSpatial.Experiments/RxSpatial.Experiments.csproj" />
-    <Project Path="benchmarks/RxSpatial.SqlServer.Benchmarks/RxSpatial.SqlServer.Benchmarks.csproj" />
+    <Project Path="RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj" />
+    <Project Path="RxSpatial.Experiments/RxSpatial.Experiments.csproj" />
+    <Project Path="RxSpatial.SqlServer.Benchmarks/RxSpatial.SqlServer.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/samples/">
-    <Project Path="samples/MapRunRxSpatial/MapRunRxSpatial.csproj" />
-    <Project Path="samples/RxSpatial.Examples/RxSpatial.Examples.csproj" />
+    <Project Path="MapRunRxSpatial/MapRunRxSpatial.csproj" />
+    <Project Path="RxSpatial.Examples/RxSpatial.Examples.csproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/RxSpatial.Geo/RxSpatial.Geo.csproj" />
-    <Project Path="src/RxSpatial.Index/RxSpatial.Index.csproj" />
-    <Project Path="src/RxSpatial.SqlServer/RxSpatial.SqlServer.csproj" />
-    <Project Path="src/RxSpatial/RxSpatial.csproj" />
+    <Project Path="RxSpatial.Geo/RxSpatial.Geo.csproj" />
+    <Project Path="RxSpatial.Index/RxSpatial.Index.csproj" />
+    <Project Path="RxSpatial.SqlServer/RxSpatial.SqlServer.csproj" />
+    <Project Path="RxSpatial/RxSpatial.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/RxSpatial.SqlServer.Tests/RxSpatial.SqlServer.Tests.csproj" />
-    <Project Path="tests/RxSpatial.Tests/RxSpatial.Tests.csproj" />
+    <Project Path="RxSpatial.SqlServer.Tests/RxSpatial.SqlServer.Tests.csproj" />
+    <Project Path="RxSpatial.Tests/RxSpatial.Tests.csproj" />
   </Folder>
 </Solution>

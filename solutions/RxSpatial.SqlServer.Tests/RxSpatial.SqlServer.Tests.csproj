@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
-    <ProjectReference Include="..\..\src\RxSpatial.SqlServer\RxSpatial.SqlServer.csproj" />
+    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj" />
+    <ProjectReference Include="..\RxSpatial.SqlServer\RxSpatial.SqlServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,7 +27,7 @@
          read the files this project records (Golden/GoldenValueRecorder.cs) and guards. -->
     <Compile Include="..\RxSpatial.Tests\Golden\GoldenFile.cs" Link="Golden\GoldenFile.cs" />
     <Compile Include="..\RxSpatial.Tests\Golden\GoldenCases.cs" Link="Golden\GoldenCases.cs" />
-    <None Include="..\golden\*.json" Link="golden\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\RxSpatial.Tests\Golden\*.json" Link="golden\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

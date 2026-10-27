@@ -12,13 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RxSpatial.Geo\RxSpatial.Geo.csproj" />
-    <ProjectReference Include="..\..\src\RxSpatial.Index\RxSpatial.Index.csproj" />
-    <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Shared\PowerThrottling.cs" Link="Shared\PowerThrottling.cs" />
+    <ProjectReference Include="..\RxSpatial.Geo\RxSpatial.Geo.csproj" />
+    <ProjectReference Include="..\RxSpatial.Index\RxSpatial.Index.csproj" />
+    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj" />
   </ItemGroup>
 
 </Project>

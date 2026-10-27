@@ -8,11 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
+    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\PowerThrottling.cs" Link="Shared\PowerThrottling.cs" />
+    <Compile Include="..\RxSpatial.Benchmarks\PowerThrottling.cs" Link="Shared\PowerThrottling.cs" />
   </ItemGroup>
 
 </Project>

@@ -2,13 +2,13 @@
   "solution": {
     "path": "RxSpatial.slnx",
     "projects": [
-      "benchmarks/RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj",
-      "benchmarks/RxSpatial.Experiments/RxSpatial.Experiments.csproj",
-      "samples/RxSpatial.Examples/RxSpatial.Examples.csproj",
-      "src/RxSpatial.Geo/RxSpatial.Geo.csproj",
-      "src/RxSpatial.Index/RxSpatial.Index.csproj",
-      "src/RxSpatial/RxSpatial.csproj",
-      "tests/RxSpatial.Tests/RxSpatial.Tests.csproj"
+      "RxSpatial.Benchmarks/RxSpatial.Benchmarks.csproj",
+      "RxSpatial.Experiments/RxSpatial.Experiments.csproj",
+      "RxSpatial.Examples/RxSpatial.Examples.csproj",
+      "RxSpatial.Geo/RxSpatial.Geo.csproj",
+      "RxSpatial.Index/RxSpatial.Index.csproj",
+      "RxSpatial/RxSpatial.csproj",
+      "RxSpatial.Tests/RxSpatial.Tests.csproj"
     ]
   }
 }

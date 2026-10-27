@@ -12,7 +12,7 @@ using Shouldly;
 namespace RxSpatial.Tests.Geo;
 
 /// <summary>
-/// The clean-room shape maths against SQL Server's recorded results (solutions/tests/golden). They read
+/// The clean-room shape maths against SQL Server's recorded results (solutions/RxSpatial.Tests/Golden). They read
 /// JSON, so they run on any operating system. The budget:
 /// <list type="bullet">
 /// <item>point–point distance within max(0.01 %, 1 cm);</item>

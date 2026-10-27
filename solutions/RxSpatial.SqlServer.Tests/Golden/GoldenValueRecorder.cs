@@ -8,8 +8,8 @@ using RxSpatial.Tests.Golden;
 namespace RxSpatial.SqlServer.Tests.Golden;
 
 /// <summary>
-/// Records SQL Server's results for <see cref="GoldenCases"/> into <c>solutions/tests/golden/geodetic.json</c>
-/// and <c>solutions/tests/golden/planar.json</c>. It writes into the source tree, so it runs only when
+/// Records SQL Server's results for <see cref="GoldenCases"/> into <c>solutions/RxSpatial.Tests/Golden/geodetic.json</c>
+/// and <c>solutions/RxSpatial.Tests/Golden/planar.json</c>. It writes into the source tree, so it runs only when
 /// <c>RXSPATIAL_RECORD_GOLDEN=1</c>; otherwise it is reported as skipped.
 /// </summary>
 /// <remarks>
@@ -22,7 +22,7 @@ namespace RxSpatial.SqlServer.Tests.Golden;
 public class GoldenValueRecorder
 {
     private const string Notes =
-        "Golden values recorded from SQL Server by solutions/tests/RxSpatial.SqlServer.Tests/Golden/GoldenValueRecorder.cs " +
+        "Golden values recorded from SQL Server by solutions/RxSpatial.SqlServer.Tests/Golden/GoldenValueRecorder.cs " +
         "(set RXSPATIAL_RECORD_GOLDEN=1 and run the tests to re-record). Schema: see GoldenFile.cs. " +
         "Circles are Point.STBuffer(radius): SQL Server approximates them with a 128-vertex polygon.";
 
@@ -30,7 +30,7 @@ public class GoldenValueRecorder
     [EnvironmentVariableCondition("RXSPATIAL_RECORD_GOLDEN", "1")]
     public void RecordGoldenValues()
     {
-        string directory = Path.Combine(SolutionsRoot(), "tests", "golden");
+        string directory = Path.Combine(SolutionsRoot(), "RxSpatial.Tests", "Golden");
         Directory.CreateDirectory(directory);
 
         GoldenFile geodetic = new(

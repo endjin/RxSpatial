@@ -88,7 +88,7 @@ task AddCovenantDesignTimeBuildFlag -After PrepareCovenantMetadata {
 # Synopsis: Runs the end-to-end examples console app, which exits non-zero unless every scenario passes.
 task RunExamplesSmokeTest -If { !$SkipTest } {
     exec {
-        dotnet run --project (Join-Path $here "solutions/samples/RxSpatial.Examples") `
+        dotnet run --project (Join-Path $here "solutions/RxSpatial.Examples") `
                    --configuration $Configuration `
                    --no-build
     }

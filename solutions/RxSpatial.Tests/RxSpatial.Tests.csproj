@@ -16,14 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RxSpatial\RxSpatial.csproj" />
-    <ProjectReference Include="..\..\src\RxSpatial.Geo\RxSpatial.Geo.csproj" />
-    <ProjectReference Include="..\..\src\RxSpatial.Index\RxSpatial.Index.csproj" />
+    <ProjectReference Include="..\RxSpatial\RxSpatial.csproj" />
+    <ProjectReference Include="..\RxSpatial.Geo\RxSpatial.Geo.csproj" />
+    <ProjectReference Include="..\RxSpatial.Index\RxSpatial.Index.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- SQL Server golden values (solutions/tests/golden), read by the fidelity tests on any OS. -->
-    <None Include="..\golden\*.json" Link="golden\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- SQL Server golden values (Golden/*.json), read by the fidelity tests on any OS. -->
+    <None Update="Golden\*.json" Link="golden\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

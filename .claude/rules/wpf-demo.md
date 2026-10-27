@@ -1,9 +1,9 @@
 ---
 paths:
-  - "solutions/samples/MapRunRxSpatial/**"
+  - "solutions/MapRunRxSpatial/**"
 ---
 
-# WPF demo (`solutions/samples/MapRunRxSpatial`)
+# WPF demo (`solutions/MapRunRxSpatial`)
 
 WPF + WebView2 hosting MapLibre GL JS (`wwwroot/map.html`); `MapLibreMap` is the C#↔page bridge.
 Five tabs: Geofence, Near area, Near vehicle, Convoy link, Overlap (mapped to scenarios by index).
