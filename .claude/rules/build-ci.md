@@ -6,6 +6,7 @@ paths:
   - "GitVersion.yml"
   - "solutions/Directory.Build.props"
   - "solutions/Directory.Packages.props"
+  - "solutions/archive/Directory.Packages.props"
   - "global.json"
   - "solutions/*.slnx"
   - "solutions/*.slnf"

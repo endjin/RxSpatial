@@ -1,0 +1,9 @@
+<Project>
+  <!-- The archived SQL Server projects share every version in ../Directory.Packages.props and add
+       the ones only they use, so the main solution's package list carries no SQL Server dependency. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.SqlServer.Types" Version="170.1000.7" />
+  </ItemGroup>
+</Project>

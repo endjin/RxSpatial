@@ -104,6 +104,8 @@ dotnet run --project solutions/RxSpatial.Experiments -c Release -- all     # ICD
   `global.json` is its single version knob. Never add `PackageVersion` Include/Update for
   `MSTest.*`/`Microsoft.Testing.*` (Include → NU1506; Update in a csproj is a no-op). Visual
   Studio's package-update UI writes those Update blocks into the test csproj — delete them.
+  Versions only the archived projects use (`Microsoft.SqlServer.Types`) live in
+  `solutions/archive/Directory.Packages.props`, which imports the main one.
 - Tests use Microsoft.Testing.Platform (global.json): `dotnet test` needs `--project <csproj>` or
   `--solution <slnx|slnf>`, not a positional path.
 - Never build the slnx, `*.SqlServer*` or the WPF project on Linux/macOS — use the `.slnf`.

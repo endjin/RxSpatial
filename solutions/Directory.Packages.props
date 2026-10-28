@@ -15,7 +15,6 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.SqlServer.Types" Version="170.1000.7" />
     <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="System.Reactive" Version="7.0.0" />
