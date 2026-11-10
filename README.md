@@ -122,7 +122,6 @@ Every project is a folder under `solutions/`. [Repository layout](docs/repositor
 | [Performance](docs/performance.md) | The profiling-led performance and memory work, with before and after measurements. |
 | [Build and CI](docs/build-and-ci.md) | The `build.ps1` build, the GitHub Actions workflows and the repository settings they need. |
 | [Repository layout](docs/repository-layout.md) | Every project and where it lives. |
-| [The papers](docs/papers/README.md) | The four publications. |
 | [CHANGELOG](CHANGELOG.md) | Every change since the 2016 code, including the breaking changes and the modernisation notes. |
 
 ## Research and citation
