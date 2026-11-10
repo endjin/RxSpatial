@@ -46,3 +46,4 @@ _local-nuget-feed/
 dotnet-*.log
 *.diag
 *.sbom.*
+docs/papers/
