@@ -9,7 +9,7 @@ $env:ZF_BUILD_DOTNET_SOLUTION_TO_BUILD = 'solutions/RxSpatial.CrossPlatform.slnf
 ./build.ps1 -Tasks Build,Test                                 # what the Linux and macOS CI jobs run
 ```
 
-The first run installs the `InvokeBuild` and `ZeroFailed` PowerShell modules from the PowerShell Gallery, downloads the ZeroFailed extensions into `.zf/extensions`, and installs the .NET global tools that the build needs (GitVersion, dotnet-coverage, ReportGenerator, Covenant). The build:
+The first run installs the `InvokeBuild` and `ZeroFailed` PowerShell modules from the PowerShell Gallery, downloads the ZeroFailed extensions into `.zf/extensions`, and installs the .NET global tools that the build needs (GitVersion, dotnet-coverage, ReportGenerator, Covenant). The build: ZeroFailed 2 records the exact commit of each extension it installed in `.zf/extensions.lock.json`, which is committed. To move to newer extensions, delete `.zf/extensions`, run the build and commit the updated lock file.
 
 1. **Version:** computes the version with GitVersion (`GitVersion.yml`). Until the first release tag, `main` builds `0.1.0-preview.<n>`.
 2. **Build:** restores and builds the solution in Release. Warnings are errors.
