@@ -1,9 +1,7 @@
 <Project>
-
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-
   <!-- The test stack (MSTest.TestFramework/TestAdapter, Microsoft.Testing.Platform and its
        CodeCoverage/TrxReport extensions) is versioned by the MSTest.Sdk entry in global.json:
        the SDK contributes its own PackageVersion items under CPM, so listing them here would
@@ -11,13 +9,12 @@
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="GeographicLib.NET" Version="2.3.2" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
-
 </Project>
