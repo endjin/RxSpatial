@@ -274,17 +274,26 @@ internal sealed class MovingObjectManager
     /// </summary>
     private void OnTimer(object? sender, EventArgs e)
     {
-        for (int ran = 0; clock.Elapsed >= nextTickDue; ran++)
+        // The ticks' map commands go out as one message when the firing ends.
+        map.BeginBatch();
+        try
         {
-            if (ran == MaxTicksPerFiring)
+            for (int ran = 0; clock.Elapsed >= nextTickDue; ran++)
             {
-                // Far behind (the UI thread was blocked): carry on from now rather than race.
-                nextTickDue = clock.Elapsed + tickPeriod;
-                break;
-            }
+                if (ran == MaxTicksPerFiring)
+                {
+                    // Far behind (the UI thread was blocked): carry on from now rather than race.
+                    nextTickDue = clock.Elapsed + tickPeriod;
+                    break;
+                }
 
-            Tick();
-            nextTickDue += tickPeriod;
+                Tick();
+                nextTickDue += tickPeriod;
+            }
+        }
+        finally
+        {
+            map.EndBatch();
         }
 
         TimeSpan untilNext = nextTickDue - clock.Elapsed;

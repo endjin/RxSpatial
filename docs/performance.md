@@ -45,7 +45,7 @@ The core moved from `Microsoft.SqlServer.Types` to the clean-room, zero-dependen
 - areas within 0.125 %;
 - no Intersects disagreements.
 
-The fidelity budget is in the README. Per operation (`SqlVsGeoOperationsBenchmarks`):
+The fidelity budget is in [SQL Server types and fidelity](sql-server.md). Per operation (`SqlVsGeoOperationsBenchmarks`):
 
 | Operation                | SQL Server  | Geo                           | Allocated (SQL / Geo) |
 |--------------------------|-------------|-------------------------------|-----------------------|
@@ -168,6 +168,25 @@ Before → after, MB:
 | Convoy link, 50/s               | 250 → 152       | 175 → 84    | 196 → 106 | 424 → 326      | 64 → 19      |
 
 CPU did not regress: on Overlap at 50/s the UI thread went 11.1 → 9.2 %, the renderer 106 → 96 % and the GPU process 75 → 63 %. A 5-minute soak (45 tab switches) shows flat managed and JS heaps, DOM nodes and event listeners.
+
+## 7. WPF demo: map flush overheads
+
+A dotTrace timeline of an 18-minute session showed two hotspots in `MapLibreMap`. `Append` spent 2.4 s in `Dispatcher.BeginInvoke`, because the first command of every tick posted a dispatcher operation to schedule the flush. `Flush` spent 0.19 s of its 1.25 s reading `WebView2.CoreWebView2`, which goes through the COM controller on every read. Together they are about 0.25 % of one core.
+
+Changes:
+1. **The replay flushes its own batch.** `MovingObjectManager.OnTimer` brackets its ticks with `MapLibreMap.BeginBatch` and `EndBatch`, and `EndBatch` sends the batch directly. Commands from click handlers still schedule a flush with `BeginInvoke`.
+2. **`CoreWebView2` is read once,** after `EnsureCoreWebView2Async`, and kept in a field.
+
+UI-thread ms per second from the `MapRunRxSpatial` meter, 60 s per run at 25 updates/s, in run order:
+
+| Scenario  | Counter    | Baseline | Candidate | Baseline again |
+|-----------|------------|----------|-----------|----------------|
+| Geofence  | tick busy  | 1.83     | 1.44      | 1.25           |
+| Geofence  | send busy  | 4.28     | 4.05      | 2.84           |
+| Overlap   | tick busy  | 7.43     | 6.74      | 5.38           |
+| Overlap   | send busy  | 30.77    | 29.19     | 21.90          |
+
+The two baseline runs differ by up to 30 %, which is more than the change. The saving is real work removed (one dispatcher operation per tick and one COM call per flush), but it is too small to measure end to end on this machine.
 
 ## Measuring on this machine
 

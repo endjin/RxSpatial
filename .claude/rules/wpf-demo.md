@@ -28,7 +28,9 @@ Five tabs: Geofence, Near area, Near vehicle, Convoy link, Overlap (mapped to sc
 
 ## Map bridge (performance rules — see docs/performance.md §5–6)
 - One web message per dispatcher operation: `MapLibreMap` queues `MapCommand`s and posts one
-  JSON array after the handler returns. Never post per command. `MarkerCommand` sends only
+  JSON array after the handler returns. Never post per command. The replay timer brackets its
+  ticks with `BeginBatch`/`EndBatch` and flushes directly (no `BeginInvoke` per tick); other
+  callers get a flush scheduled with `BeginInvoke`. `CoreWebView2` is cached in a field. `MarkerCommand` sends only
   changed fields; outlines travel as integer micro-degree deltas (`OutlineWriter` ↔ `decodeRing`).
 - map.html caps data-driven repaints at 60/s (full rate while the map moves). Render-bound costs
   scale with display refresh rate (240 Hz here) — compare runs back to back only.

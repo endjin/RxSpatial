@@ -54,7 +54,12 @@ internal sealed class MapLibreMap
     private readonly OutlineWriter outlines = new();
     private readonly ArrayBufferWriter<byte> json = new(16 * 1024);
     private readonly Action flush;
+
+    // WebView2.CoreWebView2 goes through the COM controller on every read, so the instance is
+    // kept once it exists.
+    private CoreWebView2? core;
     private bool flushScheduled;
+    private bool batching;
     private bool ready;
 
     public MapLibreMap(WebView2 webView)
@@ -87,12 +92,13 @@ internal sealed class MapLibreMap
             userDataFolder: null,
             new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = BrowserArguments });
         await webView.EnsureCoreWebView2Async(environment);
-        webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+        core = webView.CoreWebView2;
+        core.SetVirtualHostNameToFolderMapping(
             "maprun.local",
             Path.Combine(AppContext.BaseDirectory, "wwwroot"),
             CoreWebView2HostResourceAccessKind.Deny);
-        webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
-        webView.CoreWebView2.Navigate("https://maprun.local/map.html");
+        core.WebMessageReceived += OnWebMessageReceived;
+        core.Navigate("https://maprun.local/map.html");
     }
 
     /// <summary>
@@ -106,7 +112,7 @@ internal sealed class MapLibreMap
     public void SetMinimized(bool minimized)
     {
         webView.Visibility = minimized ? Visibility.Hidden : Visibility.Visible;
-        if (webView.CoreWebView2 is { } core)
+        if (core is not null)
         {
             core.MemoryUsageTargetLevel = minimized
                 ? CoreWebView2MemoryUsageTargetLevel.Low
@@ -256,15 +262,31 @@ internal sealed class MapLibreMap
         Send(command);
     }
 
+    /// <summary>
+    /// Holds back the commands issued until <see cref="EndBatch"/>, which sends them as one
+    /// message. The replay brackets its ticks with these, so the 25-50 ticks a second post no
+    /// dispatcher operation. Commands from anywhere else are still flushed by a dispatcher
+    /// operation.
+    /// </summary>
+    public void BeginBatch() => batching = true;
+
+    /// <summary>Sends the commands issued since <see cref="BeginBatch"/>, once the map is ready.</summary>
+    public void EndBatch()
+    {
+        batching = false;
+        if (ready)
+            Flush();
+    }
+
     private void Append(MapCommand command)
     {
         batch.Add(command);
 
-        // Flushed once the current dispatcher operation (the tick or the click handler) has
-        // returned; Normal runs before the next tick, which the timer raises at Background.
-        // Before the map is ready the batch just grows; upserts are merged, so it is bounded
-        // by the number of vehicles, pairs and zones plus the user's own actions.
-        if (!flushScheduled && ready)
+        // Flushed once the current dispatcher operation (a click handler, say) has returned;
+        // Normal runs before the next tick, which the timer raises at Background. Before the
+        // map is ready the batch just grows; upserts are merged, so it is bounded by the
+        // number of vehicles, pairs and zones plus the user's own actions.
+        if (!flushScheduled && ready && !batching)
         {
             flushScheduled = true;
             webView.Dispatcher.BeginInvoke(DispatcherPriority.Normal, flush);
@@ -274,7 +296,7 @@ internal sealed class MapLibreMap
     private void Flush()
     {
         flushScheduled = false;
-        if (batch.Count == 0)
+        if (batch.Count == 0 || core is null)
             return;
 
         long start = DemoMetrics.BeginSend();
@@ -291,7 +313,7 @@ internal sealed class MapLibreMap
         batch.Clear();
         batchIndex.Clear();
         string message = Encoding.UTF8.GetString(json.WrittenSpan);
-        webView.CoreWebView2.PostWebMessageAsJson(message);
+        core.PostWebMessageAsJson(message);
         DemoMetrics.EndSend(start, message);
     }
 
