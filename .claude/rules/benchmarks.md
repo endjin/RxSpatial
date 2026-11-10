@@ -23,7 +23,7 @@ paths:
 - Coverage runs: `--inProcess --invocationCount 512 --unrollFactor 1` (a Dry job undercounts loops).
 - Experiments harness (`solutions/RxSpatial.Experiments`): "SqlSpatial" = the List backend (the
   paper's own wording). On Geo every variant is sub-ms, so the paper's List-vs-tree gaps sit in
-  thread-pool dispatch noise; the SQL-backed reproduction is recorded in the README. Pre-fix
+  thread-pool dispatch noise; the SQL-backed reproduction is recorded in `docs/icde-experiments.md`. Pre-fix
   multi-object figures (including the "~4× STIntersects ceiling") ran throttled — re-run before
   relying on them. Max-load probes must run well past `QueueLimit` rounds and fail on mean
   latency > interval.
