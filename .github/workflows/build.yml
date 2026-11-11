@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       forcePublish:
-        description: When true the Publish stage will always be run, otherwise it only runs for tagged versions. (Publishing is currently disabled in .zf/config.ps1.)
+        description: When true the Publish stage will always be run, otherwise it only runs for tagged versions. Publish creates a GitHub release with the NuGet packages attached.
         required: false
         default: false
         type: boolean

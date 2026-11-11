@@ -41,6 +41,7 @@ Thumbs.db
 .zf/extensions/
 _codeCoverage/
 _packages/
+github-release-artefacts.log
 _local-nuget-feed/
 .nuget-packages/
 dotnet-*.log

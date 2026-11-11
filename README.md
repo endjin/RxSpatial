@@ -86,7 +86,7 @@ dotnet run --project solutions/MapRunRxSpatial
 
 It replays 20 recorded vehicle trajectories around Seattle, with one tab per scenario: geofences, distance to an area, distance between vehicles, convoy links and overlapping reaches. It needs the [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11) and internet access for the map. See [The map demo](docs/map-demo.md).
 
-RxSpatial is not released as a NuGet package. To use it in your own code, reference `solutions/RxSpatial/RxSpatial.csproj`.
+RxSpatial is not on nuget.org. Each [GitHub release](https://github.com/endjin/RxSpatial/releases) has the NuGet packages attached (`RxSpatial`, `RxSpatial.Geo` and `RxSpatial.Index`), which you can add to a local package source. You can also reference `solutions/RxSpatial/RxSpatial.csproj` directly.
 
 ## What is in the repository
 

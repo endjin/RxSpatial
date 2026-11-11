@@ -4,6 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>RxSpatial.Index</RootNamespace>
     <AssemblyName>RxSpatial.Index</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <Description>The R*-tree and RUM-tree spatial indexes that RxSpatial uses. No dependencies.</Description>
+    <PackageTags>spatial;index;rtree;r-star-tree;rum-tree</PackageTags>
   </PropertyGroup>
 
 </Project>

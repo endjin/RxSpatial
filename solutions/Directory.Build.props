@@ -7,12 +7,18 @@
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
     <AnalysisMode>Recommended</AnalysisMode>
-    <!-- RxSpatial is not released as a package yet, so nothing packs by default and the ZeroFailed
-         Package stage ('dotnet pack' over the solution) produces no output. To ship a library, set
-         IsPackable to true in its project file. -->
+    <!-- Nothing packs by default: the ZeroFailed Package stage runs 'dotnet pack' over the whole
+         solution, and the tests, examples, benchmarks, experiments and the WPF demo must not
+         become packages. The three libraries (RxSpatial, RxSpatial.Geo, RxSpatial.Index) opt in
+         with IsPackable=true in their own project files. -->
     <IsPackable>false</IsPackable>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Authors>The RxSpatial Authors and Contributors</Authors>
+    <PackageProjectUrl>https://github.com/endjin/RxSpatial</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/endjin/RxSpatial</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
 
 </Project>

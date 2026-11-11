@@ -11,6 +11,12 @@ $zerofailedExtensions = @(
         GitRepository = "https://github.com/zerofailed/ZeroFailed.Build.DotNet"
         GitRef = "main"
     }
+    @{
+        # Creates the GitHub release and attaches the NuGet packages to it (the Publish stage).
+        Name = "ZeroFailed.Build.GitHub"
+        GitRepository = "https://github.com/zerofailed/ZeroFailed.Build.GitHub"
+        GitRef = "main"
+    }
 )
 
 # Load the tasks and process
@@ -27,9 +33,9 @@ $SkipTest = $false
 $SkipTestReport = $false
 $SkipAnalysis = $false
 $SkipPackage = $false
-# Nothing is published yet: RxSpatial has never been released as a package. Keeping Publish skipped
-# means a tag build (FullBuildAndPublish) can never push to a NuGet feed by accident.
-$SkipPublish = $true
+# The Publish stage runs only when the entry task is FullBuildAndPublish, which CI uses for tag
+# builds (and for a manual run with forcePublish). It creates a GitHub release; see below.
+$SkipPublish = $false
 
 #
 # Build process configuration
@@ -42,6 +48,17 @@ $SolutionToBuild = (Resolve-Path (Join-Path $here (property ZF_BUILD_DOTNET_SOLU
 $ProjectsToPublish = @()
 $NuSpecFilesToPackage = @()
 $NugetPublishSource = property ZF_NUGET_PUBLISH_SOURCE "$here/_local-nuget-feed"
+
+# Publishing: the NuGet packages of the three libraries (RxSpatial, RxSpatial.Geo, RxSpatial.Index;
+# the only projects with IsPackable=true) are attached to a GitHub release named after the build's
+# version. They are not pushed to a NuGet feed: clearing the glob turns off the .NET extension's
+# PublishNuGetPackages task, and the GitHub extension then falls back to the same default glob
+# ('*.<SemVer>.nupkg' in $PackagesDir) to find the packages to attach.
+$NugetPackageNamesToPublishGlob = $null
+$PublishNuGetPackagesAsGitHubReleaseArtefacts = $true
+# Only a GitHub Actions run creates a release, so a local 'FullBuildAndPublish' cannot. Dry-run mode
+# (ZF_GITHUB_RELEASE_DRY_RUN_MODE=true) runs the task anywhere without creating or uploading anything.
+$CreateGitHubRelease = ($env:GITHUB_ACTIONS -eq 'true') -or $GitHubReleaseDryRunMode
 
 # Coverage covers the shipped libraries only, not the tests, benchmarks or samples.
 $IncludeAssembliesInCodeCoverage = @(

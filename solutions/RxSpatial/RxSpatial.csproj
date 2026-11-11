@@ -4,6 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>RxSpatial</RootNamespace>
     <AssemblyName>RxSpatial</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <Description>Reactive geospatial processing for .NET. Moving objects (RxGeography, RxGeometry) are Rx.NET observers of their own position and observable sources of continuous intersect, distance and intersection queries.</Description>
+    <PackageTags>rx;reactive;geospatial;spatial;geofence;gis;system.reactive</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

@@ -7,6 +7,9 @@
     <!-- Users build fences with these types, so every public member is documented;
          CS1591 turns a missing comment into a build error in Release. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <Description>The shapes and shape maths that RxSpatial uses: WGS84 points, exact circles and convex polygons, their planar twins, and intersects, intersection, distance, area and bounds. No dependencies.</Description>
+    <PackageTags>geospatial;spatial;geodesic;wgs84;geometry;gis</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

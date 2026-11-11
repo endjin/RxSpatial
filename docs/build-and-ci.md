@@ -15,8 +15,8 @@ The first run installs the `InvokeBuild` and `ZeroFailed` PowerShell modules fro
 2. **Build:** restores and builds the solution in Release. Warnings are errors.
 3. **Test:** runs `dotnet test` (Microsoft.Testing.Platform) under `dotnet-coverage`, writes TRX files to `TestResults/`, then runs the examples smoke test. After the build, a Cobertura report and a Markdown summary for the four libraries go to `_codeCoverage/`.
 4. **Analysis:** writes a [Covenant](https://github.com/patriksvensson/covenant) SBOM (`RxSpatial.sbom.json` and `.html`).
-5. **Package:** runs `dotnet pack`, which produces nothing: `Directory.Build.props` sets `IsPackable` to `false`, because RxSpatial is not released as a package. To ship a library, set `IsPackable` to `true` in its project file.
-6. **Publish:** turned off (`$SkipPublish` in `.zf/config.ps1`). The build never pushes to a NuGet feed.
+5. **Package:** runs `dotnet pack` over the solution and writes the NuGet packages to `_packages/`. Only the three libraries are packed (`RxSpatial`, `RxSpatial.Geo`, `RxSpatial.Index`): `Directory.Build.props` sets `IsPackable` to `false` for every project, and those three set it to `true` in their own project files. The tests, examples, benchmarks, experiments and the WPF demo are never packed.
+6. **Publish:** runs only when the entry task is `FullBuildAndPublish`, which CI uses for a tag build (or a manual run with `forcePublish`). It creates a GitHub release named after the version and attaches the three packages to it, using the [ZeroFailed.Build.GitHub](https://github.com/zerofailed/ZeroFailed.Build.GitHub) extension. The build never pushes to a NuGet feed. Only a GitHub Actions run creates a release; to rehearse the stage locally without creating anything, run `$env:ZF_GITHUB_RELEASE_DRY_RUN_MODE = 'true'; ./build.ps1 -Tasks FullBuildAndPublish`.
 
 GitHub Actions workflows (`.github/workflows`):
 
