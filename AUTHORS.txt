@@ -3,6 +3,7 @@ List of contributors to the RxSpatial library
 Abdeltawab M. Hendawi
 Youying Shi
 Hossam Fattah
+Jayant Gupta
 Jumana Karwa
 Mohamed H. Ali
 
