@@ -1,11 +1,12 @@
 <Project>
 
-  <!-- Each packable project carries the README.md from its own folder as its package README
-       (PackageReadmeFile in Directory.Build.props). This is in the .targets file, not the .props
-       file, because a project sets IsPackable in its own body, which is evaluated after
-       Directory.Build.props. -->
+  <!-- Each packable project carries the README.md from its own folder as its package README, and
+       the shared PackageIcon.png beside this file as its icon (PackageReadmeFile and PackageIcon
+       in Directory.Build.props). This is in the .targets file, not the .props file, because a
+       project sets IsPackable in its own body, which is evaluated after Directory.Build.props. -->
   <ItemGroup Condition="'$(IsPackable)' == 'true'">
     <None Update="README.md" Pack="true" PackagePath="/" />
+    <None Include="$(MSBuildThisFileDirectory)PackageIcon.png" Pack="true" PackagePath="/" Visible="false" />
   </ItemGroup>
 
   <Target Name="RequirePackageReadme" BeforeTargets="GenerateNuspec" Condition="'$(IsPackable)' == 'true' And !Exists('$(MSBuildProjectDirectory)/README.md')">
