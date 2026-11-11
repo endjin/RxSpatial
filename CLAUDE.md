@@ -8,7 +8,7 @@ RxSpatial: the SIGMOD/DEBS 2016 / ICDE 2017 research library for reactive spatio
 queries. `RxGeography` (geodetic) and `RxGeometry` (planar) moving objects push locations;
 continuous distance/intersect/intersection queries notify observers. .NET 10 / C# 14 /
 System.Reactive 7. The core is cross-platform; only the WPF demo and the archived `RxSpatial.SqlServer` projects are
-Windows-only. House .NET standards: `.endjin/llm-kb/dotnet` (gitignored) — consult before .NET work.
+Windows-only.
 
 ## Commands
 
