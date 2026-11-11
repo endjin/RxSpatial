@@ -4,7 +4,9 @@ RxSpatial is a .NET library for asking questions about things that move, and get
 
 You do not poll for the answer. Each moving object is an Rx.NET observer of its own position and an observable source of query results: push a new position in, and every query that involves the object pushes its new answer out.
 
-![The MapRun RxSpatial demo on the Geofence tab. The control panel on the left has the traffic controls, the area drawing buttons, the spatial index switch and the guidance for the tab. The map of Seattle on the right shows a purple dashed confinement area, a hatched restricted area and 20 numbered vehicles. Vehicles inside the restricted area or outside the confinement area are red diamonds, and the others are blue circles.](https://res.cloudinary.com/endjin/image/upload/v1792916244/assets/images/blog/2026/10/maprun-rxspatial.jpg)
+[![The MapRun RxSpatial demo on the Geofence tab. The control panel on the left has the traffic controls, the area drawing buttons, the spatial index switch and the guidance for the tab. The map of Seattle on the right shows a purple dashed confinement area, a hatched restricted area and 20 numbered vehicles. Vehicles inside the restricted area or outside the confinement area are red diamonds, and the others are blue circles.](https://res.cloudinary.com/endjin/image/upload/v1792916244/assets/images/blog/2026/10/maprun-rxspatial.jpg)](https://youtu.be/1NCQoFl3x_c)
+
+[Watch the two-minute demo video on YouTube](https://youtu.be/1NCQoFl3x_c)
 
 RxSpatial began as a research project, published at ACM SIGMOD, DEBS and SIGSPATIAL in 2016 and IEEE ICDE in 2017 (see [Research and citation](#research-and-citation)). endjin modernised the 2016 code in 2026: it now targets .NET 10 and System.Reactive 7, and the core runs on Windows, Linux and macOS with no native or SQL Server dependency.
 
