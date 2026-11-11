@@ -1,8 +1,8 @@
 # RxSpatial
 
-RxSpatial is a .NET library for asking questions about things that move, and getting the answer again every time they move. Is this vehicle inside that zone? How far is it from the depot? Which two vehicles are close enough to share a ride?
+RxSpatial is a .NET library for observing things in motion, and reacting when interesting stuff happens. Is this vehicle inside that zone? How far is it from the depot? Which two vehicles are close enough to share a ride?
 
-You do not poll for the answer. Each moving object is an Rx.NET observer of its own position and an observable source of query results: push a new position in, and every query that involves the object pushes its new answer out.
+Each moving object is an Rx.NET observer of its own position and an observable source of query results: push a new position in, and every query that involves the object pushes its new answer out.
 
 [![The MapRun RxSpatial demo on the Geofence tab. The control panel on the left has the traffic controls, the area drawing buttons, the spatial index switch and the guidance for the tab. The map of Seattle on the right shows a purple dashed confinement area, a hatched restricted area and 20 numbered vehicles. Vehicles inside the restricted area or outside the confinement area are red diamonds, and the others are blue circles.](https://res.cloudinary.com/endjin/image/upload/v1792916244/assets/images/blog/2026/10/maprun-rxspatial.jpg)](https://youtu.be/1NCQoFl3x_c)
 
